@@ -31,7 +31,7 @@
     <main class="main">
    
             <!-- brudcrumbs -->
-            <section class="common-v-padding pt-0">
+            <section class="breadcrumb-div">
                 <div class="container">
                     <ul class="breadcrumb-list">
                         <li> <a href="#">Home</a>
@@ -44,8 +44,10 @@
                             <a href="#">Armani Jacket New Black Color 2024 Model</a>
                         </li>
                     </ul>
-    
-    
+                </div>
+            </section>
+            <section class="common-v-padding pt-0">
+                <div class="container">   
                     <!-- product slider section -->
                     <div class="row">
                         <div class="col-md-5 pr-50">
@@ -134,7 +136,7 @@
                                 </div>
                                 <div class="product-favshare-div">
                                     <div class="product-favshare">
-                                        <button class="product-favt"><i class="fa-solid fa-heart-circle-plus"></i>Add to Favourites</button>
+                                        <button class="product-favt"><i class="fa-solid fa-heart-circle-plus"></i><span>Add to Favourites</span></button>
                                         <hr>
                                         <div class="dropdown">
                                             <a class="product-share dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -171,11 +173,8 @@
                     <div class="row">
     
                         <div class="col-lg-12 col-md-12 wow animate__animated animate__fadeIn" data-wow-delay=".4s">
-                            <div class="tab-content" id="myTabContent-1">
-                                <div class="tab-pane fade show active" id="tab-one-1" role="tabpanel"
-                                    aria-labelledby="tab-one-1">
-                                    <div class="carausel-4-columns-cover arrow-center position-relative">
-                                        <div class="slider-arrow slider-arrow-2 carausel-4-columns-arrow"
+                            <div class="carausel-4-columns-cover arrow-center position-relative">
+                                    <div class="slider-arrow slider-arrow-2 carausel-4-columns-arrow"
                                             id="carausel-4-columns-arrows"></div>
                                         <div class="carausel-4-columns carausel-arrow-center" id="carausel-4-columns">
                                             <div class="product-cart-wrap">
@@ -200,7 +199,7 @@
     
                                                     <div class="product-badges product-badge-position product-badges-mrg">
                                                         <span><i class="fi-rs-eye"></i></span> <span><i
-                                                                class="fi-rs-heart"></i></span>
+                                                                class="fi-rs-heart toggle-heart"></i></span>
                                                     </div>
                                                 </div>
                                                 <div class="product-content-wrap">
@@ -250,7 +249,7 @@
                                                     </div>
                                                     <div class="product-badges product-badge-position product-badges-mrg">
                                                         <span><i class="fi-rs-eye"></i></span> <span><i
-                                                                class="fi-rs-heart"></i></span>
+                                                                class="fi-rs-heart toggle-heart"></i></span>
                                                     </div>
                                                 </div>
                                                 <div class="product-content-wrap">
@@ -296,7 +295,7 @@
                                                     </div>
                                                     <div class="product-badges product-badge-position product-badges-mrg">
                                                         <span><i class="fi-rs-eye"></i></span> <span><i
-                                                                class="fi-rs-heart"></i></span>
+                                                                class="fi-rs-heart toggle-heart"></i></span>
                                                     </div>
                                                 </div>
                                                 <div class="product-content-wrap">
@@ -343,7 +342,7 @@
                                                     </div>
                                                     <div class="product-badges product-badge-position product-badges-mrg">
                                                         <span><i class="fi-rs-eye"></i></span> <span><i
-                                                                class="fi-rs-heart"></i></span>
+                                                                class="fi-rs-heart toggle-heart"></i></span>
                                                     </div>
                                                 </div>
                                                 <div class="product-content-wrap">
@@ -393,7 +392,7 @@
                                                     </div>
                                                     <div class="product-badges product-badge-position product-badges-mrg">
                                                         <span><i class="fi-rs-eye"></i></span> <span><i
-                                                                class="fi-rs-heart"></i></span>
+                                                                class="fi-rs-heart toggle-heart"></i></span>
                                                     </div>
                                                 </div>
                                                 <div class="product-content-wrap">
@@ -439,7 +438,7 @@
                                                     </div>
                                                     <div class="product-badges product-badge-position product-badges-mrg">
                                                         <span><i class="fi-rs-eye"></i></span> <span><i
-                                                                class="fi-rs-heart"></i></span>
+                                                                class="fi-rs-heart toggle-heart"></i></span>
                                                     </div>
                                                 </div>
                                                 <div class="product-content-wrap">
@@ -486,7 +485,7 @@
                                                     </div>
                                                     <div class="product-badges product-badge-position product-badges-mrg">
                                                         <span><i class="fi-rs-eye"></i></span> <span><i
-                                                                class="fi-rs-heart"></i></span>
+                                                                class="fi-rs-heart toggle-heart"></i></span>
                                                     </div>
                                                 </div>
                                                 <div class="product-content-wrap">
@@ -513,11 +512,6 @@
                                             <!--End product Wrap-->
                                         </div>
                                     </div>
-                                </div>
-                                <!--End tab-pane-->
-    
-                            </div>
-                            <!--End tab-content-->
                         </div>
                         <!--End Col-lg-9-->
                     </div>
@@ -606,6 +600,35 @@
             }
         });
     </script>
+
+<script>
+    $(document).ready(function() {
+      $('.product-color li').on('click', function() {
+        $(this).siblings().removeClass('active');
+        $(this).toggleClass('active');
+      });
+      $('.product-size li').on('click', function() {
+        $(this).siblings().removeClass('active');
+        $(this).toggleClass('active');
+      });
+      $('.product-favt').on('click', function() {
+        $(this).toggleClass('added');
+        if ($(this).hasClass('added')) {
+          $(this).find('span').text('Added to Favourites');
+        } else {
+          $(this).find('span').text('Add to Favourites');
+        }
+      });
+    });
+
+  </script>
+      <script>
+    $(document).ready(function() {
+      $('.toggle-heart').on('click', function() {
+        $(this).toggleClass('fi-rs-heart fi-ss-heart');
+      });
+    });
+  </script>
 </body>
 
 </html>

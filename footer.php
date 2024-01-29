@@ -56,7 +56,7 @@
                         <div class="widget-about font-md mb-md-3 mb-lg-3 mb-xl-0 wow animate__animated animate__fadeInUp"
                             data-wow-delay="0">
                             <div class="logo mb-30">
-                                <a href="index.html" class="mb-15"><img src="assets/imgs/theme/log.jpg"
+                                <a href="index.php" class="mb-15"><img src="assets/imgs/theme/log.jpg"
                                         alt="logo" /></a>
                                 <p class="font-lg text-heading">Lorem Ipsum is simply dummy text of the printing and
                                     typesetting industry. Lorem Ipsum has been the industry’s standard dummy text ever

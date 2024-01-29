@@ -5,6 +5,25 @@ url("../../fonts/uicons/uicons-regular-straight.woff2") format("woff2"),
 url("../../fonts/uicons/uicons-regular-straight.woff") format("woff");
 }
 
+@font-face {
+    font-family: "uicons-solid-straight";
+    src: url("../../fonts/uicons/uicons-solid-straight.woff2") format("woff2"),
+    url("../../fonts/uicons/uicons-solid-straight.woff") format("woff"),
+    url("../../fonts/uicons/uicons-solid-straight.eot#iefix") format("embedded-opentype");
+    font-display: swap;
+}
+
+    i[class^="fi-ss-"]:before, i[class*=" fi-ss-"]:before, span[class^="fi-ss-"]:before, span[class*="fi-ss-"]:before {
+font-family: uicons-solid-straight !important;
+font-style: normal;
+font-weight: normal !important;
+font-variant: normal;
+text-transform: none;
+line-height: 1;
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+}
+
 i[class^="fi-rs-"], span[class^="fi-rs-"] {
     line-height: 0 !important;
 }
@@ -505,6 +524,9 @@ i[class^="fi-rs-"]:before, i[class*=" fi-rs-"]:before, span[class^="fi-rs-"]:bef
 }
 .fi-rs-heart:before {
     content: "\f1a2";
+}
+.fi-ss-heart:before {
+    content: "\f695";
 }
 .fi-rs-home:before {
     content: "\f1a3";
