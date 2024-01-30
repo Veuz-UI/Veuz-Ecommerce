@@ -33,7 +33,7 @@
                 <div class="row">
                     <div class="col-md-3">
                         <ul class="breadcrumb-list pt-0 mb-2">
-                            <li> <a href="#">Home</a>
+                            <li> <a href="index.php">Home</a>
                                 <span class="separator" aria-hidden="true">&rsaquo;</span></li>
                             <li class="active-brudcrumb">
                                 <a href="#">Products</a>
@@ -158,7 +158,7 @@
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="#">
+                                                <a href="product-details.php">
                                                     <img class="default-img" src="assets/imgs/shop/pr1.jpg" alt="" />
                                                     <!-- <img class="hover-img" src="assets/imgs/shop/product-1-2.jpg"
                                                                     alt="" /> -->
@@ -181,11 +181,11 @@
                                         </div>
                                         <div class="product-content-wrap">
     
-                                            <h2><a href="#">New Trending T-shirt
+                                            <h2><a href="product-details.php">Trending T-shirt
                                                     Limited Model </a></h2>
                                             <div class="product-rate d-flex align-items-center">
                                                 <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                <h6 class="d-inline-block">4.55/5</h6>
+                                                <h6 class="d-inline-block">4/5</h6>
                                                 <span class="d-inline-block">2599 - Reviews</span>
                                             </div>
                                             <div class="product-price mt-10 d-flex justify-content-between">
@@ -209,7 +209,7 @@
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="#">
+                                                <a href="product-details.php">
                                                     <img class="default-img" src="assets/imgs/shop/pr3.jpg" alt="" />
                                                     <!-- <img class="hover-img" src="assets/imgs/shop/product-2-2.jpg"
                                                                     alt="" /> -->
@@ -231,11 +231,11 @@
                                         </div>
                                         <div class="product-content-wrap">
     
-                                            <h2><a href="#">Hoodie New Black Color
+                                            <h2><a href="product-details.php">Hoodie New Black Color
                                                     2022 Model </a></h2>
                                             <div class="product-rate d-flex align-items-center">
                                                 <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                <h6 class="d-inline-block">4.55/5</h6>
+                                                <h6 class="d-inline-block">4/5</h6>
                                                 <span class="d-inline-block">2599 - Reviews</span>
                                             </div>
                                             <div class="product-price mt-10 d-flex justify-content-between">
@@ -255,7 +255,7 @@
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="#">
+                                                <a href="product-details.php">
                                                     <img class="default-img" src="assets/imgs/shop/pr1.jpg" alt="" />
                                                     <!-- <img class="hover-img" src="assets/imgs/shop/product-1-2.jpg"
                                                                         alt="" /> -->
@@ -277,11 +277,11 @@
                                         </div>
                                         <div class="product-content-wrap">
     
-                                            <h2><a href="#">New Trending T-shirt
+                                            <h2><a href="product-details.php">Trending T-shirt
                                                     Limited Model </a></h2>
                                             <div class="product-rate d-flex align-items-center">
                                                 <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                <h6 class="d-inline-block">4.55/5</h6>
+                                                <h6 class="d-inline-block">4/5</h6>
                                                 <span class="d-inline-block">2599 - Reviews</span>
                                             </div>
                                             <div class="product-price mt-10 d-flex justify-content-between">
@@ -305,7 +305,7 @@
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="#">
+                                                <a href="product-details.php">
                                                     <img class="default-img" src="assets/imgs/shop/pr2.jpg" alt="" />
                                                     <!-- <img class="hover-img" src="assets/imgs/shop/product-5-2.jpg"
                                                                         alt="" /> -->
@@ -327,11 +327,11 @@
                                         </div>
                                         <div class="product-content-wrap">
     
-                                            <h2><a href="#">New Trending T-shirt
+                                            <h2><a href="product-details.php">Trending T-shirt
                                                     Limited Model </a></h2>
                                             <div class="product-rate d-flex align-items-center">
                                                 <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                <h6 class="d-inline-block">4.55/5</h6>
+                                                <h6 class="d-inline-block">4/5</h6>
                                                 <span class="d-inline-block">2599 - Reviews</span>
                                             </div>
                                             <div class="product-price mt-10 d-flex justify-content-between">
@@ -351,7 +351,7 @@
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="#">
+                                                <a href="product-details.php">
                                                     <img class="default-img" src="assets/imgs/shop/pr3.jpg" alt="" />
                                                     <!-- <img class="hover-img" src="assets/imgs/shop/product-2-2.jpg"
                                                                         alt="" /> -->
@@ -373,11 +373,11 @@
                                         </div>
                                         <div class="product-content-wrap">
     
-                                            <h2><a href="#">New Trending T-shirt
+                                            <h2><a href="product-details.php">Trending T-shirt
                                                     Limited Model </a></h2>
                                             <div class="product-rate d-flex align-items-center">
                                                 <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                <h6 class="d-inline-block">4.55/5</h6>
+                                                <h6 class="d-inline-block">4/5</h6>
                                                 <span class="d-inline-block">2599 - Reviews</span>
                                             </div>
                                             <div class="product-price mt-10 d-flex justify-content-between">
@@ -397,7 +397,7 @@
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="#">
+                                                <a href="product-details.php">
                                                     <img class="default-img" src="assets/imgs/shop/pr2.jpg" alt="" />
                                                     <!-- <img class="hover-img" src="assets/imgs/shop/product-3-2.jpg"
                                                                         alt="" /> -->
@@ -420,11 +420,11 @@
                                         </div>
                                         <div class="product-content-wrap">
     
-                                            <h2><a href="#">New Trending T-shirt
+                                            <h2><a href="product-details.php">Trending T-shirt
                                                     Limited Model </a></h2>
                                             <div class="product-rate d-flex align-items-center">
                                                 <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                <h6 class="d-inline-block">4.55/5</h6>
+                                                <h6 class="d-inline-block">4/5</h6>
                                                 <span class="d-inline-block">2599 - Reviews</span>
                                             </div>
                                             <div class="product-price mt-10 d-flex justify-content-between">
@@ -461,15 +461,13 @@
             </div>
         </div>
     </div>
-    <!-- Vendor JS-->
+
     <script src="https://kit.fontawesome.com/16b0815225.js" crossorigin="anonymous"></script>
     <script src="assets/js/vendor/jquery-3.6.0.min.js"></script>
     <script src="assets/js/vendor/bootstrap.bundle.min.js"></script>
     <script src="assets/js/plugins/slick.js"></script>
     <script src="assets/js/plugins/wow.js"></script>
     <script src="assets/js/plugins/magnific-popup.js"></script>
-
-    <!-- Template  JS -->
     <script src="assets/js/script.js"></script>
     <script>
         $(document).ready(function () {

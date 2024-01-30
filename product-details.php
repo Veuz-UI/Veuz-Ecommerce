@@ -34,10 +34,10 @@
             <section class="breadcrumb-div">
                 <div class="container">
                     <ul class="breadcrumb-list">
-                        <li> <a href="#">Home</a>
+                        <li> <a href="index.php">Home</a>
                             <span class="separator" aria-hidden="true">&rsaquo;</span></li>
                         <li>
-                            <a href="#">Cloths</a>
+                            <a href="products.php">Cloths</a>
                             <span class="separator" aria-hidden="true">&rsaquo;</span>
                         </li>
                         <li class="active-brudcrumb">
@@ -154,7 +154,7 @@
                                 </div>
                                 <div class="product-btm-btns">
                                     <button class="addtocart-btn"><i class="fi-rs-shopping-cart"></i>Add to cart</button>
-                                    <button class="buynow-btn">Buy Now</button>
+                                    <a href="cart.php"><button class="buynow-btn">Buy Now</button></a>
                                 </div>
                             </div>
                         </div>
@@ -204,11 +204,11 @@
                                                 </div>
                                                 <div class="product-content-wrap">
     
-                                                    <h2><a href="#">New Trending T-shirt
+                                                    <h2><a href="#">Trending T-shirt
                                                             Limited Model </a></h2>
                                                     <div class="product-rate d-flex align-items-center">
                                                         <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                        <h6 class="d-inline-block">4.55/5</h6>
+                                                        <h6 class="d-inline-block">4/5</h6>
                                                         <span class="d-inline-block">2599 - Reviews</span>
                                                     </div>
                                                     <div class="product-price mt-10 d-flex justify-content-between">
@@ -254,11 +254,11 @@
                                                 </div>
                                                 <div class="product-content-wrap">
     
-                                                    <h2><a href="#">T-shirt Branding Gray Color
+                                                    <h2><a href="#">T-shirt Branding 
                                                             2022 Model </a></h2>
                                                     <div class="product-rate d-flex align-items-center">
                                                         <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                        <h6 class="d-inline-block">4.55/5</h6>
+                                                        <h6 class="d-inline-block">4/5</h6>
                                                         <span class="d-inline-block">2599 - Reviews</span>
                                                     </div>
                                                     <div class="product-price mt-10 d-flex justify-content-between">
@@ -304,7 +304,7 @@
                                                             2022 Model </a></h2>
                                                     <div class="product-rate d-flex align-items-center">
                                                         <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                        <h6 class="d-inline-block">4.55/5</h6>
+                                                        <h6 class="d-inline-block">4/5</h6>
                                                         <span class="d-inline-block">2599 - Reviews</span>
                                                     </div>
                                                     <div class="product-price mt-10 d-flex justify-content-between">
@@ -347,11 +347,11 @@
                                                 </div>
                                                 <div class="product-content-wrap">
     
-                                                    <h2><a href="#">New Trending T-shirt
+                                                    <h2><a href="#">Trending T-shirt
                                                             Limited Model </a></h2>
                                                     <div class="product-rate d-flex align-items-center">
                                                         <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                        <h6 class="d-inline-block">4.55/5</h6>
+                                                        <h6 class="d-inline-block">4/5</h6>
                                                         <span class="d-inline-block">2599 - Reviews</span>
                                                     </div>
                                                     <div class="product-price mt-10 d-flex justify-content-between">
@@ -397,11 +397,11 @@
                                                 </div>
                                                 <div class="product-content-wrap">
     
-                                                    <h2><a href="#">New Trending T-shirt
+                                                    <h2><a href="#">Trending T-shirt
                                                             Limited Model </a></h2>
                                                     <div class="product-rate d-flex align-items-center">
                                                         <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                        <h6 class="d-inline-block">4.55/5</h6>
+                                                        <h6 class="d-inline-block">4/5</h6>
                                                         <span class="d-inline-block">2599 - Reviews</span>
                                                     </div>
                                                     <div class="product-price mt-10 d-flex justify-content-between">
@@ -443,11 +443,11 @@
                                                 </div>
                                                 <div class="product-content-wrap">
     
-                                                    <h2><a href="#">New Trending T-shirt
+                                                    <h2><a href="#">Trending T-shirt
                                                             Limited Model </a></h2>
                                                     <div class="product-rate d-flex align-items-center">
                                                         <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                        <h6 class="d-inline-block">4.55/5</h6>
+                                                        <h6 class="d-inline-block">4/5</h6>
                                                         <span class="d-inline-block">2599 - Reviews</span>
                                                     </div>
                                                     <div class="product-price mt-10 d-flex justify-content-between">
@@ -490,11 +490,11 @@
                                                 </div>
                                                 <div class="product-content-wrap">
     
-                                                    <h2><a href="#">New Trending T-shirt
+                                                    <h2><a href="#">Trending T-shirt
                                                             Limited Model </a></h2>
                                                     <div class="product-rate d-flex align-items-center">
                                                         <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                        <h6 class="d-inline-block">4.55/5</h6>
+                                                        <h6 class="d-inline-block">4/5</h6>
                                                         <span class="d-inline-block">2599 - Reviews</span>
                                                     </div>
                                                     <div class="product-price mt-10 d-flex justify-content-between">
@@ -531,7 +531,7 @@
             </div>
         </div>
     </div>
-    <!-- Vendor JS-->
+
     <script src="https://kit.fontawesome.com/16b0815225.js" crossorigin="anonymous"></script>
     <script src="assets/js/vendor/jquery-3.6.0.min.js"></script>
     <script src="assets/js/vendor/bootstrap.bundle.min.js"></script>
@@ -539,8 +539,6 @@
     <script src="assets/js/plugins/wow.js"></script>
     <script src="assets/js/plugins/magnific-popup.js"></script>
     <script src='https://sachinchoolur.github.io/lightslider/dist/js/lightslider.js'></script>
-
-    <!-- Template  JS -->
     <script src="assets/js/script.js"></script>
     <script>
         $(document).ready(function () {

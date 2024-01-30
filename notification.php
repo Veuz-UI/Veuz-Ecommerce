@@ -32,7 +32,7 @@
             <section class="breadcrumb-div">
                 <div class="container">
                     <ul class="breadcrumb-list">
-                        <li> <a href="#">Home</a>
+                        <li> <a href="index.php">Home</a>
                             <span class="separator" aria-hidden="true">&rsaquo;</span></li>
                         <li class="active-brudcrumb">
                             <a href="#">Notification</a>
@@ -141,16 +141,13 @@
             </div>
         </div>
     </div>
-    <!-- Vendor JS-->
+
     <script src="https://kit.fontawesome.com/16b0815225.js" crossorigin="anonymous"></script>
     <script src="assets/js/vendor/jquery-3.6.0.min.js"></script>
     <script src="assets/js/vendor/bootstrap.bundle.min.js"></script>
     <script src="assets/js/plugins/slick.js"></script>
     <script src="assets/js/plugins/wow.js"></script>
     <script src="assets/js/plugins/magnific-popup.js"></script>
-
-
-    <!-- Template  JS -->
     <script src="assets/js/script.js"></script>
     <script>
         $(document).ready(function () {

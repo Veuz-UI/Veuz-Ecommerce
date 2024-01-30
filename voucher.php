@@ -36,53 +36,48 @@
                             <li> <a href="index.php">Home</a>
                                 <span class="separator" aria-hidden="true">&rsaquo;</span></li>
                             <li class="active-brudcrumb">
-                                <a href="#">Products</a>
+                                <a href="voucher.php">Vouchers</a>
 
                             </li>
                         </ul>
                         <div class="products-leftfilter">
                             <div class="products-filter-div">
-                                <h4>Product Categories</h4>
+                                <h4>Filter by Brand</h4>
                                 <div class="custome-checkbox">
                                     <input class="form-check-input" type="checkbox" name="checkbox"
                                         id="exampleCheckbox11" value="">
                                     <label class="form-check-label"
-                                        for="exampleCheckbox11"><span>Acessories</span></label>
+                                        for="exampleCheckbox11"><span>Himalaya</span></label>
                                 </div>
                                 <div class="custome-checkbox">
                                     <input class="form-check-input" type="checkbox" name="checkbox"
                                         id="exampleCheckbox12" value="">
-                                    <label class="form-check-label" for="exampleCheckbox12"><span>Denim</span></label>
+                                    <label class="form-check-label" for="exampleCheckbox12"><span>Flipcart</span></label>
                                 </div>
                                 <div class="custome-checkbox">
                                     <input class="form-check-input" type="checkbox" name="checkbox"
                                         id="exampleCheckbox13" value="">
-                                    <label class="form-check-label" for="exampleCheckbox13"><span>Dress</span></label>
+                                    <label class="form-check-label" for="exampleCheckbox13"><span>Kalyan Jewellers</span></label>
                                 </div>
                                 <div class="custome-checkbox">
                                     <input class="form-check-input" type="checkbox" name="checkbox"
                                         id="exampleCheckbox14" value="">
-                                    <label class="form-check-label" for="exampleCheckbox14"><span>Jackets</span></label>
+                                    <label class="form-check-label" for="exampleCheckbox14"><span>Lifestyle</span></label>
                                 </div>
                                 <div class="custome-checkbox">
                                     <input class="form-check-input" type="checkbox" name="checkbox"
                                         id="exampleCheckbox15" value="">
-                                    <label class="form-check-label" for="exampleCheckbox15"><span>Men</span></label>
+                                    <label class="form-check-label" for="exampleCheckbox15"><span>Joyalukkas</span></label>
                                 </div>
                                 <div class="custome-checkbox">
                                     <input class="form-check-input" type="checkbox" name="checkbox"
                                         id="exampleCheckbox16" value="">
-                                    <label class="form-check-label" for="exampleCheckbox16"><span>Shoes</span></label>
+                                    <label class="form-check-label" for="exampleCheckbox16"><span>Pantaloons</span></label>
                                 </div>
                                 <div class="custome-checkbox">
                                     <input class="form-check-input" type="checkbox" name="checkbox"
                                         id="exampleCheckbox17" value="">
-                                    <label class="form-check-label" for="exampleCheckbox17"><span>Tops</span></label>
-                                </div>
-                                <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox18" value="">
-                                    <label class="form-check-label" for="exampleCheckbox18"><span>T-Shirt</span></label>
+                                    <label class="form-check-label" for="exampleCheckbox17"><span>Tanishq</span></label>
                                 </div>
                             </div>
                             <div class="products-filter-div">
@@ -119,42 +114,38 @@
                                 </div>
                             </div>
                             <div class="products-filter-div">
-                                <h4>Filter by Size</h4>
+                                <h4>Filter by Customer Rating</h4>
                                 <div class="custome-checkbox">
                                     <input class="form-check-input" type="checkbox" name="checkbox"
                                         id="exampleCheckbox31" value="">
-                                    <label class="form-check-label" for="exampleCheckbox31"><span>XS</span></label>
+                                    <label class="form-check-label" for="exampleCheckbox31"><span>4 & Above</span></label>
                                 </div>
                                 <div class="custome-checkbox">
                                     <input class="form-check-input" type="checkbox" name="checkbox"
                                         id="exampleCheckbox32" value="">
-                                    <label class="form-check-label" for="exampleCheckbox32"><span>S</span></label>
+                                    <label class="form-check-label" for="exampleCheckbox32"><span>3 & Above</span></label>
                                 </div>
                                 <div class="custome-checkbox">
                                     <input class="form-check-input" type="checkbox" name="checkbox"
                                         id="exampleCheckbox33" value="">
-                                    <label class="form-check-label" for="exampleCheckbox33"><span>M</span></label>
+                                    <label class="form-check-label" for="exampleCheckbox33"><span>2 & Above</span></label>
                                 </div>
                                 <div class="custome-checkbox">
                                     <input class="form-check-input" type="checkbox" name="checkbox"
                                         id="exampleCheckbox34" value="">
-                                    <label class="form-check-label" for="exampleCheckbox34"><span>L</span></label>
+                                    <label class="form-check-label" for="exampleCheckbox34"><span>1 & Above</span></label>
                                 </div>
-                                <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox35" value="">
-                                    <label class="form-check-label" for="exampleCheckbox35"><span>XL</span></label>
-                                </div>
+                               
                             </div>
                         </div>
                     </div>
                     <div class="col-md-9">
-                        <div class="products-list1">
+                        <div class="products-list1 voucher-list">
                             <div class="row">
                                 <div class="col-md-12">
 
                                     <div class="product-list-topbar">
-                                        <h3></h3>
+                                        <h3>My <span>Vouchers</span></h3>
                                         <div class="rightside-btns">
                                             <h6>12 of 1650</h6>
                                             <button class="filter-btn"><span
@@ -180,16 +171,10 @@
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="product-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/pr1.jpg" alt="" />
-                                                    <!-- <img class="hover-img" src="assets/imgs/shop/product-1-2.jpg"
-                                                                    alt="" /> -->
+                                                <a href="voucher-details.php">
+                                                    <img class="default-img" src="assets/imgs/shop/gift.jpg" alt="" />
+                                                   
                                                 </a>
-                                                <ul class="clrs">
-                                                    <li class="first"></li>
-                                                    <li class="sec"></li>
-                                                    <li class="third"></li>
-                                                </ul>
                                             </div>
 
                                             <div class="product-badges product-badges-position product-badges-mrg">
@@ -203,27 +188,18 @@
                                         </div>
                                         <div class="product-content-wrap">
 
-                                            <h2><a href="product-details.php">Trending T-shirt
-                                                    Limited Model </a></h2>
-                                            <div class="product-rate d-flex align-items-center">
-                                                <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                <h6 class="d-inline-block">4/5</h6>
-                                                <span class="d-inline-block">2599 - Reviews</span>
-                                            </div>
-                                            <div class="product-price mt-10 d-flex justify-content-between">
-                                                <span class="old1">399 SR</span>
-                                                <div>
-                                                    <span class="newpric"><a href="" class="offr-btn">15%
-                                                            OFF</a></span>
-                                                    <span class="newprice">199 SR</span>
+                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
+                                                Physical Gift Card</a></h2>
+                                          
+                                            <div class="voucher-price">
+                                                <div class="d-flex">
+                                                    <span class="new-voucher-price">399 SR</span>
+                                                    <span class="old-voucher-price">499 SR</span>
                                                 </div>
+                                      
+                                                <span class="voucher-price-off">3% OFF</span>
                                             </div>
-                                            <hr>
-                                            <span class="inclusive">Inclusive of VAT</span>
-                                            <a href="#"
-                                                class="btn w-100 hover-up cart-btn d-flex align-items-center justify-content-center"><img
-                                                    src="assets/imgs/icons/gift.png" class="mr-5 d-inline-block"></i>1
-                                                Gift(s) worth 500 SR</a>
+                                         
                                         </div>
                                     </div>
                                 </div>
@@ -231,16 +207,11 @@
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="product-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/pr3.jpg" alt="" />
-                                                    <!-- <img class="hover-img" src="assets/imgs/shop/product-2-2.jpg"
-                                                                    alt="" /> -->
+                                                <a href="voucher-details.php">
+                                                    <img class="default-img" src="assets/imgs/shop/gift1.jpg" alt="" />
+                                                   
                                                 </a>
-                                                <ul class="clrs">
-                                                    <li class="first"></li>
-                                                    <li class="sec"></li>
-                                                    <li class="third"></li>
-                                                </ul>
+                                               
                                             </div>
 
                                             <div class="product-badges product-badges-position product-badges-mrg">
@@ -253,73 +224,18 @@
                                         </div>
                                         <div class="product-content-wrap">
 
-                                            <h2><a href="product-details.php">Hoodie New Black Color
-                                                    2022 Model </a></h2>
-                                            <div class="product-rate d-flex align-items-center">
-                                                <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                <h6 class="d-inline-block">4/5</h6>
-                                                <span class="d-inline-block">2599 - Reviews</span>
-                                            </div>
-                                            <div class="product-price mt-10 d-flex justify-content-between">
-                                                <span class="newpric">299 SR</span>
-
-                                            </div>
-                                            <hr>
-                                            <span class="inclusive">Inclusive of VAT</span>
-                                            <a href="#"
-                                                class="btn w-100 hover-up cart-btn d-flex align-items-center justify-content-center"><img
-                                                    src="assets/imgs/icons/gift.png" class="mr-5 d-inline-block"></i>1
-                                                Gift(s) worth 500 SR</a>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-4">
-                                    <div class="product-cart-wrap">
-                                        <div class="product-img-action-wrap">
-                                            <div class="product-img product-img-zoom">
-                                                <a href="product-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/pr1.jpg" alt="" />
-                                                    <!-- <img class="hover-img" src="assets/imgs/shop/product-1-2.jpg"
-                                                                        alt="" /> -->
-                                                </a>
-                                                <ul class="clrs">
-                                                    <li class="first"></li>
-                                                    <li class="sec"></li>
-                                                    <li class="third"></li>
-                                                </ul>
-                                            </div>
-
-                                            <div class="product-badges product-badges-position product-badges-mrg">
-                                                <span class="new">In Stock</span>
-                                            </div>
-                                            <div class="product-badges product-badge-position product-badges-mrg">
-                                                <span><i class="fi-rs-eye"></i></span> <span><i
-                                                        class="fi-rs-heart toggle-heart"></i></span>
-                                            </div>
-                                        </div>
-                                        <div class="product-content-wrap">
-
-                                            <h2><a href="product-details.php">Trending T-shirt
-                                                    Limited Model </a></h2>
-                                            <div class="product-rate d-flex align-items-center">
-                                                <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                <h6 class="d-inline-block">4/5</h6>
-                                                <span class="d-inline-block">2599 - Reviews</span>
-                                            </div>
-                                            <div class="product-price mt-10 d-flex justify-content-between">
-                                                <span class="old1">399 SR</span>
-                                                <div>
-                                                    <span class="newpric"><a href="" class="offr-btn">15%
-                                                            OFF</a></span>
-                                                    <span class="newprice">199 SR</span>
+                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
+                                                Physical Gift Card</a></h2>
+                                          
+                                            <div class="voucher-price">
+                                                <div class="d-flex">
+                                                    <span class="new-voucher-price">399 SR</span>
+                                                    <span class="old-voucher-price">499 SR</span>
                                                 </div>
+                                      
+                                                <span class="voucher-price-off">3% OFF</span>
                                             </div>
-                                            <hr>
-                                            <span class="inclusive">Inclusive of VAT</span>
-                                            <a href="#"
-                                                class="btn w-100 hover-up cart-btn d-flex align-items-center justify-content-center"><img
-                                                    src="assets/imgs/icons/gift.png" class="mr-5 d-inline-block"></i>1
-                                                Gift(s) worth 500 SR</a>
+                                          
                                         </div>
                                     </div>
                                 </div>
@@ -327,16 +243,11 @@
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="product-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/pr2.jpg" alt="" />
-                                                    <!-- <img class="hover-img" src="assets/imgs/shop/product-5-2.jpg"
-                                                                        alt="" /> -->
+                                                <a href="voucher-details.php">
+                                                    <img class="default-img" src="assets/imgs/shop/gift2.jpg" alt="" />
+                                               
                                                 </a>
-                                                <ul class="clrs">
-                                                    <li class="first"></li>
-                                                    <li class="sec"></li>
-                                                    <li class="third"></li>
-                                                </ul>
+                                                
                                             </div>
 
                                             <div class="product-badges product-badges-position product-badges-mrg">
@@ -349,23 +260,18 @@
                                         </div>
                                         <div class="product-content-wrap">
 
-                                            <h2><a href="product-details.php">Trending T-shirt
-                                                    Limited Model </a></h2>
-                                            <div class="product-rate d-flex align-items-center">
-                                                <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                <h6 class="d-inline-block">4/5</h6>
-                                                <span class="d-inline-block">2599 - Reviews</span>
+                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
+                                                Physical Gift Card</a></h2>
+                                           
+                                            <div class="voucher-price">
+                                                <div class="d-flex">
+                                                    <span class="new-voucher-price">399 SR</span>
+                                                    <span class="old-voucher-price">499 SR</span>
+                                                </div>
+                                      
+                                                <span class="voucher-price-off">3% OFF</span>
                                             </div>
-                                            <div class="product-price mt-10 d-flex justify-content-between">
-                                                <span class="newpric">199 SR</span>
-
-                                            </div>
-                                            <hr>
-                                            <span class="inclusive">Inclusive of VAT</span>
-                                            <a href="#"
-                                                class="btn w-100 hover-up cart-btn d-flex align-items-center justify-content-center"><img
-                                                    src="assets/imgs/icons/gift.png" class="mr-5 d-inline-block"></i>1
-                                                Gift(s) worth 500 SR</a>
+                                          
                                         </div>
                                     </div>
                                 </div>
@@ -373,16 +279,47 @@
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="product-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/pr3.jpg" alt="" />
-                                                    <!-- <img class="hover-img" src="assets/imgs/shop/product-2-2.jpg"
-                                                                        alt="" /> -->
+                                                <a href="voucher-details.php">
+                                                    <img class="default-img" src="assets/imgs/shop/gift3.jpg" alt="" />
+                                                  
                                                 </a>
-                                                <ul class="clrs">
-                                                    <li class="first"></li>
-                                                    <li class="sec"></li>
-                                                    <li class="third"></li>
-                                                </ul>
+                                               
+                                            </div>
+
+                                            <div class="product-badges product-badges-position product-badges-mrg">
+                                                <span class="new">In Stock</span>
+                                            </div>
+                                            <div class="product-badges product-badge-position product-badges-mrg">
+                                                <span><i class="fi-rs-eye"></i></span> <span><i
+                                                        class="fi-rs-heart toggle-heart"></i></span>
+                                            </div>
+                                        </div>
+                                        <div class="product-content-wrap">
+
+                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
+                                                Physical Gift Card</a></h2>
+                                           
+                                            <div class="voucher-price">
+                                                <div class="d-flex">
+                                                    <span class="new-voucher-price">399 SR</span>
+                                                    <span class="old-voucher-price">499 SR</span>
+                                                </div>
+                                      
+                                                <span class="voucher-price-off">3% OFF</span>
+                                            </div>
+                                          
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="product-cart-wrap">
+                                        <div class="product-img-action-wrap">
+                                            <div class="product-img product-img-zoom">
+                                                <a href="voucher-details.php">
+                                                    <img class="default-img" src="assets/imgs/shop/gift4.jpg" alt="" />
+                                                   
+                                                </a>
+                                               
                                             </div>
 
                                             <div class="product-badges product-badges-position product-badges-mrg">
@@ -395,23 +332,18 @@
                                         </div>
                                         <div class="product-content-wrap">
 
-                                            <h2><a href="product-details.php">Trending T-shirt
-                                                    Limited Model </a></h2>
-                                            <div class="product-rate d-flex align-items-center">
-                                                <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                <h6 class="d-inline-block">4/5</h6>
-                                                <span class="d-inline-block">2599 - Reviews</span>
+                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
+                                                Physical Gift Card</a></h2>
+                                           
+                                            <div class="voucher-price">
+                                                <div class="d-flex">
+                                                    <span class="new-voucher-price">399 SR</span>
+                                                    <span class="old-voucher-price">499 SR</span>
+                                                </div>
+                                      
+                                                <span class="voucher-price-off">3% OFF</span>
                                             </div>
-                                            <div class="product-price mt-10 d-flex justify-content-between">
-                                                <span class="newpric">399 SR</span>
-
-                                            </div>
-                                            <hr>
-                                            <span class="inclusive">Inclusive of VAT</span>
-                                            <a href="#"
-                                                class="btn w-100 hover-up cart-btn d-flex align-items-center justify-content-center"><img
-                                                    src="assets/imgs/icons/gift.png" class="mr-5 d-inline-block"></i>1
-                                                Gift(s) worth 500 SR</a>
+                                           
                                         </div>
                                     </div>
                                 </div>
@@ -419,16 +351,11 @@
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="product-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/pr2.jpg" alt="" />
-                                                    <!-- <img class="hover-img" src="assets/imgs/shop/product-3-2.jpg"
-                                                                        alt="" /> -->
+                                                <a href="voucher-details.php">
+                                                    <img class="default-img" src="assets/imgs/shop/gift5.jpg" alt="" />
+                                                   
                                                 </a>
-                                                <ul class="clrs">
-                                                    <li class="first"></li>
-                                                    <li class="sec"></li>
-                                                    <li class="third"></li>
-                                                </ul>
+                                               
 
                                             </div>
 
@@ -442,23 +369,18 @@
                                         </div>
                                         <div class="product-content-wrap">
 
-                                            <h2><a href="product-details.php">Trending T-shirt
-                                                    Limited Model </a></h2>
-                                            <div class="product-rate d-flex align-items-center">
-                                                <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                <h6 class="d-inline-block">4/5</h6>
-                                                <span class="d-inline-block">2599 - Reviews</span>
+                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
+                                                Physical Gift Card</a></h2>
+                                          
+                                            <div class="voucher-price">
+                                                <div class="d-flex">
+                                                    <span class="new-voucher-price">399 SR</span>
+                                                    <span class="old-voucher-price">499 SR</span>
+                                                </div>
+                                      
+                                                <span class="voucher-price-off">3% OFF</span>
                                             </div>
-                                            <div class="product-price mt-10 d-flex justify-content-between">
-                                                <span class="newpric">299 SR</span>
-
-                                            </div>
-                                            <hr>
-                                            <span class="inclusive">Inclusive of VAT</span>
-                                            <a href="#"
-                                                class="btn w-100 hover-up cart-btn d-flex align-items-center justify-content-center"><img
-                                                    src="assets/imgs/icons/gift.png" class="mr-5 d-inline-block"></i>1
-                                                Gift(s) worth 500 SR</a>
+                                          
                                         </div>
                                     </div>
                                 </div>

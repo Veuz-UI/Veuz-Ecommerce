@@ -422,7 +422,7 @@
 
 
                             <div class="header-action-icon-2">
-                                <a class="mini-cart-icon" href="#">
+                                <a class="mini-cart-icon" href="cart.php">
                                     <img alt="Nest" src="assets/imgs/theme/icons/icon-cart.svg" />
                                     <span class="pro-count blue">2</span>
                                 </a>
@@ -468,7 +468,7 @@
                                 </div> -->
                             </div>
                             <div class="header-action-icon-2">
-                                <a href="#">
+                                <a href="wishlist.php">
                                     <img class="svgInject" alt="Nest" src="assets/imgs/theme/icons/icon-heart.svg" />
                                     <!-- <span class="pro-count blue">6</span> -->
                                 </a>
@@ -490,11 +490,11 @@
                                                 Tracking</a>
                                         </li>
                                         <li>
-                                            <a href="#"><i class="fi fi-rs-label mr-10"></i>My
+                                            <a href="voucher.php"><i class="fi fi-rs-label mr-10"></i>My
                                                 Voucher</a>
                                         </li>
                                         <li>
-                                            <a href="#"><i class="fi fi-rs-heart mr-10"></i>My
+                                            <a href="wishlist.php"><i class="fi fi-rs-heart mr-10"></i>My
                                                 Wishlist</a>
                                         </li>
                                         <li>
@@ -520,13 +520,13 @@
                     <div class="header-action-right d-block d-lg-none">
                         <div class="header-action-2">
                             <div class="header-action-icon-2">
-                                <a href="#">
+                                <a href="wishlist.php">
                                     <img alt="Nest" src="assets/imgs/theme/icons/icon-heart.svg" />
                                     <span class="pro-count white">4</span>
                                 </a>
                             </div>
                             <div class="header-action-icon-2">
-                                <a class="mini-cart-icon" href="#">
+                                <a class="mini-cart-icon" href="cart.php">
                                     <img alt="Nest" src="assets/imgs/theme/icons/icon-cart.svg" />
                                     <span class="pro-count white">2</span>
                                 </a>
@@ -534,12 +534,12 @@
                                     <ul>
                                         <li>
                                             <div class="shopping-cart-img">
-                                                <a href="#"><img alt="Nest"
+                                                <a href="product-details.php"><img alt="Nest"
                                                         src="assets/imgs/shop/thumbnail-3.jpg" /></a>
                                             </div>
                                             <div class="shopping-cart-title">
-                                                <h4><a href="#">Plain Striola Shirts</a></h4>
-                                                <h3><span>1 × </span>$800.00</h3>
+                                                <h4><a href="product-details.php">Plain Striola Shirts</a></h4>
+                                                <h3><span>1 x </span>$800.00</h3>
                                             </div>
                                             <div class="shopping-cart-delete">
                                                 <a href="#"><i class="fi-rs-cross-small"></i></a>
@@ -547,12 +547,12 @@
                                         </li>
                                         <li>
                                             <div class="shopping-cart-img">
-                                                <a href="#"><img alt="Nest"
+                                                <a href="product-details.php"><img alt="Nest"
                                                         src="assets/imgs/shop/thumbnail-4.jpg" /></a>
                                             </div>
                                             <div class="shopping-cart-title">
-                                                <h4><a href="#">Macbook Pro 2022</a></h4>
-                                                <h3><span>1 × </span>$3500.00</h3>
+                                                <h4><a href="product-details.php">Macbook Pro 2022</a></h4>
+                                                <h3><span>1 x </span>$3500.00</h3>
                                             </div>
                                             <div class="shopping-cart-delete">
                                                 <a href="#"><i class="fi-rs-cross-small"></i></a>
@@ -564,8 +564,8 @@
                                             <h4>Total <span>$383.00</span></h4>
                                         </div>
                                         <div class="shopping-cart-button">
-                                            <a href="#">View cart</a>
-                                            <a href="#">Checkout</a>
+                                            <a href="cart.php">View cart</a>
+                                            <a href="checkout.php">Checkout</a>
                                         </div>
                                     </div>
                                 </div>

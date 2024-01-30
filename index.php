@@ -68,7 +68,7 @@
 
                                 </div>
                             </div>
-                            <a href="#" class="btn hover-up">Shop Now <i
+                            <a href="products.php" class="btn hover-up">Shop Now <i
                                     class="fi-rs-arrow-right"></i></a>
                         </div>
                     </div>
@@ -172,7 +172,7 @@
                                         <h1 class="display-2 mb-40">
                                             BOX Design & <br />Sticker Printing
                                         </h1>
-                                        <a href="#" class="ordr">Order Now</a>
+                                        <a href="products.php" class="ordr">Order Now</a>
                                     </div>
                                 </div>
                                 <div class="single-hero-slider single-animation-wrap"
@@ -181,7 +181,7 @@
                                         <h1 class="display-2 mb-40">
                                             Brochure <br />Design
                                         </h1>
-                                        <a href="#" class="ordr">Order Now</a>
+                                        <a href="products.php" class="ordr">Order Now</a>
                                     </div>
                                 </div>
                                 <div class="single-hero-slider single-animation-wrap"
@@ -190,7 +190,7 @@
                                         <h1 class="display-2 mb-40">
                                             Printed <br />tshirts
                                         </h1>
-                                        <a href="#" class="ordr">Order Now</a>
+                                        <a href="products.php" class="ordr">Order Now</a>
                                     </div>
                                 </div>
                             </div>
@@ -205,7 +205,7 @@
                                 </h2>
                                 <H5 class="mb-20">TODAY THE LAST OFFER</H5>
                                 <H1>120 SR/-</H1>
-                                <a href="#" class="ordr">Order Now</a>
+                                <a href="products.php" class="ordr">Order Now</a>
                             </div>
                         </div>
                     </div>
@@ -326,51 +326,51 @@
 
                     <div class="col-md-2 card-2 wow animate__animated animate__fadeInUp" data-wow-delay=".1s">
                         <figure class="img-hover-scale overflow-hidden">
-                            <a href="#"><img src="assets/imgs/shop/p1.jpg" alt="" /></a>
+                            <a href="products.php"><img src="assets/imgs/shop/p1.jpg" alt="" /></a>
                         </figure>
-                        <h6><a href="#">tSHIRTS</a></h6>
+                        <h6><a href="products.php">tSHIRTS</a></h6>
 
                     </div>
                     <div class="col-md-2 card-2 wow animate__animated animate__fadeInUp" data-wow-delay=".2s">
                         <figure class="img-hover-scale overflow-hidden">
-                            <a href="#"><img src="assets/imgs/shop/p2.jpg" alt="" /></a>
+                            <a href="products.php"><img src="assets/imgs/shop/p2.jpg" alt="" /></a>
                         </figure>
-                        <h6><a href="#">Bag print</a></h6>
+                        <h6><a href="products.php">Bag print</a></h6>
 
                     </div>
                     <div class="col-md-2 card-2 wow animate__animated animate__fadeInUp" data-wow-delay=".3s">
                         <figure class="img-hover-scale overflow-hidden">
-                            <a href="#"><img src="assets/imgs/shop/p3.jpg" alt="" /></a>
+                            <a href="products.php"><img src="assets/imgs/shop/p3.jpg" alt="" /></a>
                         </figure>
-                        <h6><a href="#">Gift Pack</a></h6>
+                        <h6><a href="products.php">Gift Pack</a></h6>
 
                     </div>
                     <div class="col-md-2 card-2 wow animate__animated animate__fadeInUp" data-wow-delay=".4s">
                         <figure class="img-hover-scale overflow-hidden">
-                            <a href="#"><img src="assets/imgs/shop/p4.jpg" alt="" /></a>
+                            <a href="products.php"><img src="assets/imgs/shop/p4.jpg" alt="" /></a>
                         </figure>
-                        <h6><a href="#">Paper cup</a></h6>
+                        <h6><a href="products.php">Paper cup</a></h6>
 
                     </div>
                     <div class="col-md-2 card-2 wow animate__animated animate__fadeInUp" data-wow-delay=".5s">
                         <figure class="img-hover-scale overflow-hidden">
-                            <a href="#"><img src="assets/imgs/shop/p5.jpg" alt="" /></a>
+                            <a href="products.php"><img src="assets/imgs/shop/p5.jpg" alt="" /></a>
                         </figure>
-                        <h6><a href="#">Brochure</a></h6>
+                        <h6><a href="products.php">Brochure</a></h6>
 
                     </div>
                     <div class="col-md-2 card-2 wow animate__animated animate__fadeInUp" data-wow-delay=".6s">
                         <figure class="img-hover-scale overflow-hidden">
-                            <a href="#"><img src="assets/imgs/shop/p6.jpg" alt="" /></a>
+                            <a href="products.php"><img src="assets/imgs/shop/p6.jpg" alt="" /></a>
                         </figure>
-                        <h6><a href="#">hOODIES</a></h6>
+                        <h6><a href="products.php">hOODIES</a></h6>
 
                     </div>
                     <div class="col-md-2 card-2 card-3 wow animate__animated animate__fadeInUp" data-wow-delay=".1s">
                         <figure class="img-hover-scale overflow-hidden">
-                            <a href="#"><img src="assets/imgs/shop/p1.jpg" alt="" /></a>
+                            <a href="products.php"><img src="assets/imgs/shop/p1.jpg" alt="" /></a>
                         </figure>
-                        <h6><a href="#">tSHIRTS</a></h6>
+                        <h6><a href="products.php">tSHIRTS</a></h6>
 
                     </div>
 
@@ -381,51 +381,51 @@
 
                     <div class="col-md-2 card-2 wow animate__animated animate__fadeInUp" data-wow-delay=".1s">
                         <figure class="img-hover-scale overflow-hidden">
-                            <a href="#"><img src="assets/imgs/shop/p1.jpg" alt="" /></a>
+                            <a href="products.php"><img src="assets/imgs/shop/p1.jpg" alt="" /></a>
                         </figure>
-                        <h6><a href="#">tSHIRTS</a></h6>
+                        <h6><a href="products.php">tSHIRTS</a></h6>
 
                     </div>
                     <div class="col-md-2 card-2 wow animate__animated animate__fadeInUp" data-wow-delay=".2s">
                         <figure class="img-hover-scale overflow-hidden">
-                            <a href="#"><img src="assets/imgs/shop/p2.jpg" alt="" /></a>
+                            <a href="products.php"><img src="assets/imgs/shop/p2.jpg" alt="" /></a>
                         </figure>
-                        <h6><a href="#">Bag print</a></h6>
+                        <h6><a href="products.php">Bag print</a></h6>
 
                     </div>
                     <div class="col-md-2 card-2 wow animate__animated animate__fadeInUp" data-wow-delay=".3s">
                         <figure class="img-hover-scale overflow-hidden">
-                            <a href="#"><img src="assets/imgs/shop/p3.jpg" alt="" /></a>
+                            <a href="products.php"><img src="assets/imgs/shop/p3.jpg" alt="" /></a>
                         </figure>
-                        <h6><a href="#">Gift Pack</a></h6>
+                        <h6><a href="products.php">Gift Pack</a></h6>
 
                     </div>
                     <div class="col-md-2 card-2 wow animate__animated animate__fadeInUp" data-wow-delay=".4s">
                         <figure class="img-hover-scale overflow-hidden">
-                            <a href="#"><img src="assets/imgs/shop/p4.jpg" alt="" /></a>
+                            <a href="products.php"><img src="assets/imgs/shop/p4.jpg" alt="" /></a>
                         </figure>
-                        <h6><a href="#">Paper cup</a></h6>
+                        <h6><a href="products.php">Paper cup</a></h6>
 
                     </div>
                     <div class="col-md-2 card-2 wow animate__animated animate__fadeInUp" data-wow-delay=".5s">
                         <figure class="img-hover-scale overflow-hidden">
-                            <a href="#"><img src="assets/imgs/shop/p5.jpg" alt="" /></a>
+                            <a href="products.php"><img src="assets/imgs/shop/p5.jpg" alt="" /></a>
                         </figure>
-                        <h6><a href="#">Brochure</a></h6>
+                        <h6><a href="products.php">Brochure</a></h6>
 
                     </div>
                     <div class="col-md-2 card-2 wow animate__animated animate__fadeInUp" data-wow-delay=".6s">
                         <figure class="img-hover-scale overflow-hidden">
-                            <a href="#"><img src="assets/imgs/shop/p6.jpg" alt="" /></a>
+                            <a href="products.php"><img src="assets/imgs/shop/p6.jpg" alt="" /></a>
                         </figure>
-                        <h6><a href="#">hOODIES</a></h6>
+                        <h6><a href="products.php">hOODIES</a></h6>
 
                     </div>
                     <div class="col-md-2 card-2 card-3 wow animate__animated animate__fadeInUp" data-wow-delay=".1s">
                         <figure class="img-hover-scale overflow-hidden">
-                            <a href="#"><img src="assets/imgs/shop/p1.jpg" alt="" /></a>
+                            <a href="products.php"><img src="assets/imgs/shop/p1.jpg" alt="" /></a>
                         </figure>
-                        <h6><a href="#">tSHIRTS</a></h6>
+                        <h6><a href="products.php">tSHIRTS</a></h6>
 
                     </div>
 
@@ -447,7 +447,7 @@
                                     Booth design
                                 </h4>
                                 <h6>Exhibition stand</h6>
-                                <a href="#" class="viewall">VIEW ALL </a>
+                                <a href="products.php" class="viewall">VIEW ALL </a>
                             </div>
                         </div>
                     </div>
@@ -459,7 +459,7 @@
                                     Package design
                                 </h4>
                                 <h6>New material</h6>
-                                <a href="#" class="viewall"> VIEW ALL </a>
+                                <a href="products.php" class="viewall"> VIEW ALL </a>
                             </div>
                         </div>
                     </div>
@@ -487,7 +487,7 @@
                                         <div class="product-cart-wrap">
                                             <div class="product-img-action-wrap">
                                                 <div class="product-img product-img-zoom">
-                                                    <a href="#">
+                                                    <a href="product-details.php">
                                                         <img class="default-img" src="assets/imgs/shop/pr1.jpg"
                                                             alt="" />
                                                         <!-- <img class="hover-img" src="assets/imgs/shop/product-1-2.jpg"
@@ -511,11 +511,11 @@
                                             </div>
                                             <div class="product-content-wrap">
 
-                                                <h2><a href="#">New Trending T-shirt
+                                                <h2><a href="product-details.php">Trending T-shirt
                                                         Limited Model </a></h2>
                                                 <div class="product-rate d-flex align-items-center">
                                                     <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                    <h6 class="d-inline-block">4.55/5</h6>
+                                                    <h6 class="d-inline-block">4/5</h6>
                                                     <span class="d-inline-block">2599 - Reviews</span>
                                                 </div>
                                                 <div class="product-price mt-10 d-flex justify-content-between">
@@ -538,7 +538,7 @@
                                         <div class="product-cart-wrap">
                                             <div class="product-img-action-wrap">
                                                 <div class="product-img product-img-zoom">
-                                                    <a href="#">
+                                                    <a href="product-details.php">
                                                         <img class="default-img" src="assets/imgs/shop/pr2.jpg"
                                                             alt="" />
                                                         <!-- <img class="hover-img" src="assets/imgs/shop/product-5-2.jpg"
@@ -561,11 +561,11 @@
                                             </div>
                                             <div class="product-content-wrap">
 
-                                                <h2><a href="#">T-shirt Branding Gray Color
+                                                <h2><a href="product-details.php">T-shirt Branding 
                                                         2022 Model </a></h2>
                                                 <div class="product-rate d-flex align-items-center">
                                                     <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                    <h6 class="d-inline-block">4.55/5</h6>
+                                                    <h6 class="d-inline-block">4/5</h6>
                                                     <span class="d-inline-block">2599 - Reviews</span>
                                                 </div>
                                                 <div class="product-price mt-10 d-flex justify-content-between">
@@ -584,7 +584,7 @@
                                         <div class="product-cart-wrap">
                                             <div class="product-img-action-wrap">
                                                 <div class="product-img product-img-zoom">
-                                                    <a href="#">
+                                                    <a href="product-details.php">
                                                         <img class="default-img" src="assets/imgs/shop/pr3.jpg"
                                                             alt="" />
                                                         <!-- <img class="hover-img" src="assets/imgs/shop/product-2-2.jpg"
@@ -607,11 +607,11 @@
                                             </div>
                                             <div class="product-content-wrap">
 
-                                                <h2><a href="#">Hoodie New Black Color
+                                                <h2><a href="product-details.php">Hoodie New Black Color
                                                         2022 Model </a></h2>
                                                 <div class="product-rate d-flex align-items-center">
                                                     <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                    <h6 class="d-inline-block">4.55/5</h6>
+                                                    <h6 class="d-inline-block">4/5</h6>
                                                     <span class="d-inline-block">2599 - Reviews</span>
                                                 </div>
                                                 <div class="product-price mt-10 d-flex justify-content-between">
@@ -631,7 +631,7 @@
                                         <div class="product-cart-wrap">
                                             <div class="product-img-action-wrap">
                                                 <div class="product-img product-img-zoom">
-                                                    <a href="#">
+                                                    <a href="product-details.php">
                                                         <img class="default-img" src="assets/imgs/shop/pr1.jpg"
                                                             alt="" />
                                                         <!-- <img class="hover-img" src="assets/imgs/shop/product-1-2.jpg"
@@ -654,11 +654,11 @@
                                             </div>
                                             <div class="product-content-wrap">
 
-                                                <h2><a href="#">New Trending T-shirt
+                                                <h2><a href="product-details.php">Trending T-shirt
                                                         Limited Model </a></h2>
                                                 <div class="product-rate d-flex align-items-center">
                                                     <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                    <h6 class="d-inline-block">4.55/5</h6>
+                                                    <h6 class="d-inline-block">4/5</h6>
                                                     <span class="d-inline-block">2599 - Reviews</span>
                                                 </div>
                                                 <div class="product-price mt-10 d-flex justify-content-between">
@@ -681,7 +681,7 @@
                                         <div class="product-cart-wrap">
                                             <div class="product-img-action-wrap">
                                                 <div class="product-img product-img-zoom">
-                                                    <a href="#">
+                                                    <a href="product-details.php">
                                                         <img class="default-img" src="assets/imgs/shop/pr2.jpg"
                                                             alt="" />
                                                         <!-- <img class="hover-img" src="assets/imgs/shop/product-5-2.jpg"
@@ -704,11 +704,11 @@
                                             </div>
                                             <div class="product-content-wrap">
 
-                                                <h2><a href="#">New Trending T-shirt
+                                                <h2><a href="product-details.php">Trending T-shirt
                                                         Limited Model </a></h2>
                                                 <div class="product-rate d-flex align-items-center">
                                                     <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                    <h6 class="d-inline-block">4.55/5</h6>
+                                                    <h6 class="d-inline-block">4/5</h6>
                                                     <span class="d-inline-block">2599 - Reviews</span>
                                                 </div>
                                                 <div class="product-price mt-10 d-flex justify-content-between">
@@ -727,7 +727,7 @@
                                         <div class="product-cart-wrap">
                                             <div class="product-img-action-wrap">
                                                 <div class="product-img product-img-zoom">
-                                                    <a href="#">
+                                                    <a href="product-details.php">
                                                         <img class="default-img" src="assets/imgs/shop/pr3.jpg"
                                                             alt="" />
                                                         <!-- <img class="hover-img" src="assets/imgs/shop/product-2-2.jpg"
@@ -750,11 +750,11 @@
                                             </div>
                                             <div class="product-content-wrap">
 
-                                                <h2><a href="#">New Trending T-shirt
+                                                <h2><a href="product-details.php">Trending T-shirt
                                                         Limited Model </a></h2>
                                                 <div class="product-rate d-flex align-items-center">
                                                     <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                    <h6 class="d-inline-block">4.55/5</h6>
+                                                    <h6 class="d-inline-block">4/5</h6>
                                                     <span class="d-inline-block">2599 - Reviews</span>
                                                 </div>
                                                 <div class="product-price mt-10 d-flex justify-content-between">
@@ -773,7 +773,7 @@
                                         <div class="product-cart-wrap">
                                             <div class="product-img-action-wrap">
                                                 <div class="product-img product-img-zoom">
-                                                    <a href="#">
+                                                    <a href="product-details.php">
                                                         <img class="default-img" src="assets/imgs/shop/pr2.jpg"
                                                             alt="" />
                                                         <!-- <img class="hover-img" src="assets/imgs/shop/product-3-2.jpg"
@@ -797,11 +797,11 @@
                                             </div>
                                             <div class="product-content-wrap">
 
-                                                <h2><a href="#">New Trending T-shirt
+                                                <h2><a href="product-details.php">Trending T-shirt
                                                         Limited Model </a></h2>
                                                 <div class="product-rate d-flex align-items-center">
                                                     <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                                    <h6 class="d-inline-block">4.55/5</h6>
+                                                    <h6 class="d-inline-block">4/5</h6>
                                                     <span class="d-inline-block">2599 - Reviews</span>
                                                 </div>
                                                 <div class="product-price mt-10 d-flex justify-content-between">
@@ -913,7 +913,7 @@
             <div class="container">
                 <div class="section-title wow animate__animated animate__fadeIn" data-wow-delay="0">
                     <h3 class="">ONSALE PRODUCTS</h3>
-                    <a class="show-all" href="#">
+                    <a class="show-all" href="products.php">
                         View All
 
                     </a>
@@ -940,12 +940,12 @@
                                 <div class="col-md-8 onsale-prdct">
                                     <div class="product-content-wrap">
 
-                                        <h2><a href="#">New Trending T-shirt
+                                        <h2><a href="product-details.php">Trending T-shirt
                                                 Limited Model </a></h2>
                                         <hr>
                                         <div class="product-rate d-flex align-items-center">
                                             <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                            <h6 class="d-inline-block">4.55/5</h6>
+                                            <h6 class="d-inline-block">4/5</h6>
                                             <span class="d-inline-block">2599 - Reviews</span>
                                         </div>
                                         <div class="product-price mt-10 d-flex justify-content-between">
@@ -984,12 +984,12 @@
                                 <div class="col-md-8 onsale-prdct">
                                     <div class="product-content-wrap">
 
-                                        <h2><a href="product-details.php">New Trending T-shirt
+                                        <h2><a href="product-details.php">Trending T-shirt
                                                 Limited Model </a></h2>
                                         <hr>
                                         <div class="product-rate d-flex align-items-center">
                                             <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                            <h6 class="d-inline-block">4.55/5</h6>
+                                            <h6 class="d-inline-block">4/5</h6>
                                             <span class="d-inline-block">2599 - Reviews</span>
                                         </div>
                                         <div class="product-price mt-10 d-flex justify-content-between">
@@ -1028,12 +1028,12 @@
                                 <div class="col-md-8 onsale-prdct">
                                     <div class="product-content-wrap">
 
-                                        <h2><a href="#">New Trending T-shirt
+                                        <h2><a href="product-details.php">Trending T-shirt
                                                 Limited Model </a></h2>
                                         <hr>
                                         <div class="product-rate d-flex align-items-center">
                                             <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                            <h6 class="d-inline-block">4.55/5</h6>
+                                            <h6 class="d-inline-block">4/5</h6>
                                             <span class="d-inline-block">2599 - Reviews</span>
                                         </div>
                                         <div class="product-price mt-10 d-flex justify-content-between">
@@ -1076,12 +1076,12 @@
                                 <div class="col-md-8 onsale-prdct">
                                     <div class="product-content-wrap">
 
-                                        <h2><a href="#">New Trending T-shirt
+                                        <h2><a href="product-details.php">Trending T-shirt
                                                 Limited Model </a></h2>
                                         <hr>
                                         <div class="product-rate d-flex align-items-center">
                                             <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                            <h6 class="d-inline-block">4.55/5</h6>
+                                            <h6 class="d-inline-block">4/5</h6>
                                             <span class="d-inline-block">2599 - Reviews</span>
                                         </div>
                                         <div class="product-price mt-10 d-flex justify-content-between">
@@ -1131,12 +1131,12 @@
                                 <div class="col-md-8 onsale-prdct">
                                     <div class="product-content-wrap">
 
-                                        <h2><a href="#">New Trending T-shirt
+                                        <h2><a href="product-details.php">Trending T-shirt
                                                 Limited Model </a></h2>
                                         <hr>
                                         <div class="product-rate d-flex align-items-center">
                                             <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                            <h6 class="d-inline-block">4.55/5</h6>
+                                            <h6 class="d-inline-block">4/5</h6>
                                             <span class="d-inline-block">2599 - Reviews</span>
                                         </div>
                                         <div class="product-price mt-10 d-flex justify-content-between">
@@ -1186,12 +1186,12 @@
                                 <div class="col-md-8 onsale-prdct">
                                     <div class="product-content-wrap">
 
-                                        <h2><a href="#">New Trending T-shirt
+                                        <h2><a href="product-details.php">Trending T-shirt
                                                 Limited Model </a></h2>
                                         <hr>
                                         <div class="product-rate d-flex align-items-center">
                                             <img src="assets/imgs/icons/star.png" alt="" class="d-inline-block">
-                                            <h6 class="d-inline-block">4.55/5</h6>
+                                            <h6 class="d-inline-block">4/5</h6>
                                             <span class="d-inline-block">2599 - Reviews</span>
                                         </div>
                                         <div class="product-price mt-10 d-flex justify-content-between">
@@ -1250,8 +1250,6 @@
     <script src="assets/js/plugins/slick.js"></script>
     <script src="assets/js/plugins/wow.js"></script>
     <script src="assets/js/plugins/magnific-popup.js"></script>
-
-    <!-- Template  JS -->
     <script src="assets/js/script.js"></script>
     <script>
         $(document).ready(function () {

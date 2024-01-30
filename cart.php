@@ -32,7 +32,7 @@
             <section class="breadcrumb-div">
                 <div class="container">
                     <ul class="breadcrumb-list">
-                        <li> <a href="#">Home</a>
+                        <li> <a href="index.php">Home</a>
                             <span class="separator" aria-hidden="true">&rsaquo;</span></li>
                         <li class="active-brudcrumb">
                             <a href="#">Cart</a>
@@ -56,7 +56,7 @@
                             <div class="cart-list">
                                 <div class="single-cart">
                                     <div class="cart-img">
-                                        <img src="assets/imgs/shop/pr1.jpg" alt="">
+                                       <a href="product-details.php"><img src="assets/imgs/shop/pr1.jpg" alt=""></a> 
                                     </div>
                                     <div class="cart-content">
                                         <div class="cart-details">
@@ -87,7 +87,7 @@
                                 </div>
                                 <div class="single-cart">
                                     <div class="cart-img">
-                                        <img src="assets/imgs/shop/prdct4.jpg" alt="">
+                                        <a href="product-details.php"><img src="assets/imgs/shop/prdct4.jpg" alt=""></a>
                                     </div>
                                     <div class="cart-content">
                                         <div class="cart-details">
@@ -134,7 +134,7 @@
                                        <div class="delivery-price">Delivery <span>SAR 10</span></div>
                                        <div class="discount-price">Discount <span>- SAR 20</span></div>
                                        <div class="subtotal-price">Sub Total <span>SAR 490</span></div>
-                                       <button class="proceed-btn">Proceed to Checkout</button>
+                                       <a href="checkout.php"><button class="proceed-btn">Proceed to Checkout</button></a>
                                     </div>
                                 </div>
                             </div>
@@ -167,9 +167,6 @@
     <script src="assets/js/plugins/slick.js"></script>
     <script src="assets/js/plugins/wow.js"></script>
     <script src="assets/js/plugins/magnific-popup.js"></script>
-
-
-    <!-- Template  JS -->
     <script src="assets/js/script.js"></script>
     <script>
         $(document).ready(function () {

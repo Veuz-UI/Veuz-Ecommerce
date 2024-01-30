@@ -7,7 +7,7 @@
                             <div class="newsletter-content text-center">
                                 <h5>Big Saving on Top selling Smartphone</h5>
                                 <h4>Get Up To 85% OFF on big billion day 2021</h4>
-                                <a href="#" class="shopnow">Shop Now</a>
+                                <a href="products.php" class="shopnow">Shop Now</a>
                             </div>
 
                         </div>
@@ -59,7 +59,7 @@
                                 <a href="index.php" class="mb-15"><img src="assets/imgs/theme/log.jpg"
                                         alt="logo" /></a>
                                 <p class="font-lg text-heading">Lorem Ipsum is simply dummy text of the printing and
-                                    typesetting industry. Lorem Ipsum has been the industry’s standard dummy text ever
+                                    typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever
                                     since the 1500s, when an unknown printer took a galley of type and scrambled it to
                                     make a type specimen book.</p>
                                 <div class="mobile-social-icon">
