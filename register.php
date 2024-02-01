@@ -33,7 +33,7 @@
                             <h2>Register Now</h2>
                             <p>Please enter your details.</p>
 
-                            <form class="needs-validation register-form" novalidate action="index.php">
+                            <form class="needs-validation register-form" novalidate action="login.php">
 
                                 <div class="mb-3">
                
@@ -117,7 +117,7 @@
         <div class="mt-4 text-center login-bottom">
 
             <div>
-                <p>Already have an account ? <a href="index.php" class="fw-medium text-primary"> Login</a> </p>
+                <p>Already have an account ? <a href="login.php" class="fw-medium text-primary"> Login</a> </p>
                 <!-- <p>© <script>document.write(new Date().getFullYear())</script> All Rights Reserved. Design & Develop by Veuz concepts.</p> -->
             </div>
         </div>

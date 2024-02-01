@@ -29,7 +29,7 @@
                                                 class="img-fluid"></span>Track Order</a>
                                 </li>
                                 <li>
-                                    <a href="#"><span class="box3"><img src="assets/imgs/theme/login.png" alt=""
+                                    <a href="login.php"><span class="box3"><img src="assets/imgs/theme/login.png" alt=""
                                                 class="img-fluid"></span>Register / login</a>
                                 </li>
                             </ul>
@@ -482,12 +482,15 @@
                                 <div class="cart-dropdown-wrap cart-dropdown-hm2 account-dropdown">
                                     <ul>
                                         <li>
-                                            <a href="#"><i class="fi fi-rs-user mr-10"></i>My
-                                                Account</a>
+                                            <a href="profile.php"><i class="fi fi-rs-user mr-10"></i>My
+                                                Profile</a>
                                         </li>
                                         <li>
                                             <a href="#"><i class="fi fi-rs-location-alt mr-10"></i>Order
                                                 Tracking</a>
+                                        </li>
+                                        <li>
+                                            <a href="history.php"><i class="fi-rs-time-past mr-10"></i>Order History</a>
                                         </li>
                                         <li>
                                             <a href="voucher.php"><i class="fi fi-rs-label mr-10"></i>My
@@ -497,11 +500,12 @@
                                             <a href="wishlist.php"><i class="fi fi-rs-heart mr-10"></i>My
                                                 Wishlist</a>
                                         </li>
-                                        <li>
+                                      
+                                        <!-- <li>
                                             <a href="#"><i class="fi fi-rs-settings-sliders mr-10"></i>Setting</a>
-                                        </li>
+                                        </li> -->
                                         <li>
-                                            <a href="#"><i class="fi fi-rs-sign-out mr-10"></i>Sign
+                                            <a href="login.php"><i class="fi fi-rs-sign-out mr-10"></i>Sign
                                                 out</a>
                                         </li>
                                     </ul>

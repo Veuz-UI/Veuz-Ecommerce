@@ -42,7 +42,7 @@
                     </ul>
                 </div>
             </section>
-            <section class="common-v-padding pt-0">
+            <section class="common-v-padding pt-0 pb-45">
                 <div class="container">   
                     <!-- product slider section -->
                     <div class="row">
@@ -54,71 +54,198 @@
                         </div>
                         <div class="col-md-12">
                             <div class="notification-list">
-                                <div class="single-notification">
-                                    <div class="noti-topbar">
-                                        <div class="user-img">
-                                            <img src="assets/imgs/users/avatar-1.jpg" alt="">
-                                            <h6>Bisharu Rahman</h6>
-                                        </div>
-                                        <div class="not-time">
-                                            <i class="fi-rs-clock"></i>
-                                            <span>24 March 2024 - 11.30 am</span>
-                                        </div>
-                                    </div>
-                                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-                                </div>
-                                <div class="single-notification">
-                                    <div class="noti-topbar">
-                                        <div class="user-img">
-                                            <img src="assets/imgs/users/avatar-2.jpg" alt="">
-                                            <h6>Bisharu Rahman</h6>
-                                        </div>
-                                        <div class="not-time">
-                                            <i class="fi-rs-clock"></i>
-                                            <span>24 March 2024 - 11.30 am</span>
+                                <h5>Today</h5>
+                                <div class="row">
+                                    <div class="col-lg-4 col-xl-3">
+                                        <div class="single-notification">
+                                            <div class="noti-topbar">
+                                                <div class="user-img">
+                                                    <img src="assets/imgs/users/avatar-1.jpg" alt="">
+                                                    <h6>Phoebe Tonkin</h6>
+                                                </div>
+                                               
+                                            </div>
+                                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt magna aliqua. Ut enim ad minim veniam.</p>
+                                            <div class="not-bottom">
+                                                <div class="not-time">
+                                                    <i class="fi-rs-clock"></i>
+                                                    <span>33 minutes ago</span>
+                                                </div>
+                                                <i class="fi-rs-trash dlt-not"></i>
+                                            </div>
                                         </div>
                                     </div>
-                                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-                                </div>
-                                <div class="single-notification">
-                                    <div class="noti-topbar">
-                                        <div class="user-img">
-                                            <img src="assets/imgs/users/avatar-4.jpg" alt="">
-                                            <h6>Bisharu Rahman</h6>
-                                        </div>
-                                        <div class="not-time">
-                                            <i class="fi-rs-clock"></i>
-                                            <span>24 March 2024 - 11.30 am</span>
-                                        </div>
-                                    </div>
-                                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-                                </div>
-                                <div class="single-notification">
-                                    <div class="noti-topbar">
-                                        <div class="user-img">
-                                            <img src="assets/imgs/users/avatar-7.jpg" alt="">
-                                            <h6>Bisharu Rahman</h6>
-                                        </div>
-                                        <div class="not-time">
-                                            <i class="fi-rs-clock"></i>
-                                            <span>24 March 2024 - 11.30 am</span>
+                                    <div class="col-lg-4 col-xl-3">
+                                        <div class="single-notification">
+                                            <div class="noti-topbar">
+                                                <div class="user-img">
+                                                    <img src="assets/imgs/users/avatar-2.jpg" alt="">
+                                                    <h6>Matthew Davis</h6>
+                                                </div>
+                                               
+                                            </div>
+                                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt magna aliqua. Ut enim ad minim veniam.</p>
+                                            <div class="not-bottom">
+                                                <div class="not-time">
+                                                    <i class="fi-rs-clock"></i>
+                                                    <span>58 minutes ago</span>
+                                                </div>
+                                                <i class="fi-rs-trash dlt-not"></i>
+                                            </div>
                                         </div>
                                     </div>
-                                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
-                                </div>
-                                <div class="single-notification">
-                                    <div class="noti-topbar">
-                                        <div class="user-img">
-                                            <img src="assets/imgs/users/avatar-8.jpg" alt="">
-                                            <h6>Bisharu Rahman</h6>
-                                        </div>
-                                        <div class="not-time">
-                                            <i class="fi-rs-clock"></i>
-                                            <span>24 March 2024 - 11.30 am</span>
+                                    <div class="col-lg-4 col-xl-3">
+                                        <div class="single-notification">
+                                            <div class="noti-topbar">
+                                                <div class="user-img">
+                                                    <img src="assets/imgs/users/avatar-4.jpg" alt="">
+                                                    <h6>Nina Dobrev</h6>
+                                                </div>
+                                               
+                                            </div>
+                                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt magna aliqua. Ut enim ad minim veniam.</p>
+                                            <div class="not-bottom">
+                                                <div class="not-time">
+                                                    <i class="fi-rs-clock"></i>
+                                                    <span>1hr ago</span>
+                                                </div>
+                                                <i class="fi-rs-trash dlt-not"></i>
+                                            </div>
                                         </div>
                                     </div>
-                                    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.</p>
+                                    <div class="col-lg-4 col-xl-3">
+                                        <div class="single-notification">
+                                            <div class="noti-topbar">
+                                                <div class="user-img">
+                                                    <img src="assets/imgs/users/avatar-8.jpg" alt="">
+                                                    <h6>Kat Graham</h6>
+                                                </div>
+                                              
+                                            </div>
+                                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt magna aliqua. Ut enim ad minim veniam.</p>
+                                            <div class="not-bottom">
+                                                <div class="not-time">
+                                                    <i class="fi-rs-clock"></i>
+                                                    <span>1hr ago</span>
+                                                </div>
+                                                <i class="fi-rs-trash dlt-not"></i>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
+                            </div>
+                            <div class="notification-list">
+                                <h5>Yesterday</h5>
+                                <div class="row">
+                                    <div class="col-lg-4 col-xl-3">
+                                        <div class="single-notification">
+                                            <div class="noti-topbar">
+                                                <div class="user-img">
+                                                    <img src="assets/imgs/users/avatar-2.jpg" alt="">
+                                                    <h6>Matthew Davis</h6>
+                                                </div>
+                                               
+                                            </div>
+                                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt magna aliqua. Ut enim ad minim veniam.</p>
+                                            <div class="not-bottom">
+                                                <div class="not-time">
+                                                    <i class="fi-rs-clock"></i>
+                                                    <span>Yesterday 01:30 am</span>
+                                                </div>
+                                                <i class="fi-rs-trash dlt-not"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-4 col-xl-3">
+                                        <div class="single-notification">
+                                            <div class="noti-topbar">
+                                                <div class="user-img">
+                                                    <img src="assets/imgs/users/avatar-1.jpg" alt="">
+                                                    <h6>Phoebe Tonkin</h6>
+                                                </div>
+                                             
+                                            </div>
+                                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt magna aliqua. Ut enim ad minim veniam.</p>
+                                            <div class="not-bottom">
+                                                <div class="not-time">
+                                                    <i class="fi-rs-clock"></i>
+                                                    <span>Yesterday 11:23 am</span>
+                                                </div>
+                                                <i class="fi-rs-trash dlt-not"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                   
+                                </div>
+                            </div>
+                            <div class="notification-list">
+                                <h5>29/01/2024</h5>
+                                <div class="row">
+                                    <div class="col-lg-4 col-xl-3">
+                                        <div class="single-notification">
+                                            <div class="noti-topbar">
+                                                <div class="user-img">
+                                                    <img src="assets/imgs/users/avatar-1.jpg" alt="">
+                                                    <h6>Phoebe Tonkin</h6>
+                                                </div>
+                                            
+                                            </div>
+                                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt magna aliqua. Ut enim ad minim veniam.</p>
+                                            <div class="not-bottom">
+                                                <div class="not-time">
+                                                    <i class="fi-rs-clock"></i>
+                                                    <span>29/01/2024 01:23 am</span>
+                                                </div>
+                                                <i class="fi-rs-trash dlt-not"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-4 col-xl-3">
+                                        <div class="single-notification">
+                                            <div class="noti-topbar">
+                                                <div class="user-img">
+                                                    <img src="assets/imgs/users/avatar-2.jpg" alt="">
+                                                    <h6>Matthew Davis</h6>
+                                                </div>
+                                               
+                                            </div>
+                                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt magna aliqua. Ut enim ad minim veniam.</p>
+                                            <div class="not-bottom">
+                                                <div class="not-time">
+                                                    <i class="fi-rs-clock"></i>
+                                                    <span>29/01/2024 11:23 am</span>
+                                                </div>
+                                                <i class="fi-rs-trash dlt-not"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-4 col-xl-3">
+                                        <div class="single-notification">
+                                            <div class="noti-topbar">
+                                                <div class="user-img">
+                                                    <img src="assets/imgs/users/avatar-4.jpg" alt="">
+                                                    <h6>Nina Dobrev</h6>
+                                                </div>
+                                               
+                                            </div>
+                                            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt magna aliqua. Ut enim ad minim veniam.</p>
+                                            <div class="not-bottom">
+                                                <div class="not-time">
+                                                    <i class="fi-rs-clock"></i>
+                                                    <span>29/01/2024 09:10 am</span>
+                                                </div>
+                                                <i class="fi-rs-trash dlt-not"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                   
+                                </div>
+                            </div>
+                                
+                               
+                             
+                          
+                               
                             </div>
                         </div>                  
     

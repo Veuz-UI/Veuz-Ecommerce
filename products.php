@@ -43,108 +43,118 @@
                         <div class="products-leftfilter">
                             <div class="products-filter-div">
                                 <h4>Product Categories</h4>
-                                <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox11" value="">
-                                    <label class="form-check-label"
-                                        for="exampleCheckbox11"><span>Acessories</span></label>
+                                <div class="search-wrapper">
+                                    <div class="input-holder">
+                                        <input type="text" class="search-input" placeholder="Type to search" />
+                                        <button class="search-icon" onclick="searchToggle(this, event);"><i class="fi-rs-search"></i></button>
+                                    </div>
+                                    <span class="close" onclick="searchToggle(this, event);"><i class="fa-solid fa-xmark delete-search"></i></span>
                                 </div>
                                 <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox12" value="">
+                                    <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox11" value="">
+                                    <label class="form-check-label" for="exampleCheckbox11"><span>Acessories</span></label>
+                                </div>
+                                <div class="custome-checkbox">
+                                    <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox12" value="">
                                     <label class="form-check-label" for="exampleCheckbox12"><span>Denim</span></label>
                                 </div>
                                 <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox13" value="">
+                                    <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox13" value="">
                                     <label class="form-check-label" for="exampleCheckbox13"><span>Dress</span></label>
                                 </div>
                                 <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox14" value="">
+                                    <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox14" value="">
                                     <label class="form-check-label" for="exampleCheckbox14"><span>Jackets</span></label>
                                 </div>
                                 <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox15" value="">
+                                    <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox15" value="">
                                     <label class="form-check-label" for="exampleCheckbox15"><span>Men</span></label>
                                 </div>
                                 <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox16" value="">
+                                    <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox16" value="">
                                     <label class="form-check-label" for="exampleCheckbox16"><span>Shoes</span></label>
                                 </div>
                                 <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox17" value="">
+                                    <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox17" value="">
                                     <label class="form-check-label" for="exampleCheckbox17"><span>Tops</span></label>
                                 </div>
                                 <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox18" value="">
+                                    <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox18" value="">
                                     <label class="form-check-label" for="exampleCheckbox18"><span>T-Shirt</span></label>
                                 </div>
                             </div>
                             <div class="products-filter-div">
                                 <h4>Filter by Price</h4>
-                                <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox21" value="">
-                                    <label class="form-check-label" for="exampleCheckbox21"><span>$50 -
-                                            $100</span></label>
+                                <div class="search-wrapper">
+                                    <div class="input-holder">
+                                        <input type="text" class="search-input" placeholder="Type to search" />
+                                        <button class="search-icon" onclick="searchToggle(this, event);"><i class="fi-rs-search"></i></button>
+                                    </div>
+                                    <span class="close" onclick="searchToggle(this, event);"><i class="fa-solid fa-xmark delete-search"></i></span>
                                 </div>
                                 <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox22" value="">
-                                    <label class="form-check-label"
-                                        for="exampleCheckbox22"><span>$100-$150</span></label>
+                                    <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox21" value="">
+                                    <label class="form-check-label" for="exampleCheckbox21"><span>$50 - $100</span></label>
                                 </div>
                                 <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox23" value="">
-                                    <label class="form-check-label"
-                                        for="exampleCheckbox23"><span>$150-$200</span></label>
+                                    <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox22" value="">
+                                    <label class="form-check-label" for="exampleCheckbox22"><span>$100-$150</span></label>
                                 </div>
                                 <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox24" value="">
-                                    <label class="form-check-label"
-                                        for="exampleCheckbox34"><span>$250-$300</span></label>
+                                    <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox23" value="">
+                                    <label class="form-check-label" for="exampleCheckbox23"><span>$150-$200</span></label>
                                 </div>
                                 <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox25" value="">
-                                    <label class="form-check-label"
-                                        for="exampleCheckbox25"><span>$300-$500</span></label>
+                                    <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox24" value="">
+                                    <label class="form-check-label" for="exampleCheckbox34"><span>$250-$300</span></label>
+                                </div>
+                                <div class="custome-checkbox">
+                                    <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox25" value="">
+                                    <label class="form-check-label" for="exampleCheckbox25"><span>$300-$500</span></label>
                                 </div>
                             </div>
                             <div class="products-filter-div">
                                 <h4>Filter by Size</h4>
-                                <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox31" value="">
-                                    <label class="form-check-label" for="exampleCheckbox31"><span>XS</span></label>
+                                <div class="dflex-filter">
+                                    <div class="custome-checkbox">
+                                        <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox31" value="">
+                                        <label class="form-check-label" for="exampleCheckbox31"><span>XS</span></label>
+                                    </div>
+                                    <div class="custome-checkbox">
+                                        <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox32" value="">
+                                        <label class="form-check-label" for="exampleCheckbox32"><span>S</span></label>
+                                    </div>
+                                    <div class="custome-checkbox">
+                                        <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox33" value="">
+                                        <label class="form-check-label" for="exampleCheckbox33"><span>M</span></label>
+                                    </div>
+                                    <div class="custome-checkbox">
+                                        <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox34" value="">
+                                        <label class="form-check-label" for="exampleCheckbox34"><span>L</span></label>
+                                    </div>
+                                    <div class="custome-checkbox">
+                                        <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox35" value="">
+                                        <label class="form-check-label" for="exampleCheckbox35"><span>XL</span></label>
+                                    </div>
                                 </div>
-                                <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox32" value="">
-                                    <label class="form-check-label" for="exampleCheckbox32"><span>S</span></label>
-                                </div>
-                                <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox33" value="">
-                                    <label class="form-check-label" for="exampleCheckbox33"><span>M</span></label>
-                                </div>
-                                <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox34" value="">
-                                    <label class="form-check-label" for="exampleCheckbox34"><span>L</span></label>
-                                </div>
-                                <div class="custome-checkbox">
-                                    <input class="form-check-input" type="checkbox" name="checkbox"
-                                        id="exampleCheckbox35" value="">
-                                    <label class="form-check-label" for="exampleCheckbox35"><span>XL</span></label>
-                                </div>
+                                
+                            </div>
+                            <div class="products-filter-div">
+                                <h4>Filter by Color</h4>
+                                <ul class="product-color-filter">
+                                    <li class="active"></li>
+                                    <li></li>
+                                    <li></li>
+                                    <li></li>
+                                    <li></li>
+                                    <li></li>
+                                    <li></li>
+                                    <li></li>
+                                    <li></li>
+                                    <li></li>
+                                    <li></li>
+                                </ul>
+                                
                             </div>
                         </div>
                     </div>
@@ -551,7 +561,29 @@
             });
         });
     </script>
+ <script>
+        $(document).ready(function() {
+            $('.product-color-filter li').on('click', function() {
+                $(this).siblings().removeClass('active');
+                $(this).toggleClass('active');
+            });
+        });
+  </script>
 
+  <script>
+    function searchToggle(obj, evt){
+    var container = $(obj).closest('.search-wrapper');
+        if(!container.hasClass('active')){
+            container.addClass('active');
+            evt.preventDefault();
+        }
+        else if(container.hasClass('active') && $(obj).closest('.input-holder').length == 0){
+            container.removeClass('active');
+            // clear input
+            container.find('.search-input').val('');
+        }
+}
+  </script>
 </body>
 
 </html>

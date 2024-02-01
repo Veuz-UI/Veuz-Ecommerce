@@ -33,22 +33,15 @@
                                 <h2>Reset Password</h2>
                                 <p>The password should have atleast 6 characters.</p>
         
-                                <form class="form-horizontal" action="index.php">
+                                <form class="form-horizontal" action="login.php">
             
                                     <div class="mb-3">
-                               
-                                        <div class="input-group auth-pass-inputgroup">
-                                            <input type="password" class="form-control" placeholder="Enter New password" aria-label="Password" aria-describedby="password-addon">
-                                            <button class="btn btn-light password-addon" type="button" id="password-addon"><i class="mdi mdi-eye-outline"></i></button>
-                                        </div>
+                                        <input type="password" class="form-control" placeholder="Enter New password">
                                     </div>
 
-                                    <div class="mb-4">
+                                    <div class="mb-3">
                             
-                                        <div class="input-group auth-pass-inputgroup">
-                                            <input type="password" class="form-control" placeholder="Confirm password" aria-label="Password" aria-describedby="password-addon">
-                                            <button class="btn btn-light password-addon" type="button" id="password-addon"><i class="mdi mdi-eye-outline"></i></button>
-                                        </div>
+                                        <input type="password" class="form-control" placeholder="Confirm password">
                                     </div>
 
                                     <div class="form-check">
@@ -64,7 +57,7 @@
         
                                     
                                     <div class="mt-4 text-center login-bottom">
-                                        <a href="index.php" class="text-muted"><i class="mdi mdi-chevron-left me-1"></i> Back to login</a>
+                                        <a href="login.php" class="text-muted"><i class="mdi mdi-chevron-left me-1"></i> Back to login</a>
                                     </div>
                                 </form>
                                 

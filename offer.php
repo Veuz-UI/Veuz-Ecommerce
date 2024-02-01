@@ -36,7 +36,7 @@
                             <li> <a href="index.php">Home</a>
                                 <span class="separator" aria-hidden="true">&rsaquo;</span></li>
                             <li class="active-brudcrumb">
-                                <a href="voucher.php">Vouchers</a>
+                                <a href="voucher.php">Offers</a>
 
                             </li>
                         </ul>
@@ -148,12 +148,12 @@
                         </div>
                     </div>
                     <div class="col-md-9">
-                        <div class="products-list1 voucher-list">
+                        <div class="products-list1 offer-list">
                             <div class="row">
                                 <div class="col-md-12">
 
                                     <div class="product-list-topbar">
-                                        <h3>My <span>Vouchers</span></h3>
+                                        <h3>Latest <span>Offers</span></h3>
                                         <div class="rightside-btns">
                                             <h6>12 of 1650</h6>
                                             <button class="filter-btn"><span
@@ -175,28 +175,21 @@
 
                             </div>
                             <div class="row g-4">
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="voucher-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/gift.jpg" alt="" />
+                                                <a href="product-details.php">
+                                                    <img class="default-img" src="assets/imgs/offer/1.jpg" alt="" />
                                                    
                                                 </a>
                                             </div>
 
-                                            <div class="product-badges product-badges-position product-badges-mrg">
-                                                <span class="new">In Stock</span>
-                                            </div>
-
-                                            <div class="product-badges product-badge-position product-badges-mrg">
-                                                <span><i class="fi-rs-eye"></i></span> <span><i
-                                                        class="fi-rs-heart toggle-heart"></i></span>
-                                            </div>
+                                           
                                         </div>
                                         <div class="product-content-wrap">
 
-                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
+                                            <h2><a href="product-details.php">Kalyan Jewellers Diamond Jewellery 
                                                 Physical Gift Card</a></h2>
                                           
                                             <div class="voucher-price">
@@ -211,28 +204,22 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="voucher-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/gift1.jpg" alt="" />
+                                                <a href="product-details.php">
+                                                    <img class="default-img" src="assets/imgs/offer/2.jpg" alt="" />
                                                    
                                                 </a>
                                                
                                             </div>
 
-                                            <div class="product-badges product-badges-position product-badges-mrg">
-                                                <span class="hot">Limited Stock</span>
-                                            </div>
-                                            <div class="product-badges product-badge-position product-badges-mrg">
-                                                <span><i class="fi-rs-eye"></i></span> <span><i
-                                                        class="fi-rs-heart toggle-heart"></i></span>
-                                            </div>
+                                          
                                         </div>
                                         <div class="product-content-wrap">
 
-                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
+                                            <h2><a href="product-details.php">Kalyan Jewellers Diamond Jewellery 
                                                 Physical Gift Card</a></h2>
                                           
                                             <div class="voucher-price">
@@ -247,28 +234,22 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="voucher-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/gift2.jpg" alt="" />
+                                                <a href="product-details.php">
+                                                    <img class="default-img" src="assets/imgs/offer/3.jpg" alt="" />
                                                
                                                 </a>
                                                 
                                             </div>
 
-                                            <div class="product-badges product-badges-position product-badges-mrg">
-                                                <span class="new">In Stock</span>
-                                            </div>
-                                            <div class="product-badges product-badge-position product-badges-mrg">
-                                                <span><i class="fi-rs-eye"></i></span> <span><i
-                                                        class="fi-rs-heart toggle-heart"></i></span>
-                                            </div>
+                                          
                                         </div>
                                         <div class="product-content-wrap">
 
-                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
+                                            <h2><a href="product-details.php">Kalyan Jewellers Diamond Jewellery 
                                                 Physical Gift Card</a></h2>
                                            
                                             <div class="voucher-price">
@@ -283,28 +264,22 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="voucher-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/gift3.jpg" alt="" />
+                                                <a href="product-details.php">
+                                                    <img class="default-img" src="assets/imgs/offer/4.jpg" alt="" />
                                                   
                                                 </a>
                                                
                                             </div>
 
-                                            <div class="product-badges product-badges-position product-badges-mrg">
-                                                <span class="new">In Stock</span>
-                                            </div>
-                                            <div class="product-badges product-badge-position product-badges-mrg">
-                                                <span><i class="fi-rs-eye"></i></span> <span><i
-                                                        class="fi-rs-heart toggle-heart"></i></span>
-                                            </div>
+                                         
                                         </div>
                                         <div class="product-content-wrap">
 
-                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
+                                            <h2><a href="product-details.php">Kalyan Jewellers Diamond Jewellery 
                                                 Physical Gift Card</a></h2>
                                            
                                             <div class="voucher-price">
@@ -319,28 +294,22 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="voucher-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/gift4.jpg" alt="" />
+                                                <a href="product-details.php">
+                                                    <img class="default-img" src="assets/imgs/offer/5.jpg" alt="" />
                                                    
                                                 </a>
                                                
                                             </div>
 
-                                            <div class="product-badges product-badges-position product-badges-mrg">
-                                                <span class="hot">Limited Stock</span>
-                                            </div>
-                                            <div class="product-badges product-badge-position product-badges-mrg">
-                                                <span><i class="fi-rs-eye"></i></span> <span><i
-                                                        class="fi-rs-heart toggle-heart"></i></span>
-                                            </div>
+                                          
                                         </div>
                                         <div class="product-content-wrap">
 
-                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
+                                            <h2><a href="product-details.php">Kalyan Jewellers Diamond Jewellery 
                                                 Physical Gift Card</a></h2>
                                            
                                             <div class="voucher-price">
@@ -355,29 +324,85 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-md-3">
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
-                                                <a href="voucher-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/gift5.jpg" alt="" />
+                                                <a href="product-details.php">
+                                                    <img class="default-img" src="assets/imgs/offer/4.jpg" alt="" />
                                                    
                                                 </a>
                                                
 
                                             </div>
 
-                                            <div class="product-badges product-badges-position product-badges-mrg">
-                                                <span class="hot">Limited Stock</span>
-                                            </div>
-                                            <div class="product-badges product-badge-position product-badges-mrg">
-                                                <span><i class="fi-rs-eye"></i></span> <span><i
-                                                        class="fi-rs-heart toggle-heart"></i></span>
-                                            </div>
+                                           
                                         </div>
                                         <div class="product-content-wrap">
 
-                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
+                                            <h2><a href="product-details.php">Kalyan Jewellers Diamond Jewellery 
+                                                Physical Gift Card</a></h2>
+                                          
+                                            <div class="voucher-price">
+                                                <div class="d-flex">
+                                                    <span class="new-voucher-price">399 SR</span>
+                                                    <span class="old-voucher-price">499 SR</span>
+                                                </div>
+                                      
+                                                <span class="voucher-price-off">3% OFF</span>
+                                            </div>
+                                          
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="product-cart-wrap">
+                                        <div class="product-img-action-wrap">
+                                            <div class="product-img product-img-zoom">
+                                                <a href="product-details.php">
+                                                    <img class="default-img" src="assets/imgs/offer/2.jpg" alt="" />
+                                                   
+                                                </a>
+                                               
+
+                                            </div>
+
+                                           
+                                        </div>
+                                        <div class="product-content-wrap">
+
+                                            <h2><a href="product-details.php">Kalyan Jewellers Diamond Jewellery 
+                                                Physical Gift Card</a></h2>
+                                          
+                                            <div class="voucher-price">
+                                                <div class="d-flex">
+                                                    <span class="new-voucher-price">399 SR</span>
+                                                    <span class="old-voucher-price">499 SR</span>
+                                                </div>
+                                      
+                                                <span class="voucher-price-off">3% OFF</span>
+                                            </div>
+                                          
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="product-cart-wrap">
+                                        <div class="product-img-action-wrap">
+                                            <div class="product-img product-img-zoom">
+                                                <a href="product-details.php">
+                                                    <img class="default-img" src="assets/imgs/offer/1.jpg" alt="" />
+                                                   
+                                                </a>
+                                               
+
+                                            </div>
+
+                                           
+                                        </div>
+                                        <div class="product-content-wrap">
+
+                                            <h2><a href="product-details.php">Kalyan Jewellers Diamond Jewellery 
                                                 Physical Gift Card</a></h2>
                                           
                                             <div class="voucher-price">

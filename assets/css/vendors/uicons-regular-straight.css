@@ -831,6 +831,7 @@ i[class^="fi-rs-"]:before, i[class*=" fi-rs-"]:before, span[class^="fi-rs-"]:bef
 .fi-rs-search:before {
     content: "\f207";
 }
+
 .fi-rs-settings-sliders:before {
     content: "\f208";
 }

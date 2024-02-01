@@ -36,7 +36,7 @@
                             <li> <a href="index.php">Home</a>
                                 <span class="separator" aria-hidden="true">&rsaquo;</span></li>
                             <li class="active-brudcrumb">
-                                <a href="voucher.php">Vouchers</a>
+                                <a href="voucher.php">Order History</a>
 
                             </li>
                         </ul>
@@ -148,20 +148,18 @@
                         </div>
                     </div>
                     <div class="col-md-9">
-                        <div class="products-list1 voucher-list">
+                        <div class="products-list1 history-list">
                             <div class="row">
                                 <div class="col-md-12">
 
                                     <div class="product-list-topbar">
-                                        <h3>My <span>Vouchers</span></h3>
+                                        <h3>History</h3>
                                         <div class="rightside-btns">
                                             <h6>12 of 1650</h6>
                                             <button class="filter-btn"><span
                                                     class="fi-rs-filter mr-5"></span>Filter</button>
 
                                             <select class="form-select">
-                                                <option value="">Featured</option>
-                                                <option value="">Best selling</option>
                                                 <option value="">Alphabetically, A-Z</option>
                                                 <option value="">Alphabetically, Z-A</option>
                                                 <option value="">Price, low to high</option>
@@ -176,219 +174,155 @@
                             </div>
                             <div class="row g-4">
                                 <div class="col-md-4">
-                                    <div class="product-cart-wrap">
-                                        <div class="product-img-action-wrap">
-                                            <div class="product-img product-img-zoom">
-                                                <a href="voucher-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/gift.jpg" alt="" />
-                                                   
-                                                </a>
+                                    <div class="history-div">
+                                        <h4>Cancelled<i class="fa-solid fa-xmark"></i></h4>
+                                        <p>On sun, 28 Aug 2022 as per your request</p>
+                                        <h6><span class="refund">Refund Initiated : </span><span class="refund-rs">467 SAR</span> on Sun, 28 Aug 2022.</h6> 
+                                        <div class="history-item">
+                                            <div class="hist-img">
+                                                <img src="assets/imgs/shop/pr3.jpg" alt="">
                                             </div>
-
-                                            <div class="product-badges product-badges-position product-badges-mrg">
-                                                <span class="new">In Stock</span>
+                                            <div class="hist-details">
+                                                <h3>Jack & Jones Men Solid 
+                                                    Bomber jacket</h3>
+                                                <h5>Size: <span>L</span></h5>
                                             </div>
-
-                                            <div class="product-badges product-badge-position product-badges-mrg">
-                                                <span><i class="fi-rs-eye"></i></span> <span><i
-                                                        class="fi-rs-heart toggle-heart"></i></span>
-                                            </div>
-                                        </div>
-                                        <div class="product-content-wrap">
-
-                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
-                                                Physical Gift Card</a></h2>
-                                          
-                                            <div class="voucher-price">
-                                                <div class="d-flex">
-                                                    <span class="new-voucher-price">399 SR</span>
-                                                    <span class="old-voucher-price">499 SR</span>
-                                                </div>
-                                      
-                                                <span class="voucher-price-off">3% OFF</span>
-                                            </div>
-                                         
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="product-cart-wrap">
-                                        <div class="product-img-action-wrap">
-                                            <div class="product-img product-img-zoom">
-                                                <a href="voucher-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/gift1.jpg" alt="" />
-                                                   
-                                                </a>
-                                               
+                                    <div class="history-div">
+                                        <h4>Exchange Delivered<i class="fa-solid fa-right-left"></i></h4>
+                                        <p>On sun, 28 Aug 2022 as per your request</p>
+                                     
+                                        <div class="history-item">
+                                            <div class="hist-img">
+                                                <img src="assets/imgs/shop/pr2.jpg" alt="">
                                             </div>
-
-                                            <div class="product-badges product-badges-position product-badges-mrg">
-                                                <span class="hot">Limited Stock</span>
+                                            <div class="hist-details">
+                                                <h3>Jack & Jones Men Solid 
+                                                    Bomber jacket</h3>
+                                                <h5>Size: <span>L</span></h5>
                                             </div>
-                                            <div class="product-badges product-badge-position product-badges-mrg">
-                                                <span><i class="fi-rs-eye"></i></span> <span><i
-                                                        class="fi-rs-heart toggle-heart"></i></span>
-                                            </div>
-                                        </div>
-                                        <div class="product-content-wrap">
-
-                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
-                                                Physical Gift Card</a></h2>
-                                          
-                                            <div class="voucher-price">
-                                                <div class="d-flex">
-                                                    <span class="new-voucher-price">399 SR</span>
-                                                    <span class="old-voucher-price">499 SR</span>
-                                                </div>
-                                      
-                                                <span class="voucher-price-off">3% OFF</span>
-                                            </div>
-                                          
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="product-cart-wrap">
-                                        <div class="product-img-action-wrap">
-                                            <div class="product-img product-img-zoom">
-                                                <a href="voucher-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/gift2.jpg" alt="" />
-                                               
-                                                </a>
-                                                
+                                    <div class="history-div">
+                                        <h4>Refund Credited<i class="fa-solid fa-rotate-left"></i></h4>
+                                        <p>On sun, 28 Aug 2022 as per your request</p>
+                                        <h6><span class="refund">Refund Initiated : </span><span class="refund-rs">467 SAR</span> on Sun, 28 Aug 2022.</h6> 
+                                        <div class="history-item">
+                                            <div class="hist-img">
+                                                <img src="assets/imgs/shop/p2.jpg" alt="">
                                             </div>
-
-                                            <div class="product-badges product-badges-position product-badges-mrg">
-                                                <span class="new">In Stock</span>
+                                            <div class="hist-details">
+                                                <h3>Jack & Jones Men Solid 
+                                                    Bomber jacket</h3>
+                                                <h5>Size: <span>L</span></h5>
                                             </div>
-                                            <div class="product-badges product-badge-position product-badges-mrg">
-                                                <span><i class="fi-rs-eye"></i></span> <span><i
-                                                        class="fi-rs-heart toggle-heart"></i></span>
-                                            </div>
-                                        </div>
-                                        <div class="product-content-wrap">
-
-                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
-                                                Physical Gift Card</a></h2>
-                                           
-                                            <div class="voucher-price">
-                                                <div class="d-flex">
-                                                    <span class="new-voucher-price">399 SR</span>
-                                                    <span class="old-voucher-price">499 SR</span>
-                                                </div>
-                                      
-                                                <span class="voucher-price-off">3% OFF</span>
-                                            </div>
-                                          
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="product-cart-wrap">
-                                        <div class="product-img-action-wrap">
-                                            <div class="product-img product-img-zoom">
-                                                <a href="voucher-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/gift3.jpg" alt="" />
-                                                  
-                                                </a>
-                                               
+                                    <div class="history-div">
+                                        <h4>Delivered<i class="fa-solid fa-truck-ramp-box"></i></h4>
+                                        <p>On sun, 28 Aug 2022 as per your request</p>
+                                       
+                                        <div class="history-item">
+                                            <div class="hist-img">
+                                                <img src="assets/imgs/shop/p2.jpg" alt="">
                                             </div>
-
-                                            <div class="product-badges product-badges-position product-badges-mrg">
-                                                <span class="new">In Stock</span>
+                                            <div class="hist-details">
+                                                <h3>Jack & Jones Men Solid 
+                                                    Bomber jacket</h3>
+                                                <h5>Size: <span>L</span></h5>
                                             </div>
-                                            <div class="product-badges product-badge-position product-badges-mrg">
-                                                <span><i class="fi-rs-eye"></i></span> <span><i
-                                                        class="fi-rs-heart toggle-heart"></i></span>
-                                            </div>
-                                        </div>
-                                        <div class="product-content-wrap">
-
-                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
-                                                Physical Gift Card</a></h2>
-                                           
-                                            <div class="voucher-price">
-                                                <div class="d-flex">
-                                                    <span class="new-voucher-price">399 SR</span>
-                                                    <span class="old-voucher-price">499 SR</span>
-                                                </div>
-                                      
-                                                <span class="voucher-price-off">3% OFF</span>
-                                            </div>
-                                          
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="product-cart-wrap">
-                                        <div class="product-img-action-wrap">
-                                            <div class="product-img product-img-zoom">
-                                                <a href="voucher-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/gift4.jpg" alt="" />
-                                                   
-                                                </a>
-                                               
+                                    <div class="history-div">
+                                        <h4>Exchange Delivered<i class="fa-solid fa-right-left"></i></h4>
+                                        <p>On sun, 28 Aug 2022 as per your request</p>
+                                       
+                                        <div class="history-item">
+                                            <div class="hist-img">
+                                                <img src="assets/imgs/shop/p6.jpg" alt="">
                                             </div>
-
-                                            <div class="product-badges product-badges-position product-badges-mrg">
-                                                <span class="hot">Limited Stock</span>
+                                            <div class="hist-details">
+                                                <h3>Jack & Jones Men Solid 
+                                                    Bomber jacket</h3>
+                                                <h5>Size: <span>L</span></h5>
                                             </div>
-                                            <div class="product-badges product-badge-position product-badges-mrg">
-                                                <span><i class="fi-rs-eye"></i></span> <span><i
-                                                        class="fi-rs-heart toggle-heart"></i></span>
-                                            </div>
-                                        </div>
-                                        <div class="product-content-wrap">
-
-                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
-                                                Physical Gift Card</a></h2>
-                                           
-                                            <div class="voucher-price">
-                                                <div class="d-flex">
-                                                    <span class="new-voucher-price">399 SR</span>
-                                                    <span class="old-voucher-price">499 SR</span>
-                                                </div>
-                                      
-                                                <span class="voucher-price-off">3% OFF</span>
-                                            </div>
-                                           
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md-4">
-                                    <div class="product-cart-wrap">
-                                        <div class="product-img-action-wrap">
-                                            <div class="product-img product-img-zoom">
-                                                <a href="voucher-details.php">
-                                                    <img class="default-img" src="assets/imgs/shop/gift5.jpg" alt="" />
-                                                   
-                                                </a>
-                                               
-
+                                    <div class="history-div">
+                                        <h4>Refund Credited<i class="fa-solid fa-rotate-left"></i></h4>
+                                        <p>On sun, 28 Aug 2022 as per your request</p>
+                                        <h6><span class="refund">Refund Initiated : </span><span class="refund-rs">467 SAR</span> on Sun, 28 Aug 2022.</h6> 
+                                        <div class="history-item">
+                                            <div class="hist-img">
+                                                <img src="assets/imgs/shop/pr1.jpg" alt="">
                                             </div>
-
-                                            <div class="product-badges product-badges-position product-badges-mrg">
-                                                <span class="hot">Limited Stock</span>
-                                            </div>
-                                            <div class="product-badges product-badge-position product-badges-mrg">
-                                                <span><i class="fi-rs-eye"></i></span> <span><i
-                                                        class="fi-rs-heart toggle-heart"></i></span>
+                                            <div class="hist-details">
+                                                <h3>Jack & Jones Men Solid 
+                                                    Bomber jacket</h3>
+                                                <h5>Size: <span>L</span></h5>
                                             </div>
                                         </div>
-                                        <div class="product-content-wrap">
-
-                                            <h2><a href="voucher-details.php">Kalyan Jewellers Diamond Jewellery 
-                                                Physical Gift Card</a></h2>
-                                          
-                                            <div class="voucher-price">
-                                                <div class="d-flex">
-                                                    <span class="new-voucher-price">399 SR</span>
-                                                    <span class="old-voucher-price">499 SR</span>
-                                                </div>
-                                      
-                                                <span class="voucher-price-off">3% OFF</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="history-div">
+                                        <h4>Cancelled<i class="fa-solid fa-xmark"></i></h4>
+                                        <p>On sun, 28 Aug 2022 as per your request</p>
+                                        <h6><span class="refund">Refund Initiated : </span><span class="refund-rs">467 SAR</span> on Sun, 28 Aug 2022.</h6> 
+                                        <div class="history-item">
+                                            <div class="hist-img">
+                                                <img src="assets/imgs/shop/pr3.jpg" alt="">
                                             </div>
-                                          
+                                            <div class="hist-details">
+                                                <h3>Jack & Jones Men Solid 
+                                                    Bomber jacket</h3>
+                                                <h5>Size: <span>L</span></h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="history-div">
+                                        <h4>Exchange Delivered<i class="fa-solid fa-right-left"></i></h4>
+                                        <p>On sun, 28 Aug 2022 as per your request</p>
+                                     
+                                        <div class="history-item">
+                                            <div class="hist-img">
+                                                <img src="assets/imgs/shop/pr2.jpg" alt="">
+                                            </div>
+                                            <div class="hist-details">
+                                                <h3>Jack & Jones Men Solid 
+                                                    Bomber jacket</h3>
+                                                <h5>Size: <span>L</span></h5>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="history-div">
+                                        <h4>Refund Credited<i class="fa-solid fa-rotate-left"></i></h4>
+                                        <p>On sun, 28 Aug 2022 as per your request</p>
+                                        <h6><span class="refund">Refund Initiated : </span><span class="refund-rs">467 SAR</span> on Sun, 28 Aug 2022.</h6> 
+                                        <div class="history-item">
+                                            <div class="hist-img">
+                                                <img src="assets/imgs/shop/p2.jpg" alt="">
+                                            </div>
+                                            <div class="hist-details">
+                                                <h3>Jack & Jones Men Solid 
+                                                    Bomber jacket</h3>
+                                                <h5>Size: <span>L</span></h5>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

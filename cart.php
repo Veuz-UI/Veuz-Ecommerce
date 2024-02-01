@@ -64,24 +64,23 @@
                                             <h4>SAR 250<span>(50%OFF)</span></h4>
                                             <div class="save-sar">Save <span class="dis-price">SAR 250</span><span class="old-price">SAR
                                                 500</span>(Inc of all taxes)</div>
-                                            <div class="cart-btns">
-                                                <button class="fav-btn">
-                                                    <i class="fi-rs-heart toggle-heart"></i>
-                                                </button>
-                                                <button class="dlt-btn">
-                                                    <i class="fi-rs-trash"></i>
-                                                </button>
-                                            </div>
+                                                <div class="prdct-feature">Color : <span>Black</span></div>
+                                                <div class="qty-container">
+                                                    <button class="qty-btn-minus btn-light" type="button"><i
+                                                            class="fa fa-minus"></i></button>
+                                                    <input type="text" name="qty" value="0" class="input-qty" />
+                                                    <button class="qty-btn-plus btn-light" type="button"><i
+                                                            class="fa fa-plus"></i></button>
+                                                </div>
+                                            
                                         </div>
-                                        <div class="product-quantity">
-               
-                                            <div class="qty-container">
-                                                <button class="qty-btn-minus btn-light" type="button"><i
-                                                        class="fa fa-minus"></i></button>
-                                                <input type="text" name="qty" value="0" class="input-qty" />
-                                                <button class="qty-btn-plus btn-light" type="button"><i
-                                                        class="fa fa-plus"></i></button>
-                                            </div>
+                                        <div class="cart-btns">
+                                            <button class="fav-btn">
+                                                <i class="fi-rs-heart toggle-heart"></i>
+                                            </button>
+                                            <button class="dlt-btn">
+                                                <i class="fi-rs-trash"></i>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -95,24 +94,23 @@
                                             <h4>SAR 250<span>(50%OFF)</span></h4>
                                             <div class="save-sar">Save <span class="dis-price">SAR 250</span><span class="old-price">SAR
                                                 500</span>(Inc of all taxes)</div>
-                                            <div class="cart-btns">
-                                                <button class="fav-btn">
-                                                    <i class="fi-rs-heart toggle-heart"></i>
-                                                </button>
-                                                <button class="dlt-btn">
-                                                    <i class="fi-rs-trash"></i>
-                                                </button>
-                                            </div>
+                                               <div class="prdct-feature">Color : <span>Black</span></div>
+                                                <div class="qty-container">
+                                                    <button class="qty-btn-minus btn-light" type="button"><i
+                                                            class="fa fa-minus"></i></button>
+                                                    <input type="text" name="qty" value="0" class="input-qty" />
+                                                    <button class="qty-btn-plus btn-light" type="button"><i
+                                                            class="fa fa-plus"></i></button>
+                                                </div>
+                                            
                                         </div>
-                                        <div class="product-quantity">
-               
-                                            <div class="qty-container">
-                                                <button class="qty-btn-minus btn-light" type="button"><i
-                                                        class="fa fa-minus"></i></button>
-                                                <input type="text" name="qty" value="0" class="input-qty" />
-                                                <button class="qty-btn-plus btn-light" type="button"><i
-                                                        class="fa fa-plus"></i></button>
-                                            </div>
+                                        <div class="cart-btns">
+                                            <button class="fav-btn">
+                                                <i class="fi-rs-heart toggle-heart"></i>
+                                            </button>
+                                            <button class="dlt-btn">
+                                                <i class="fi-rs-trash"></i>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -120,21 +118,27 @@
                         </div>
                         <div class="col-md-4">
                             <div class="cart-rightside">
-                                <div class="promocode">
-                                    <h5>Apply coupon</h5>
-                                    <div class="del-pincode">
-                                        <input type="text" placeholder="Enter Promo Code">
-                                        <button class="check-btn">Apply</button>
-                                    </div>
-                                </div>
                                 <div class="cart-price-div">
-                                    <h5>Price details</h5>
-                                    <div class="title-price">
-                                       <div class="cart-value">Cart Value <span>SAR 500</span></div>
-                                       <div class="delivery-price">Delivery <span>SAR 10</span></div>
-                                       <div class="discount-price">Discount <span>- SAR 20</span></div>
-                                       <div class="subtotal-price">Sub Total <span>SAR 490</span></div>
-                                       <a href="checkout.php"><button class="proceed-btn">Proceed to Checkout</button></a>
+                                    <h5>Order Summary</h5>
+                                    <div class="billing-sum">
+                                        <div class="form-group">
+                                            <label>Promo Code</label>
+                                            <div class="promo-coupn">
+                                                <input type="text" class="form-control" placeholder="Enter Promo Code">
+                                                <button class="check-btn">Apply</button>
+                                            </div>
+                                        </div>
+                                        <hr>
+                                        <div class="bill-sums">
+                                            <div class="single-bill">Total MRP <span class="total-sub">827 SAR</span></div>
+                                            <div class="single-bill">Offer Discount <span class="green-price">- 210 SAR</span></div>
+                                            <div class="single-bill">Shipping & Convenience Fee <span class="green-price">Free</span></div>
+                                            <div class="single-bill">Coupon Applied <span>0 SAR</span></div>
+                                            <hr>
+                                            <div class="total-price">Total <span>617 SAR</span></div>
+                                            <div class="single-bill estimated-delivery">Estimated Delivery By <span>01 Feb, 2023</span></div>
+                                        </div>
+                                         <a href="checkout.php"><button class="proceed-btn">Proceed to Checkout</button></a>
                                     </div>
                                 </div>
                             </div>

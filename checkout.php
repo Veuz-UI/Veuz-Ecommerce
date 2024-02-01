@@ -290,8 +290,8 @@
                                     <hr>
                                     <div class="bill-sums">
                                         <div class="single-bill">Total MRP <span class="total-sub">827 SAR</span></div>
-                                        <div class="single-bill">Offer Discount <span>- 210 SAR</span></div>
-                                        <div class="single-bill">Shipping & Convenience Fee <span>Free</span></div>
+                                        <div class="single-bill">Offer Discount <span class="green-price">- 210 SAR</span></div>
+                                        <div class="single-bill">Shipping & Convenience Fee <span class="green-price">Free</span></div>
                                         <hr>
                                         <div class="total-price">Total <span>617 SAR</span></div>
                                     </div>

@@ -56,7 +56,7 @@
 
 
                                 <div class="mt-4 text-center login-bottom">
-                                    <a href="index.php" class="text-muted"><i class="mdi mdi-chevron-left me-1"></i> Back to login</a>
+                                    <a href="login.php" class="text-muted"><i class="mdi mdi-chevron-left me-1"></i> Back to login</a>
                                 </div>
                             </form>
 
