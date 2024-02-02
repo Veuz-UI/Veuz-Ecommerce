@@ -47,7 +47,62 @@
                     <div class="header-right">
                         <div class="search-style-2">
                             <form action="#">
-                                <select class="select-active">
+                                <a href="#" class="categories-button-active">
+                                    <div class="search-cat">
+                                        All Categories <span></span>
+                                    </div>
+                                </a>
+                                <div class="categories-dropdown-wrap categories-dropdown-active-large font-heading">
+                                    <div class="categori-dropdown-inner">
+                                        <ul>
+                                            <li>
+                                                <a href="#">Tshirts <i
+                                                        class="fi-rs-angle-right w-100 d-flex justify-content-end"></i></a>
+    
+                                                <ul class="level-menu">
+                                                    <li><a href="#">Product1</a></li>
+                                                    <li><a href="#">Product2</a></li>
+                                                    <li><a href="#">Product3</a></li>
+                                                    <li><a href="#">Product4</a></li>
+                                                </ul>
+                                            </li>
+                                            <li>
+                                                <a href="#"><span>Bag Print</span> <i
+                                                        class="fi-rs-angle-right w-100 d-flex justify-content-end"></i></a>
+    
+                                                <ul class="level-menu">
+                                                    <li><a href="#">Product1</a></li>
+                                                    <li><a href="#">Product2</a></li>
+                                                    <li><a href="#">Product3</a></li>
+                                                    <li><a href="#">Product4</a></li>
+                                                </ul>
+                                            </li>
+                                            <li>
+                                                <a href="#"><span>Gift Pack </span><i
+                                                        class="fi-rs-angle-right w-100 d-flex justify-content-end"></i></a>
+    
+                                                <ul class="level-menu">
+                                                    <li><a href="#">Product1</a></li>
+                                                    <li><a href="#">Product2</a></li>
+                                                    <li><a href="#">Product3</a></li>
+                                                    <li><a href="#">Product4</a></li>
+                                                </ul>
+                                            </li>
+                                            <li>
+                                                <a href="#">Paper Cup</a>
+                                            </li>
+                                            <li>
+                                                <a href="#">Brochure</a>
+                                            </li>
+                                            <li>
+                                                <a href="#">Hoodies</a>
+                                            </li>
+                                        </ul>
+    
+                                    </div>
+    
+                                </div>
+                                <!-- <select class="select-active">
                                     <option>All Categories</option>
                                     <option>Tshirts</option>
                                     <option>Bag Print</option>
@@ -56,7 +111,7 @@
                                     <option>Brochure</option>
                                     <option>Hoodies</option>
 
-                                </select>
+                                </select> -->
                                 <input type="text" placeholder="Search Products ..." />
                                 <a href="" class="search-btn"><i class="fi-rs-search"></i>Search</a>
                             </form>

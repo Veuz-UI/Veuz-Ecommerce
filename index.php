@@ -317,7 +317,7 @@
                         <h3>Top Categories</h3>
 
                     </div>
-                    <a class="show-all" href="#demo" data-bs-toggle="collapse">
+                    <a class="show-all" href="category.php">
                         View All
 
                     </a>
@@ -377,7 +377,7 @@
 
 
                 </div>
-                <div class="row collapse" style="padding: 0 15px;" id="demo">
+                <!-- <div class="row collapse" style="padding: 0 15px;" id="demo">
 
                     <div class="col-md-2 card-2 wow animate__animated animate__fadeInUp" data-wow-delay=".1s">
                         <figure class="img-hover-scale overflow-hidden">
@@ -431,7 +431,7 @@
 
 
 
-                </div>
+                </div> -->
             </div>
         </section>
 

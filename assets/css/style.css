@@ -926,9 +926,9 @@ strong,
 }
 
 .section-title a.show-all {
-  font-size: 20px;
+  font-size: 18px;
   color: #464646;
-  font-weight: 800;
+  font-weight: 600;
   text-decoration: underline;
 }
 
@@ -9059,7 +9059,7 @@ span.fi-rs-apps {
   background: #fff;
   border: 1px solid #BCE3C9;
   font-size: 16px;
-  min-width: 270px;
+  min-width: 225px;
   -webkit-transition: all 0.25s cubic-bezier(0.645, 0.045, 0.355, 1);
   transition: all 0.25s cubic-bezier(0.645, 0.045, 0.355, 1);
   opacity: 0;
@@ -15983,4 +15983,78 @@ margin: 0;
 .history-div .history-item .hist-details h5 span{
   color: #222;
   font-weight: 600;
+}
+
+.categry-list .default-img{
+  margin: 5px auto 0px !important;
+}
+
+.categry-list .category-info{
+  text-align: center;
+  padding: 0 30px 25px 30px;
+}
+
+.categry-list .category-info h2{
+  font-size: 17px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.categry-list .category-info h4{
+  color: #3DC068;
+  font-size: 20px;
+}
+
+.search-cat{
+  font-weight: 600;
+  font-size: 15px;
+  color: #464646;
+  height: 100%;
+  width: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid #ebebeb;
+  position: relative;
+}
+
+.search-cat span{
+  background-color: #fff;
+  box-shadow: 0px 0px 9px rgba(0, 0, 0, 10%);
+  position: absolute;
+  right: -12px;
+  padding: 12px;
+  border-radius: 20px;
+}
+
+.search-cat span::before{
+  font-family: uicons-regular-straight !important;
+  font-style: normal;
+  font-weight: 600;
+  font-variant: normal;
+  text-transform: none;
+  line-height: 1 !important;
+  content: "\f10f";
+  position: absolute;
+  top: 2.5px;
+  left: 5px;
+  color: #FDC839;
+}
+
+.search-cat span::after{
+  font-family: uicons-regular-straight !important;
+    font-style: normal;
+    font-weight: 600;
+    font-variant: normal;
+    text-transform: none;
+    line-height: 1 !important;
+    content: "\f10f";
+    position: absolute;
+    top: 7.5px;
+    left: 5px;
+    color: #FDC839;
+}
+
+.search-style-2 .categories-dropdown-wrap{
+  margin-top: 0px;
 }
