@@ -50,7 +50,7 @@
                 <div class="container">   
                     <!-- product slider section -->
                     <div class="row">
-                        <div class="col-md-5 pr-50">
+                        <div class="col-md-5 sm-pr-50">
     
     
                             <ul id="lightSlider">
