@@ -144,11 +144,14 @@
         </section>
         <div class="container pb-30 wow animate__animated animate__fadeInUp copyrght" data-wow-delay="0">
             <div class="row align-items-center">
-                <hr>
+               
                 <div class="col-xl-12 col-lg-12 col-md-12 text-center">
+                <hr>
                     <p class="font-sm mb-0">©2021 veuzconcepts.com All Rights Reserved</p>
                 </div>
 
             </div>
         </div>
     </footer>
+
+    

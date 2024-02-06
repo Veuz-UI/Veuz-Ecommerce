@@ -11580,7 +11580,7 @@ footer .hotline img {
   }
 
   .mobile-header-wrapper-style .mobile-header-wrapper-inner .mobile-header-top {
-    padding: 15px 30px 13px 30px;
+    padding: 15px 20px 10px;
     border-bottom: 1px solid #ececec;
   }
 
@@ -11589,7 +11589,7 @@ footer .hotline img {
   }
 
   .mobile-header-wrapper-style .mobile-header-wrapper-inner .mobile-header-content-area {
-    padding: 30px;
+    padding: 20px;
   }
 
   .header-height-1 {
@@ -12362,7 +12362,7 @@ footer .hotline img {
   }
 
   .hero-slider-1 .single-hero-slider .display-2 {
-    font-size: 32px;
+    font-size: 24px;
   }
 
   .hero-slider-1 .single-hero-slider .slider-content p {
@@ -12412,11 +12412,11 @@ footer .hotline img {
     display: block;
   }
 
-  .carausel-6-columns,
+  /* .carausel-6-columns,
   .carausel-4-columns {
     max-width: 375px;
     overflow: hidden;
-  }
+  } */
 
   .hero-slider-1 {
     height: unset;
@@ -12773,7 +12773,7 @@ footer .hotline img {
   }
 
   .newsletter .newsletter-inner {
-    padding: 20px;
+    padding: 30px 20px;
   }
 
   .newsletter .newsletter-inner h2 {
@@ -16301,5 +16301,194 @@ margin: 0;
 }
 .offer-list .product-img-action-wrap .product-img a img{
   margin: 0px;
+}
+}
+
+@media only screen and (max-width: 480px) {
+  .custom-modal .modal-dialog {
+    max-width: 100% !important;
+  }
+  .icns {
+    padding: 0px;
+    border-left: 0px solid #E2E2E2;
+}
+.header-action-2 .header-action-icon-2>a{
+  margin-right: 0px;
+  margin-left: 10px;
+}
+.header-action-2 .header-action-icon-2>a img{
+  max-width: 20px;
+}
+.logo.logo-width-1 a img {
+  width: 120px;
+  min-width: 120px;
+}
+.ordr{
+  font-size: 16px;
+  padding: 4px 20px;
+}
+.hero-slider-1 .single-hero-slider{
+  background-repeat: no-repeat;
+  height: 250px;
+  background-size: cover;
+  background-position: 50% 80%;
+}
+.home-slider .hero-slider-1 {
+  height: 250px;
+}
+.hero-slider-1 .slider-content{
+  left: 8%;
+}
+.home-slider.style-2{
+  margin-bottom: 40px !important;
+}
+.section-padding {
+  padding: 0px;
+}
+.section-title h3 {
+  margin-bottom: 20px;
+  font-size: 23px;
+}
+.card-2 {
+  width: 83px;
+  padding: 20px 0px 15px 0px;
+  min-height: 116px;
+  margin-right: 12px;
+  margin-bottom: 15px;
+}
+.card-2 figure img {
+  max-width: 50%;
+}
+.card-2 h6{
+  font-size: 14px;
+}
+.banner-img img {
+  border-radius: 10px;
+}
+.banner-img .banner-text {
+  left: 40%;
+  padding: 0 20px 0px 40px;
+}
+.banner-img .banner-text h4 {
+  font-size: 18px;
+}
+.banner-img .banner-text h6 {
+  text-transform: none;
+  margin-bottom: 10px;
+}
+.popular-categories{
+  margin-bottom: 20px;
+}
+.section-tit h3{
+  font-size: 25px;
+}
+.hr {
+  margin-bottom: 40px;
+}
+.prdcts .slider-arrow .slider-btn.slider-prev{
+  top: -276px;
+  font-size: 20px;
+}
+.prdcts .slider-arrow .slider-btn.slider-next{
+  top: -276px;
+  font-size: 20px;
+}
+.prdcts{
+  margin-bottom: 35px;
+}
+.item-box .itm-cntnt {
+  padding: 20px 20px 25px;
+}
+.item-box .itm-cntnt h3 {
+  font-size: 22px;
+}
+.item-box .itm-cntnt h6{
+  font-weight: 600;
+  text-transform: none;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+.item-box .itm-cntnt .circl{
+  width: 40px;
+  height: 40px;
+}
+.item-box .itm-cntnt .circl i {
+  font-size: 26px;
+}
+.item-box{
+  margin-bottom: 20px;
+}
+.mar-top {
+  margin-top: 20px;
+}
+.banner-img .banner-text h4 {
+  font-size: 20px;
+}
+.mar-top .banner-img .banner-text h6{
+  font-weight: 600;
+}
+
+.prdcts .banner-img .banner-text{
+  left: 48%;
+}
+.onsal .section-title {
+  margin-bottom: 20px !important;
+}
+.newsletter-content h4{
+  margin-bottom: 25px;
+  font-size: 20px;
+  line-height: 30px;
+}
+.newsletter-content h5{
+  font-size: 15px;
+}
+.newsletter .newsletter-inner{
+  min-height: 210px;
+  margin-bottom: 25px;
+}
+.newsltr{
+  padding: 40px 30px;
+}
+.newsltr h2{
+  font-size: 25px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+.newsltr form button{
+  font-weight: 600;
+    padding: 10px 25px;
+}
+.customer-logos {
+  margin-bottom: 40px;
+}
+.footer-mid{
+  padding: 30px 0px 10px;
+}
+.mobile-social-icon img{
+  width: 25px !important;
+}
+.footer-mid .widget-title {
+  margin: 0px 0px 20px;
+  font-size: 20px;
+}
+.footer-list li {
+  margin: 0 0 8px;
+}
+.download-app ul li img{
+  max-width: 30px;
+}
+.copyrght{
+  padding-bottom: 18px !important;
+}
+#scrollUp{
+  right: 15px;
+  bottom: 10px;
+}
+.onsal .product-cart-wrap{
+  margin-bottom: 15px;
+}
+.mar-t{
+  margin-top: 0px;
+  margin-bottom: 20px;
 }
 }

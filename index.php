@@ -26,7 +26,7 @@
 <body>
 
     <!-- Quick view -->
-    <div class="modal fade custom-modal show" id="onloadModal" tabindex="-1" aria-labelledby="onloadModalLabel"
+    <!-- <div class="modal fade custom-modal show" id="onloadModal" tabindex="-1" aria-labelledby="onloadModalLabel"
         style="padding-right: 17px; display: block;" aria-modal="true" role="dialog">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -75,90 +75,10 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> -->
     <?php include 'header.php';?>
 
-    <div class="mobile-header-active mobile-header-wrapper-style">
-        <div class="mobile-header-wrapper-inner">
-            <div class="mobile-header-top">
-                <div class="mobile-header-logo">
-                    <a href="index.php"><img src="assets/imgs/theme/logo.svg" alt="logo" /></a>
-                </div>
-                <div class="mobile-menu-close close-style-wrap close-style-position-inherit">
-                    <button class="close-style search-close">
-                        <i class="icon-top"></i>
-                        <i class="icon-bottom"></i>
-                    </button>
-                </div>
-            </div>
-            <div class="mobile-header-content-area">
-                <div class="mobile-search search-style-3 mobile-header-border">
-                    <form action="#">
-                        <input type="text" placeholder="Search Products ..." />
-                        <button type="submit"><i class="fi-rs-search"></i>Search</button>
-                    </form>
-                </div>
-                <div class="mobile-menu-wrap mobile-header-border">
-                    <!-- mobile menu start -->
-                    <nav>
-                        <ul>
-                            <li class="hot-deals"><a href="#">Gift Products <i class="fi-rs-plus"></i></a>
-                                <ul class="sub-menu">
-                                    <li><a href="#">Home 1</a></li>
-                                    <li><a href="#">Home 2</a></li>
-                                    <li><a href="#">Home 3</a></li>
-                                    <li><a href="#">Home 4</a></li>
-                                    <li><a href="#">Home 5</a></li>
-                                    <li><a href="#">Home 6</a></li>
-                                </ul>
-                            </li>
-                            <li>
-                                <a class="" href="#">Accessories <i class="fi-rs-plus"></i></a>
-                                <ul class="sub-menu">
-                                    <li><a href="#">Home 1</a></li>
-                                    <li><a href="#">Home 2</a></li>
-                                    <li><a href="#">Home 3</a></li>
-                                    <li><a href="#">Home 4</a></li>
-                                    <li><a href="#">Home 5</a></li>
-                                    <li><a href="#">Home 6</a></li>
-                                </ul>
-                            </li>
-                            <li>
-                                <a href="#">Printing Product <i class="fi-rs-plus"></i></a>
-                                <ul class="sub-menu">
-                                    <li><a href="#">Home 1</a></li>
-                                    <li><a href="#">Home 2</a></li>
-                                    <li><a href="#">Home 3</a></li>
-                                    <li><a href="#">Home 4</a></li>
-                                    <li><a href="#">Home 5</a></li>
-                                    <li><a href="#">Home 6</a></li>
-                                </ul>
-                            </li>
-                            <li>
-                                <a href="#">Digital Cards <i class="fi-rs-plus"></i></a>
-                                <ul class="sub-menu">
-                                    <li><a href="#">Home 1</a></li>
-                                    <li><a href="#">Home 2</a></li>
-                                    <li><a href="#">Home 3</a></li>
-                                    <li><a href="#">Home 4</a></li>
-                                    <li><a href="#">Home 5</a></li>
-                                    <li><a href="#">Home 6</a></li>
-                                </ul>
-                            </li>
 
-                            <li>
-                                <a href="#" class="spcl">Special Offers</a>
-                            </li>
-
-                        </ul>
-                    </nav>
-                    <!-- mobile menu end -->
-                </div>
-
-            </div>
-        </div>
-    </div>
-    <!--End header-->
     <main class="main">
         <section class="home-slider style-2 position-relative mb-50">
             <div class="container-fluid">
@@ -1269,13 +1189,14 @@
                 },{
                     breakpoint: 768,
                     settings: {
-                        slidesToShow: 4
-                    }
-                }, {
-                    breakpoint: 520,
-                    settings: {
                         slidesToShow: 3
                     }
+                },{
+                    breakpoint: 520,
+                    settings: {
+                        slidesToShow: 2
+                    }
+                    
                 }]
             });
         });
@@ -1287,6 +1208,61 @@
       });
     });
   </script>
+  <script>
+    $(document).ready(function () {
+        $("body").prepend('<div class="body-overlay-1"></div>');
+
+        $(".burger-icon").on("click", function (e) {
+            
+            e.preventDefault();
+            $(".mobile-header-active").addClass("sidebar-visible");
+            $("body").addClass("mobile-menu-active");
+        });
+
+        $(".mobile-menu-close").on("click", function () {
+            $(".mobile-header-active").removeClass("sidebar-visible");
+            $("body").removeClass("mobile-menu-active");
+        });
+
+        $(".body-overlay-1").on("click", function () {
+            $(".mobile-header-active").removeClass("sidebar-visible");
+            $("body").removeClass("mobile-menu-active");
+        });
+    });
+</script>
+<script>
+        var $offCanvasNav = $(".mobile-menu"),
+        $offCanvasNavSubMenu = $offCanvasNav.find(".dropdown");
+
+    /*Add Toggle Button With Off Canvas Sub Menu*/
+    $offCanvasNavSubMenu.parent().prepend('<span class="menu-expand"><i class="fi-rs-angle-small-down"></i></span>');
+
+    /*Close Off Canvas Sub Menu*/
+    $offCanvasNavSubMenu.slideUp();
+
+    /*Category Sub Menu Toggle*/
+    $offCanvasNav.on("click", "li a, li .menu-expand", function (e) {
+        var $this = $(this);
+        if (
+            $this
+                .parent()
+                .attr("class")
+                .match(/\b(menu-item-has-children|has-children|has-sub-menu)\b/) &&
+            ($this.attr("href") === "#" || $this.hasClass("menu-expand"))
+        ) {
+            e.preventDefault();
+            if ($this.siblings("ul:visible").length) {
+                $this.parent("li").removeClass("active");
+                $this.siblings("ul").slideUp();
+            } else {
+                $this.parent("li").addClass("active");
+                $this.closest("li").siblings("li").removeClass("active").find("li").removeClass("active");
+                $this.closest("li").siblings("li").find("ul:visible").slideUp();
+                $this.siblings("ul").slideDown();
+            }
+        }
+    });
+</script>
 </body>
 
 </html>
