@@ -934,10 +934,10 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-md-4">
-                                    <img src="assets/imgs/shop/prdct1.jpg" alt="">
+                                <div class="col-xl-4">
+                                    <img src="assets/imgs/shop/prdct1.jpg" alt="" class="onsale-img">
                                 </div>
-                                <div class="col-md-8 onsale-prdct">
+                                <div class="col-xl-8 onsale-prdct">
                                     <div class="product-content-wrap">
 
                                         <h2><a href="product-details.php">Trending T-shirt
@@ -978,10 +978,10 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-md-4">
-                                    <img src="assets/imgs/shop/prdct2.jpg" alt="">
+                                <div class="col-xl-4">
+                                    <img src="assets/imgs/shop/prdct2.jpg" alt="" class="onsale-img">
                                 </div>
-                                <div class="col-md-8 onsale-prdct">
+                                <div class="col-xl-8 onsale-prdct">
                                     <div class="product-content-wrap">
 
                                         <h2><a href="product-details.php">Trending T-shirt
@@ -1022,10 +1022,10 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-md-4">
-                                    <img src="assets/imgs/shop/prdct3.jpg" alt="">
+                                <div class="col-xl-4">
+                                    <img src="assets/imgs/shop/prdct3.jpg" alt="" class="onsale-img">
                                 </div>
-                                <div class="col-md-8 onsale-prdct">
+                                <div class="col-xl-8 onsale-prdct">
                                     <div class="product-content-wrap">
 
                                         <h2><a href="product-details.php">Trending T-shirt
@@ -1070,10 +1070,10 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-md-4">
-                                    <img src="assets/imgs/shop/prdct4.jpg" alt="">
+                                <div class="col-xl-4">
+                                    <img src="assets/imgs/shop/prdct4.jpg" alt="" class="onsale-img">
                                 </div>
-                                <div class="col-md-8 onsale-prdct">
+                                <div class="col-xl-8 onsale-prdct">
                                     <div class="product-content-wrap">
 
                                         <h2><a href="product-details.php">Trending T-shirt
@@ -1125,10 +1125,10 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-md-4">
-                                    <img src="assets/imgs/shop/prdct5.jpg" alt="">
+                                <div class="col-xl-4">
+                                    <img src="assets/imgs/shop/prdct5.jpg" alt="" class="onsale-img">
                                 </div>
-                                <div class="col-md-8 onsale-prdct">
+                                <div class="col-xl-8 onsale-prdct">
                                     <div class="product-content-wrap">
 
                                         <h2><a href="product-details.php">Trending T-shirt
@@ -1180,10 +1180,10 @@
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-md-4">
-                                    <img src="assets/imgs/shop/prdct6.jpg" alt="">
+                                <div class="col-xl-4">
+                                    <img src="assets/imgs/shop/prdct6.jpg" alt="" class="onsale-img">
                                 </div>
-                                <div class="col-md-8 onsale-prdct">
+                                <div class="col-xl-8 onsale-prdct">
                                     <div class="product-content-wrap">
 
                                         <h2><a href="product-details.php">Trending T-shirt
@@ -1262,6 +1262,11 @@
                 dots: false,
                 pauseOnHover: false,
                 responsive: [{
+                    breakpoint: 1200,
+                    settings: {
+                        slidesToShow: 5
+                    }
+                },{
                     breakpoint: 768,
                     settings: {
                         slidesToShow: 4

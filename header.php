@@ -465,7 +465,7 @@
                                     </li>
 
                                     <li>
-                                        <a href="#" class="spcl">Special Offers</a>
+                                        <a href="offer.php" class="spcl">Special Offers</a>
                                     </li>
 
                                 </ul>

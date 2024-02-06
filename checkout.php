@@ -215,13 +215,13 @@
                                                             <input type="text" class="form-control" placeholder="Enter Name on Card">
                                                         </div>
                                                     </div>
-                                                    <div class="col-md-5">
+                                                    <div class="col-xl-5 col-lg-7">
                                                         <div class="form-group">
                                                             <label>Expiry MM/YY</label>
                                                             <input type="date" class="form-control" placeholder="Enter Card Number">
                                                         </div>
                                                     </div>
-                                                    <div class="col-md-4">
+                                                    <div class="col-xl-4 col-lg-5">
                                                         <div class="form-group">
                                                             <label>CVV</label>
                                                             <input type="text" class="form-control" placeholder="Enter CVV">
@@ -337,6 +337,11 @@
                 dots: false,
                 pauseOnHover: false,
                 responsive: [{
+                    breakpoint: 1200,
+                    settings: {
+                        slidesToShow: 5
+                    }
+                },{
                     breakpoint: 768,
                     settings: {
                         slidesToShow: 4

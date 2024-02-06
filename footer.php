@@ -52,7 +52,7 @@
         <section class="section-padding footer-mid">
             <div class="container pt-15">
                 <div class="row">
-                    <div class="col-md-3">
+                    <div class="col-xl-3">
                         <div class="widget-about font-md mb-md-3 mb-lg-3 mb-xl-0 wow animate__animated animate__fadeInUp"
                             data-wow-delay="0">
                             <div class="logo mb-30">

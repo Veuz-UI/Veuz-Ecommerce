@@ -150,7 +150,7 @@
             adaptiveHeight: true,
             responsive: [
                 {
-                    breakpoint: 1025,
+                    breakpoint: 1200,
                     settings: {
                         slidesToShow: 3,
                         slidesToScroll: 3

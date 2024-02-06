@@ -52,7 +52,7 @@
                                 <hr>
                             </div>
                         </div>
-                        <div class="col-md-8">
+                        <div class="col-xl-8 col-lg-7">
                             <div class="cart-list">
                                 <div class="single-cart">
                                     <div class="cart-img">
@@ -116,7 +116,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-xl-4 col-lg-5">
                             <div class="cart-rightside">
                                 <div class="cart-price-div">
                                     <h5>Order Summary</h5>
@@ -183,6 +183,11 @@
                 dots: false,
                 pauseOnHover: false,
                 responsive: [{
+                    breakpoint: 1200,
+                    settings: {
+                        slidesToShow: 5
+                    }
+                },{
                     breakpoint: 768,
                     settings: {
                         slidesToShow: 4
