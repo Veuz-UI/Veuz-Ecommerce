@@ -287,6 +287,11 @@
                 dots: false,
                 pauseOnHover: false,
                 responsive: [{
+                    breakpoint: 1200,
+                    settings: {
+                        slidesToShow: 5
+                    }
+                },{
                     breakpoint: 768,
                     settings: {
                         slidesToShow: 4

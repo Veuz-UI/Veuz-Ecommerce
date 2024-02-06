@@ -31,7 +31,7 @@
         <section class="section-padding prdcts pb-40">
             <div class="container">
                 <div class="row">
-                    <div class="col-md-3">
+                    <div class="col-xl-3 col-lg-4">
                         <ul class="breadcrumb-list pt-0 mb-2">
                             <li> <a href="index.php">Home</a>
                                 <span class="separator" aria-hidden="true">&rsaquo;</span></li>
@@ -147,7 +147,7 @@
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-9">
+                    <div class="col-xl-9 col-lg-8">
                         <div class="products-list1 history-list">
                             <div class="row">
                                 <div class="col-md-12">
@@ -173,7 +173,7 @@
 
                             </div>
                             <div class="row g-4">
-                                <div class="col-md-4">
+                                <div class="col-xl-4 col-lg-6">
                                     <div class="history-div">
                                         <h4>Cancelled<i class="fa-solid fa-xmark"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
@@ -190,7 +190,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-xl-4 col-lg-6">
                                     <div class="history-div">
                                         <h4>Exchange Delivered<i class="fa-solid fa-right-left"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
@@ -207,7 +207,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-xl-4 col-lg-6">
                                     <div class="history-div">
                                         <h4>Refund Credited<i class="fa-solid fa-rotate-left"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
@@ -224,7 +224,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-xl-4 col-lg-6">
                                     <div class="history-div">
                                         <h4>Delivered<i class="fa-solid fa-truck-ramp-box"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
@@ -241,7 +241,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-xl-4 col-lg-6">
                                     <div class="history-div">
                                         <h4>Exchange Delivered<i class="fa-solid fa-right-left"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
@@ -258,7 +258,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-xl-4 col-lg-6">
                                     <div class="history-div">
                                         <h4>Refund Credited<i class="fa-solid fa-rotate-left"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
@@ -275,7 +275,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-xl-4 col-lg-6">
                                     <div class="history-div">
                                         <h4>Cancelled<i class="fa-solid fa-xmark"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
@@ -292,7 +292,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-xl-4 col-lg-6">
                                     <div class="history-div">
                                         <h4>Exchange Delivered<i class="fa-solid fa-right-left"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
@@ -309,7 +309,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
+                                <div class="col-xl-4 col-lg-6">
                                     <div class="history-div">
                                         <h4>Refund Credited<i class="fa-solid fa-rotate-left"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
@@ -382,6 +382,11 @@
                 dots: false,
                 pauseOnHover: false,
                 responsive: [{
+                    breakpoint: 1200,
+                    settings: {
+                        slidesToShow: 5
+                    }
+                },{
                     breakpoint: 768,
                     settings: {
                         slidesToShow: 4
