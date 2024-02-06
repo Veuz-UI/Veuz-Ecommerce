@@ -136,7 +136,7 @@
                          <div class="shipping-addrss">
                             <h4>Payment Method</h4>
                             <div class="row">
-                                <div class="col-md-4">
+                                <div class="col-md-5">
                                     <div class="dashboard-menu">
                                         <ul class="nav flex-column" role="tablist">
                                             <li class="nav-item">
@@ -178,13 +178,13 @@
                                                     <path d="M3.06948 5.11618H1.7053C1.51695 5.11618 1.36426 5.26887 1.36426 5.45722V6.8214C1.36426 7.00976 1.51695 7.16245 1.7053 7.16245C1.89366 7.16245 2.04635 7.00976 2.04635 6.8214V5.79827H3.06948C3.25783 5.79827 3.41052 5.64558 3.41052 5.45722C3.41052 5.26887 3.25783 5.11618 3.06948 5.11618Z" fill="black"/>
                                                     <path d="M17.3928 5.79827H18.4159V6.8214C18.4159 7.00976 18.5686 7.16245 18.757 7.16245C18.9453 7.16245 19.098 7.00976 19.098 6.8214V5.45722C19.098 5.26887 18.9453 5.11618 18.757 5.11618H17.3928C17.2044 5.11618 17.0518 5.26887 17.0518 5.45722C17.0518 5.64558 17.2044 5.79827 17.3928 5.79827Z" fill="black"/>
                                                     </svg>
-                                                    Cash on Delivary</div><h6>Only Available on home Delivary</h6></a>
+                                                    Cash on Delivery</div><h6>Only Available on home Delivery</h6></a>
                                             </li>
                                         </ul>
                                     </div>
                                 </div>
-                                <div class="col-md-8">
-                                    <div class="tab-content account dashboard-content pl-20 pr-30">
+                                <div class="col-md-7">
+                                    <div class="tab-content account dashboard-content pr-30">
                                         <div class="tab-pane fade active show" id="upi" role="tabpanel" aria-labelledby="upi-tab">
                                             <div class="upi-div">
                                                 <ul class="upi-list">
