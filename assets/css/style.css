@@ -16060,24 +16060,7 @@ margin: 0;
   margin-top: 0px;
 }
 
-@media screen and (min-width:100px) and (max-width:766px) {
-  .login-left-div{
-    height: 450px;
-    background-position: 90% 1360%;
-    background-size: 100%;
-    background-repeat: no-repeat;
-    border-radius: 0;
-  }
-  .login-page .container{
-    width: 100%;
-  }
-  .login-right-div .login-form {
-    width: 82%;   
-  }
-  .login-right-div{
-    padding: 35px 0px;
-  }
-}
+
 @media screen and (max-width: 1600px) {
   .header-style-1 .header-middle-ptb-1 {
     padding: 15px 0;
@@ -16203,4 +16186,23 @@ margin: 0;
 .banner-img .banner-text{
   left: 46%;
 }
+}
+
+@media screen and (min-width:100px) and (max-width:766px) {
+  .login-left-div{
+    height: 450px;
+    background-position: 90% 1360%;
+    background-size: 100%;
+    background-repeat: no-repeat;
+    border-radius: 0;
+  }
+  .login-page .container{
+    width: 100%;
+  }
+  .login-right-div .login-form {
+    width: 82%;   
+  }
+  .login-right-div{
+    padding: 35px 0px;
+  }
 }
