@@ -16060,6 +16060,10 @@ margin: 0;
   margin-top: 0px;
 }
 
+.products-leftfilter{
+  border: 1px solid #ebebeb;
+  padding: 20px;
+}
 
 @media screen and (max-width: 1600px) {
   .header-style-1 .header-middle-ptb-1 {
