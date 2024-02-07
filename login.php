@@ -35,7 +35,7 @@
 
                             <form class="form-horizontal" action="index.php">
                                 <input type="text" name="type" value="1" hidden>
-                                <div class="mb-3">    
+                                <div class="mb-md-3 mb-2">    
                                     <input type="text" class="form-control" id="username" placeholder="Enter username">
                                 </div>
 
@@ -76,7 +76,7 @@
                                     </ul>
                                 </div>
 
-                                <div class="mt-4 text-center">
+                                <div class="mt-md-4 mt-3 text-center">
                                     <a href="forgotpw.php" class="text-muted link-clr"><i class="mdi mdi-lock me-1"></i> Forgot your password?</a>
                                 </div>
                             </form>
@@ -84,7 +84,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6 order-md-2 order-1">
+                <div class="col-md-6 order-md-2 order-1 px-0">
                     <div class="login-left-div">
                       
                     </div>
@@ -94,7 +94,7 @@
 
 
         </div>
-        <div class="mt-4 text-center login-bottom">
+        <div class="mt-md-4 mt-3 text-center login-bottom">
             <div>
                 <p>Don't have an account ? <a href="register.php" class="fw-medium text-primary"> Signup now </a> </p>
                 <!-- <p>© <script>document.write(new Date().getFullYear())</script> All Rights Reserved. Design & Develop by Veuz concepts.</p> -->

@@ -237,7 +237,7 @@
         $("body").prepend('<div class="body-overlay-1"></div>');
 
         $(".burger-icon").on("click", function (e) {
-            alert("hhh")
+            
             e.preventDefault();
             $(".mobile-header-active").addClass("sidebar-visible");
             $("body").addClass("mobile-menu-active");

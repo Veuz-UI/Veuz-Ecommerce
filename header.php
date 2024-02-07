@@ -159,46 +159,46 @@
                             <div class="categori-dropdown-inner">
                                 <ul>
                                     <li>
-                                        <a href="#">Tshirts <i
+                                        <a href="products.php">Tshirts <i
                                                 class="fi-rs-angle-right w-100 d-flex justify-content-end"></i></a>
 
                                         <ul class="level-menu">
-                                            <li><a href="#">Product1</a></li>
-                                            <li><a href="#">Product2</a></li>
-                                            <li><a href="#">Product3</a></li>
-                                            <li><a href="#">Product4</a></li>
+                                            <li><a href="products.php">Product1</a></li>
+                                            <li><a href="products.php">Product2</a></li>
+                                            <li><a href="products.php">Product3</a></li>
+                                            <li><a href="products.php">Product4</a></li>
                                         </ul>
                                     </li>
                                     <li>
-                                        <a href="#"><span>Bag Print</span> <i
+                                        <a href="products.php"><span>Bag Print</span> <i
                                                 class="fi-rs-angle-right w-100 d-flex justify-content-end"></i></a>
 
                                         <ul class="level-menu">
-                                            <li><a href="#">Product1</a></li>
-                                            <li><a href="#">Product2</a></li>
-                                            <li><a href="#">Product3</a></li>
-                                            <li><a href="#">Product4</a></li>
+                                            <li><a href="products.php">Product1</a></li>
+                                            <li><a href="products.php">Product2</a></li>
+                                            <li><a href="products.php">Product3</a></li>
+                                            <li><a href="products.php">Product4</a></li>
                                         </ul>
                                     </li>
                                     <li>
-                                        <a href="#"><span>Gift Pack </span><i
+                                        <a href="products.php"><span>Gift Pack </span><i
                                                 class="fi-rs-angle-right w-100 d-flex justify-content-end"></i></a>
 
                                         <ul class="level-menu">
-                                            <li><a href="#">Product1</a></li>
-                                            <li><a href="#">Product2</a></li>
-                                            <li><a href="#">Product3</a></li>
-                                            <li><a href="#">Product4</a></li>
+                                            <li><a href="products.php">Product1</a></li>
+                                            <li><a href="products.php">Product2</a></li>
+                                            <li><a href="products.php">Product3</a></li>
+                                            <li><a href="products.php">Product4</a></li>
                                         </ul>
                                     </li>
                                     <li>
-                                        <a href="#">Paper Cup</a>
+                                        <a href="products.php">Paper Cup</a>
                                     </li>
                                     <li>
-                                        <a href="#">Brochure</a>
+                                        <a href="products.php">Brochure</a>
                                     </li>
                                     <li>
-                                        <a href="#">Hoodies</a>
+                                        <a href="products.php">Hoodies</a>
                                     </li>
                                 </ul>
 
@@ -209,40 +209,40 @@
                     <div class="main-menu main-menu-padding-1 main-menu-lh-2 d-none d-lg-block font-heading">
                         <nav>
                             <ul>
-                                <li class="hot-deals position-static"><a href="#">Gift Products <i
+                                <li class="hot-deals position-static"><a href="products.php">Gift Products <i
                                             class="fi-rs-plus"></i></a>
                                     <ul class="mega-menu">
                                         <li class="sub-mega-menu sub-mega-menu-width-22">
-                                            <a class="menu-title" href="#">Product Category</a>
+                                            <a class="menu-title" href="products.php">Product Category</a>
                                             <ul>
-                                                <li><a href="#">Category 1</a></li>
-                                                <li><a href="#">Category 2</a></li>
-                                                <li><a href="#">Category 3</a></li>
-                                                <li><a href="#">Category 4</a></li>
-                                                <li><a href="#">Category 5</a></li>
-                                                <li><a href="#">Category 6</a></li>
+                                                <li><a href="products.php">Category 1</a></li>
+                                                <li><a href="products.php">Category 2</a></li>
+                                                <li><a href="products.php">Category 3</a></li>
+                                                <li><a href="products.php">Category 4</a></li>
+                                                <li><a href="products.php">Category 5</a></li>
+                                                <li><a href="products.php">Category 6</a></li>
                                             </ul>
                                         </li>
                                         <li class="sub-mega-menu sub-mega-menu-width-22">
-                                            <a class="menu-title" href="#">Product Category</a>
+                                            <a class="menu-title" href="products.php">Product Category</a>
                                             <ul>
-                                                <li><a href="#">Category 1</a></li>
-                                                <li><a href="#">Category 2</a></li>
-                                                <li><a href="#">Category 3</a></li>
-                                                <li><a href="#">Category 4</a></li>
-                                                <li><a href="#">Category 5</a></li>
-                                                <li><a href="#">Category 6</a></li>
+                                                <li><a href="products.php">Category 1</a></li>
+                                                <li><a href="products.php">Category 2</a></li>
+                                                <li><a href="products.php">Category 3</a></li>
+                                                <li><a href="products.php">Category 4</a></li>
+                                                <li><a href="products.php">Category 5</a></li>
+                                                <li><a href="products.php">Category 6</a></li>
                                             </ul>
                                         </li>
                                         <li class="sub-mega-menu sub-mega-menu-width-22">
-                                            <a class="menu-title" href="#">Product Category</a>
+                                            <a class="menu-title" href="products.php">Product Category</a>
                                             <ul>
-                                                <li><a href="#">Category 1</a></li>
-                                                <li><a href="#">Category 2</a></li>
-                                                <li><a href="#">Category 3</a></li>
-                                                <li><a href="#">Category 4</a></li>
-                                                <li><a href="#">Category 5</a></li>
-                                                <li><a href="#">Category 6</a></li>
+                                                <li><a href="products.php">Category 1</a></li>
+                                                <li><a href="products.php">Category 2</a></li>
+                                                <li><a href="products.php">Category 3</a></li>
+                                                <li><a href="products.php">Category 4</a></li>
+                                                <li><a href="products.php">Category 5</a></li>
+                                                <li><a href="products.php">Category 6</a></li>
                                             </ul>
                                         </li>
                                         <li class="sub-mega-menu sub-mega-menu-width-34">
@@ -276,41 +276,41 @@
                                     <a class="" href="#">Accessories <i class="fi-rs-plus"></i></a>
                                     <ul class="mega-menu">
                                         <li class="sub-mega-menu sub-mega-menu-width-22">
-                                            <a class="menu-title" href="#">Product Category</a>
+                                            <a class="menu-title" href="products.php">Product Category</a>
                                             <ul>
-                                                <li><a href="#">Category 1</a></li>
-                                                <li><a href="#">Category 2</a></li>
-                                                <li><a href="#">Category 3</a></li>
-                                                <li><a href="#">Category 4</a></li>
-                                                <li><a href="#">Category 5</a></li>
-                                                <li><a href="#">Category 6</a></li>
+                                                <li><a href="products.php">Category 1</a></li>
+                                                <li><a href="products.php">Category 2</a></li>
+                                                <li><a href="products.php">Category 3</a></li>
+                                                <li><a href="products.php">Category 4</a></li>
+                                                <li><a href="products.php">Category 5</a></li>
+                                                <li><a href="products.php">Category 6</a></li>
                                             </ul>
                                         </li>
                                         <li class="sub-mega-menu sub-mega-menu-width-22">
-                                            <a class="menu-title" href="#">Product Category</a>
+                                            <a class="menu-title" href="products.php">Product Category</a>
                                             <ul>
-                                                <li><a href="#">Category 1</a></li>
-                                                <li><a href="#">Category 2</a></li>
-                                                <li><a href="#">Category 3</a></li>
-                                                <li><a href="#">Category 4</a></li>
-                                                <li><a href="#">Category 5</a></li>
-                                                <li><a href="#">Category 6</a></li>
+                                                <li><a href="products.php">Category 1</a></li>
+                                                <li><a href="products.php">Category 2</a></li>
+                                                <li><a href="products.php">Category 3</a></li>
+                                                <li><a href="products.php">Category 4</a></li>
+                                                <li><a href="products.php">Category 5</a></li>
+                                                <li><a href="products.php">Category 6</a></li>
                                             </ul>
                                         </li>
                                         <li class="sub-mega-menu sub-mega-menu-width-22">
-                                            <a class="menu-title" href="#">Product Category</a>
+                                            <a class="menu-title" href="products.php">Product Category</a>
                                             <ul>
-                                                <li><a href="#">Category 1</a></li>
-                                                <li><a href="#">Category 2</a></li>
-                                                <li><a href="#">Category 3</a></li>
-                                                <li><a href="#">Category 4</a></li>
-                                                <li><a href="#">Category 5</a></li>
-                                                <li><a href="#">Category 6</a></li>
+                                                <li><a href="products.php">Category 1</a></li>
+                                                <li><a href="products.php">Category 2</a></li>
+                                                <li><a href="products.php">Category 3</a></li>
+                                                <li><a href="products.php">Category 4</a></li>
+                                                <li><a href="products.php">Category 5</a></li>
+                                                <li><a href="products.php">Category 6</a></li>
                                             </ul>
                                         </li>
                                         <li class="sub-mega-menu sub-mega-menu-width-34">
                                             <div class="menu-banner-wrap">
-                                                <a href="#"><img src="assets/imgs/banner/banner-menu.png"
+                                                <a href="products.php"><img src="assets/imgs/banner/banner-menu.png"
                                                         alt="Nest" /></a>
                                                 <div class="menu-banner-content">
                                                     <h4>Hot deals</h4>
@@ -322,7 +322,7 @@
                                                         <span class="new-price text-success">Save to 50%</span>
                                                     </div>
                                                     <div class="menu-banner-btn">
-                                                        <a href="#">Shop now</a>
+                                                        <a href="products.php">Shop now</a>
                                                     </div>
                                                 </div>
                                                 <div class="menu-banner-discount">
@@ -336,44 +336,44 @@
                                     </ul>
                                 </li>
                                 <li class="position-static">
-                                    <a href="#">Printing Product <i class="fi-rs-plus"></i></a>
+                                    <a href="products.php">Printing Product <i class="fi-rs-plus"></i></a>
                                     <ul class="mega-menu">
                                         <li class="sub-mega-menu sub-mega-menu-width-22">
-                                            <a class="menu-title" href="#">Product Category</a>
+                                            <a class="menu-title" href="products.php">Product Category</a>
                                             <ul>
-                                                <li><a href="#">Category 1</a></li>
-                                                <li><a href="#">Category 2</a></li>
-                                                <li><a href="#">Category 3</a></li>
-                                                <li><a href="#">Category 4</a></li>
-                                                <li><a href="#">Category 5</a></li>
-                                                <li><a href="#">Category 6</a></li>
+                                                <li><a href="products.php">Category 1</a></li>
+                                                <li><a href="products.php">Category 2</a></li>
+                                                <li><a href="products.php">Category 3</a></li>
+                                                <li><a href="products.php">Category 4</a></li>
+                                                <li><a href="products.php">Category 5</a></li>
+                                                <li><a href="products.php">Category 6</a></li>
                                             </ul>
                                         </li>
                                         <li class="sub-mega-menu sub-mega-menu-width-22">
-                                            <a class="menu-title" href="#">Product Category</a>
+                                            <a class="menu-title" href="products.php">Product Category</a>
                                             <ul>
-                                                <li><a href="#">Category 1</a></li>
-                                                <li><a href="#">Category 2</a></li>
-                                                <li><a href="#">Category 3</a></li>
-                                                <li><a href="#">Category 4</a></li>
-                                                <li><a href="#">Category 5</a></li>
-                                                <li><a href="#">Category 6</a></li>
+                                                <li><a href="products.php">Category 1</a></li>
+                                                <li><a href="products.php">Category 2</a></li>
+                                                <li><a href="products.php">Category 3</a></li>
+                                                <li><a href="products.php">Category 4</a></li>
+                                                <li><a href="products.php">Category 5</a></li>
+                                                <li><a href="products.php">Category 6</a></li>
                                             </ul>
                                         </li>
                                         <li class="sub-mega-menu sub-mega-menu-width-22">
-                                            <a class="menu-title" href="#">Product Category</a>
+                                            <a class="menu-title" href="products.php">Product Category</a>
                                             <ul>
-                                                <li><a href="#">Category 1</a></li>
-                                                <li><a href="#">Category 2</a></li>
-                                                <li><a href="#">Category 3</a></li>
-                                                <li><a href="#">Category 4</a></li>
-                                                <li><a href="#">Category 5</a></li>
-                                                <li><a href="#">Category 6</a></li>
+                                                <li><a href="products.php">Category 1</a></li>
+                                                <li><a href="products.php">Category 2</a></li>
+                                                <li><a href="products.php">Category 3</a></li>
+                                                <li><a href="products.php">Category 4</a></li>
+                                                <li><a href="products.php">Category 5</a></li>
+                                                <li><a href="products.php">Category 6</a></li>
                                             </ul>
                                         </li>
                                         <li class="sub-mega-menu sub-mega-menu-width-34">
                                             <div class="menu-banner-wrap">
-                                                <a href="#"><img src="assets/imgs/banner/banner-menu.png"
+                                                <a href="products.php"><img src="assets/imgs/banner/banner-menu.png"
                                                         alt="Nest" /></a>
                                                 <div class="menu-banner-content">
                                                     <h4>Hot deals</h4>
@@ -385,7 +385,7 @@
                                                         <span class="new-price text-success">Save to 50%</span>
                                                     </div>
                                                     <div class="menu-banner-btn">
-                                                        <a href="#">Shop now</a>
+                                                        <a href="products.php">Shop now</a>
                                                     </div>
                                                 </div>
                                                 <div class="menu-banner-discount">
@@ -399,44 +399,44 @@
                                     </ul>
                                 </li>
                                 <li class="position-static">
-                                    <a href="#">Digital Cards <i class="fi-rs-plus"></i></a>
+                                    <a href="products.php">Digital Cards <i class="fi-rs-plus"></i></a>
                                     <ul class="mega-menu">
                                         <li class="sub-mega-menu sub-mega-menu-width-22">
-                                            <a class="menu-title" href="#">Product Category</a>
+                                            <a class="menu-title" href="products.php">Product Category</a>
                                             <ul>
-                                                <li><a href="#">Category 1</a></li>
-                                                <li><a href="#">Category 2</a></li>
-                                                <li><a href="#">Category 3</a></li>
-                                                <li><a href="#">Category 4</a></li>
-                                                <li><a href="#">Category 5</a></li>
-                                                <li><a href="#">Category 6</a></li>
+                                                <li><a href="products.php">Category 1</a></li>
+                                                <li><a href="products.php">Category 2</a></li>
+                                                <li><a href="products.php">Category 3</a></li>
+                                                <li><a href="products.php">Category 4</a></li>
+                                                <li><a href="products.php">Category 5</a></li>
+                                                <li><a href="products.php">Category 6</a></li>
                                             </ul>
                                         </li>
                                         <li class="sub-mega-menu sub-mega-menu-width-22">
-                                            <a class="menu-title" href="#">Product Category</a>
+                                            <a class="menu-title" href="products.php">Product Category</a>
                                             <ul>
-                                                <li><a href="#">Category 1</a></li>
-                                                <li><a href="#">Category 2</a></li>
-                                                <li><a href="#">Category 3</a></li>
-                                                <li><a href="#">Category 4</a></li>
-                                                <li><a href="#">Category 5</a></li>
-                                                <li><a href="#">Category 6</a></li>
+                                                <li><a href="products.php">Category 1</a></li>
+                                                <li><a href="products.php">Category 2</a></li>
+                                                <li><a href="products.php">Category 3</a></li>
+                                                <li><a href="products.php">Category 4</a></li>
+                                                <li><a href="products.php">Category 5</a></li>
+                                                <li><a href="products.php">Category 6</a></li>
                                             </ul>
                                         </li>
                                         <li class="sub-mega-menu sub-mega-menu-width-22">
-                                            <a class="menu-title" href="#">Product Category</a>
+                                            <a class="menu-title" href="products.php">Product Category</a>
                                             <ul>
-                                                <li><a href="#">Category 1</a></li>
-                                                <li><a href="#">Category 2</a></li>
-                                                <li><a href="#">Category 3</a></li>
-                                                <li><a href="#">Category 4</a></li>
-                                                <li><a href="#">Category 5</a></li>
-                                                <li><a href="#">Category 6</a></li>
+                                                <li><a href="products.php">Category 1</a></li>
+                                                <li><a href="products.php">Category 2</a></li>
+                                                <li><a href="products.php">Category 3</a></li>
+                                                <li><a href="products.php">Category 4</a></li>
+                                                <li><a href="products.php">Category 5</a></li>
+                                                <li><a href="products.php">Category 6</a></li>
                                             </ul>
                                         </li>
                                         <li class="sub-mega-menu sub-mega-menu-width-34">
                                             <div class="menu-banner-wrap">
-                                                <a href="#"><img src="assets/imgs/banner/banner-menu.png"
+                                                <a href="products.php"><img src="assets/imgs/banner/banner-menu.png"
                                                         alt="Nest" /></a>
                                                 <div class="menu-banner-content">
                                                     <h4>Hot deals</h4>
@@ -448,7 +448,7 @@
                                                         <span class="new-price text-success">Save to 50%</span>
                                                     </div>
                                                     <div class="menu-banner-btn">
-                                                        <a href="#">Shop now</a>
+                                                        <a href="products.php">Shop now</a>
                                                     </div>
                                                 </div>
                                                 <div class="menu-banner-discount">
@@ -609,25 +609,25 @@
                                 
                             </li>
                             <li class="menu-item-has-children"><span class="menu-expand"><i class="fi-rs-angle-small-down"></i></span>
-                                <a href="shop-grid-right.html">Shop by Categories</a>
+                                <a href="category.php">Shop by Categories</a>
                                 <ul class="dropdown" style="display: none;">
-                                    <li><a href="shop-grid-right.html">Tshirts</a></li>
-                                    <li><a href="shop-grid-left.html">Bag Print</a></li>
-                                    <li><a href="shop-list-right.html">Gift Pack </a></li>
-                                    <li><a href="shop-list-left.html">Paper Cup</a></li>
-                                    <li><a href="shop-fullwidth.html">Brochure</a></li>
-                                    <li><a href="shop-fullwidth.html">Hoodies</a></li>
+                                    <li><a href="products.php">Tshirts</a></li>
+                                    <li><a href="products.php">Bag Print</a></li>
+                                    <li><a href="products.php">Gift Pack </a></li>
+                                    <li><a href="products.php">Paper Cup</a></li>
+                                    <li><a href="products.php">Brochure</a></li>
+                                    <li><a href="products.php">Hoodies</a></li>
                                    
                                 </ul>
                             </li>
                           
                             <li class="menu-item-has-children"><span class="menu-expand"><i class="fi-rs-angle-small-down"></i></span>
-                                <a href="#">Products</a>
+                                <a href="products.php">Products</a>
                                 <ul class="dropdown" style="display: none;">
-                                    <li><a href="#">Gift Products </a></li>
-                                    <li><a href="#">Accessories </a></li>
-                                    <li><a href="#">Printing Product </a></li>
-                                    <li><a href="#">Digital Cards </a></li>
+                                    <li><a href="products.php">Gift Products </a></li>
+                                    <li><a href="products.php">Accessories </a></li>
+                                    <li><a href="products.php">Printing Product </a></li>
+                                    <li><a href="products.php">Digital Cards </a></li>
                                 </ul>
                             </li>
                         </ul>

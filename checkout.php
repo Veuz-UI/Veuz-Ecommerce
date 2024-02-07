@@ -277,7 +277,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="shipping-addrss">
+                            <div class="shipping-addrss mb-0">
                                 <h4>Billing Summary</h4>
                                 <div class="billing-sum">
                                     <div class="form-group">

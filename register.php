@@ -35,7 +35,7 @@
 
                             <form class="needs-validation register-form" novalidate action="login.php">
 
-                                <div class="mb-3">
+                                <div class="mb-md-3 mb-2">
                
                                     <input type="text" class="form-control" id="username" placeholder="Enter username" required>
                                     <div class="invalid-feedback">
@@ -43,7 +43,7 @@
                                     </div>
                                 </div>
 
-                                <div class="mb-3">
+                                <div class="mb-md-3 mb-2">
                               
                                     <input type="email" class="form-control" id="useremail" placeholder="Enter email" required>
                                     <div class="invalid-feedback">
@@ -51,7 +51,7 @@
                                     </div>
                                 </div>
 
-                                <div class="mb-3">
+                                <div class="mb-md-3 mb-2">
                       
                                     <input type="password" class="form-control" id="userpassword" placeholder="Enter password" required>
                                     <div class="invalid-feedback">
