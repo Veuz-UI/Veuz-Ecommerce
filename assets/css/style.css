@@ -16492,3 +16492,50 @@ margin: 0;
   margin-bottom: 20px;
 }
 }
+
+@media only screen and (max-width: 380px) {
+  .header-action-2 .header-action-icon-2>a img {
+    max-width: 15px;
+}
+.header-action-2 .header-action-icon-2>a {
+  margin-right: 0px;
+  margin-left: 4px;
+}
+.header-action-2 .header-action-icon-2>a span.pro-count {
+  top: -10px;
+  height: 14px;
+  width: 14px;
+  font-size: 8px;
+  line-height: 13px;
+}
+.logo.logo-width-1 a img {
+  width: 100px;
+  min-width: 100px;
+}
+.burger-icon{
+  width: 20px;
+  height: 20px;
+}
+.burger-icon>span{
+  left: 3px;
+}
+.burger-icon>span.burger-icon-top {
+  top: 3px;
+}
+.burger-icon>span.burger-icon-mid {
+  top: 8px;
+}
+.burger-icon>span.burger-icon-bottom {
+  bottom: 5px;
+}
+.logo.logo-width-1{
+  left: 47%;
+}
+.hero-slider-1 .single-hero-slider .display-2 {
+  font-size: 20px;
+}
+.ordr {
+  font-size: 14px;
+  padding: 3px 16px;
+}
+}
