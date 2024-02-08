@@ -190,13 +190,14 @@
                 },{
                     breakpoint: 768,
                     settings: {
-                        slidesToShow: 4
-                    }
-                }, {
-                    breakpoint: 520,
-                    settings: {
                         slidesToShow: 3
                     }
+                },{
+                    breakpoint: 520,
+                    settings: {
+                        slidesToShow: 2
+                    }
+                    
                 }]
             });
         });

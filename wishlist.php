@@ -28,11 +28,11 @@
     <?php include 'header.php';?>
     <main class="main">
 
-        <section class="section-padding prdcts pb-40">
+        <section class="section-padding prdcts pb-40 pb-sm-0">
             <div class="container">
                 <div class="row">
                     <div class="col-xl-3 col-lg-4">
-                        <ul class="breadcrumb-list pt-0 mb-2">
+                        <ul class="breadcrumb-list pt-md-0 mb-md-2">
                             <li> <a href="index.php">Home</a>
                                 <span class="separator" aria-hidden="true">&rsaquo;</span></li>
                             <li class="active-brudcrumb">
@@ -43,6 +43,13 @@
                         <div class="products-leftfilter">
                             <div class="products-filter-div">
                                 <h4>Product Categories</h4>
+                                <div class="search-wrapper">
+                                    <div class="input-holder">
+                                        <input type="text" class="search-input" placeholder="Type to search" />
+                                        <button class="search-icon" onclick="searchToggle(this, event);"><i class="fi-rs-search"></i></button>
+                                    </div>
+                                    <span class="close" onclick="searchToggle(this, event);"><i class="fa-solid fa-xmark delete-search"></i></span>
+                                </div>
                                 <div class="custome-checkbox">
                                     <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox11" value="">
                                     <label class="form-check-label" for="exampleCheckbox11"><span>Acessories</span></label>
@@ -470,13 +477,14 @@
                 },{
                     breakpoint: 768,
                     settings: {
-                        slidesToShow: 4
-                    }
-                }, {
-                    breakpoint: 520,
-                    settings: {
                         slidesToShow: 3
                     }
+                },{
+                    breakpoint: 520,
+                    settings: {
+                        slidesToShow: 2
+                    }
+                    
                 }]
             });
         });
@@ -488,6 +496,20 @@
         $(this).toggleClass('fi-rs-heart fi-ss-heart');
       });
     });
+  </script>
+    <script>
+    function searchToggle(obj, evt){
+    var container = $(obj).closest('.search-wrapper');
+        if(!container.hasClass('active')){
+            container.addClass('active');
+            evt.preventDefault();
+        }
+        else if(container.hasClass('active') && $(obj).closest('.input-holder').length == 0){
+            container.removeClass('active');
+            // clear input
+            container.find('.search-input').val('');
+        }
+}
   </script>
     <script>
     $(document).ready(function () {

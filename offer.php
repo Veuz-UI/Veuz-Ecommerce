@@ -28,7 +28,7 @@
     <?php include 'header.php';?>
     <main class="main">
 
-        <section class="section-padding prdcts pb-md-40">
+        <section class="section-padding prdcts pb-40 pb-sm-0">
             <div class="container">
                 <div class="row">
                     <div class="col-xl-3 col-lg-4">
@@ -480,13 +480,14 @@
                 },{
                     breakpoint: 768,
                     settings: {
-                        slidesToShow: 4
-                    }
-                }, {
-                    breakpoint: 520,
-                    settings: {
                         slidesToShow: 3
                     }
+                },{
+                    breakpoint: 520,
+                    settings: {
+                        slidesToShow: 2
+                    }
+                    
                 }]
             });
         });

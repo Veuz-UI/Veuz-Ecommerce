@@ -51,7 +51,7 @@
                 <div class="container">   
                     <!-- product slider section -->
                     <div class="row">
-                        <div class="col-md-5 pr-50">
+                        <div class="col-md-5 sm-pr-50">
                             <div class="voucher-img">
                                 <img src="assets/imgs/shop/gift-big.jpg" alt="">
                             </div>
@@ -127,7 +127,7 @@
                 </div>
                 
             </section>
-            <section class="section-padding voucher-list prdcts pb-40">
+            <section class="section-padding voucher-list prdcts pb-40 pb-sm-0">
                 <div class="container">
                     <div class="section-tit wow animate__animated animate__fadeIn">
                         <h3 class="">RELATED PRODUCTS</h3>
@@ -394,13 +394,14 @@
                 },{
                     breakpoint: 768,
                     settings: {
-                        slidesToShow: 4
-                    }
-                }, {
-                    breakpoint: 520,
-                    settings: {
                         slidesToShow: 3
                     }
+                },{
+                    breakpoint: 520,
+                    settings: {
+                        slidesToShow: 2
+                    }
+                    
                 }]
             });
         });

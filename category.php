@@ -28,11 +28,11 @@
     <?php include 'header.php';?>
     <main class="main">
 
-        <section class="section-padding prdcts pb-40">
+        <section class="section-padding prdcts pb-40 pb-sm-0">
             <div class="container">
                 <div class="row">
                     <div class="col-xl-3 col-lg-4">
-                        <ul class="breadcrumb-list pt-0 mb-2">
+                        <ul class="breadcrumb-list pt-md-0 mb-md-2">
                             <li> <a href="index.php">Home</a>
                                 <span class="separator" aria-hidden="true">&rsaquo;</span></li>
                             <li class="active-brudcrumb">
@@ -174,8 +174,8 @@
                                 </div>
 
                             </div>
-                            <div class="row g-4">
-                                <div class="col-xl-3 col-lg-4">
+                            <div class="row g-md-4 g-2">
+                                <div class="col-xl-3 col-lg-4 col-6">
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
@@ -192,7 +192,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-xl-3 col-lg-4">
+                                <div class="col-xl-3 col-lg-4 col-6">
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
@@ -209,7 +209,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-xl-3 col-lg-4">
+                                <div class="col-xl-3 col-lg-4 col-6">
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
@@ -226,7 +226,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-xl-3 col-lg-4">
+                                <div class="col-xl-3 col-lg-4 col-6">
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
@@ -243,7 +243,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-xl-3 col-lg-4">
+                                <div class="col-xl-3 col-lg-4 col-6">
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
@@ -260,7 +260,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-xl-3 col-lg-4">
+                                <div class="col-xl-3 col-lg-4 col-6">
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
@@ -277,7 +277,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-xl-3 col-lg-4">
+                                <div class="col-xl-3 col-lg-4 col-6">
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
@@ -294,7 +294,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="col-xl-3 col-lg-4">
+                                <div class="col-xl-3 col-lg-4 col-6">
                                     <div class="product-cart-wrap">
                                         <div class="product-img-action-wrap">
                                             <div class="product-img product-img-zoom">
@@ -374,13 +374,14 @@
                 },{
                     breakpoint: 768,
                     settings: {
-                        slidesToShow: 4
-                    }
-                }, {
-                    breakpoint: 520,
-                    settings: {
                         slidesToShow: 3
                     }
+                },{
+                    breakpoint: 520,
+                    settings: {
+                        slidesToShow: 2
+                    }
+                    
                 }]
             });
         });

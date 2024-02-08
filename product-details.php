@@ -163,7 +163,7 @@
                 </div>
                 
             </section>
-            <section class="section-padding prdcts pb-40">
+            <section class="section-padding prdcts pb-40 sm-pb-0">
                 <div class="container">
                     <div class="section-tit wow animate__animated animate__fadeIn">
                         <h3 class="">RELATED PRODUCTS</h3>
@@ -558,13 +558,14 @@
                 },{
                     breakpoint: 768,
                     settings: {
-                        slidesToShow: 4
-                    }
-                }, {
-                    breakpoint: 520,
-                    settings: {
                         slidesToShow: 3
                     }
+                },{
+                    breakpoint: 520,
+                    settings: {
+                        slidesToShow: 2
+                    }
+                    
                 }]
             });
         });

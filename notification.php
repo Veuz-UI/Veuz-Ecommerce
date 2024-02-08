@@ -42,7 +42,7 @@
                     </ul>
                 </div>
             </section>
-            <section class="common-v-padding pt-0 pb-45">
+            <section class="common-v-padding pt-0 pb-45 pb-sm-20">
                 <div class="container">   
                     <!-- product slider section -->
                     <div class="row">
@@ -294,13 +294,14 @@
                 },{
                     breakpoint: 768,
                     settings: {
-                        slidesToShow: 4
-                    }
-                }, {
-                    breakpoint: 520,
-                    settings: {
                         slidesToShow: 3
                     }
+                },{
+                    breakpoint: 520,
+                    settings: {
+                        slidesToShow: 2
+                    }
+                    
                 }]
             });
         });
