@@ -16518,6 +16518,252 @@ margin: 0;
   min-width: 140px;
 }
 
+.card-box{
+  background-color: #F5F7FB;
+  border-radius: 10px;
+  padding: 20px 25px;
+  min-height: 190px;
+  display: flex;
+  flex-direction: column;
+}
+
+.card-box h3 {
+  font-size: 20px;
+  margin-bottom: 10px;
+  font-weight: 600;
+  color: black;
+}
+
+.card-box h4{
+  font-size: 15px;
+  margin-bottom: 3px;
+  margin-top: 5px;
+  font-weight: 500;
+  color: #222;
+}
+.box-addrs{
+  display: flex;
+  margin-top: 10px;
+}
+
+.box-addrs h6{
+  font-size: 14px;
+  margin-left: 12px;
+  line-height: 23px;
+  color: #747474;
+  font-weight: 400;
+}
+
+.box-addrs svg{
+  margin-top: 4px;
+}
+.box-addrs img {
+  width: 20px;
+}
+.rewards h5{
+  font-size: 16px;
+  margin-bottom: 4px;
+  font-weight: 500;
+  color: #000;
+}
+.rewards{
+  margin-left: 13px;
+}
+
+.reward-box .box-addrs{
+  display: flex;
+  align-items: center;
+}
+
+.rewards p{
+  font-size: 14px;
+  color: #747474;
+  font-weight: 400;
+}
+
+.shopping-img{
+  background-color: #fff;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.shipping-order-details h3{
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.shipping-order-details .prdct-ftrs{
+  display: flex;
+  gap: 15px;
+}
+
+.shipping-order-details .prdct-ftrs p{
+  font-size: 13px;
+}
+
+.shipping-order-details h2{
+  font-size: 18px;
+  margin-bottom: 8px;
+}
+
+.shipping-order-details h6{
+  font-size: 13px;
+    font-weight: 400;
+    color: #3DC068;
+    margin-bottom: 8px;
+}
+
+.shipping-order-details h4{
+  font-size: 14px;
+}
+
+.download-invoice{
+  background-color: #FDC83A;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+.download-invoice .downld-icn{
+  font-size: 22px;
+  color: #222;
+  margin-bottom: 5px;
+}
+
+.download-invoice h3{
+  font-size: 18px;
+  margin-bottom: 5px;
+}
+
+.download-btn{
+  background-color: white;
+    border-radius: 5px;
+    border: 0px;
+    padding: 6px 30px;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: 1s;
+}
+.download-btn:hover{
+  background-color: #222;
+  color: #fff;
+  transition: 1s;
+}
+
+.hh-grayBox {
+  margin-bottom: 20px;
+  padding: 35px;
+  background-color: #f6f7fb;
+  margin-top: 20px;
+  border-radius: 10px;
+}
+.pt45{padding-top:45px;}
+.order-tracking{
+	text-align: center;
+  width: 25%;
+	position: relative;
+	display: block;
+}
+.order-tracking .is-complete{
+	display: block;
+	position: relative;
+	border-radius: 50%;
+	height: 30px;
+	width: 30px;
+	border: 0px solid #AFAFAF;
+	background-color: #a7adb7;
+	margin: 0 auto;
+	transition: background 0.25s linear;
+	-webkit-transition: background 0.25s linear;
+	z-index: 2;
+}
+.order-tracking .is-complete:after {
+	display: block;
+	position: absolute;
+	content: '';
+	height: 14px;
+	width: 7px;
+	top: -2px;
+	bottom: 0;
+	left: 5px;
+	margin: auto 0;
+	border: 0px solid #AFAFAF;
+	border-width: 0px 2px 2px 0;
+	transform: rotate(45deg);
+	opacity: 0;
+}
+.order-tracking.completed .is-complete{
+	border-color: #27aa80;
+	border-width: 0px;
+	background-color: #27aa80;
+}
+.order-tracking.completed .is-complete:after {
+	border-color: #fff;
+	border-width: 0px 3px 3px 0;
+	width: 7px;
+	left: 11px;
+	opacity: 1;
+}
+.order-tracking p {
+	color: #62676e;
+	font-size: 16px;
+	margin-top: 10px;
+	margin-bottom: 0;
+	line-height: 20px;
+}
+.order-tracking p span{font-size: 14px;color: #747474;}
+.order-tracking.completed p{color: #000;line-height: 24px;}
+.order-tracking::before {
+	content: '';
+	display: block;
+	height: 3px;
+	width: calc(100% - 40px);
+	background-color: #a7adb7;
+	top: 13px;
+	position: absolute;
+	left: calc(-50% + 20px);
+	z-index: 0;
+}
+.order-tracking:first-child:before{display: none;}
+.order-tracking.completed:before{background-color: #27aa80;}
+
+.delivery-updates-div h3{
+  font-size: 22px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  margin-top: 10px;
+}
+
+.delivery-updates-div .delivery-update{
+  margin: 10px 0px;
+}
+
+.delivery-updates-div .delivery-update h4{
+  font-size: 16px;
+  font-weight: 600;
+  color: #444;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background-color: #f6f7fb;
+  padding: 10px;
+}
+
+.delivery-updates-div .delivery-update h4 span{
+  color: #62676f;
+  font-size: 14px;
+}
+
+.delivery-updates-div .delivery-update h6{
+  font-size: 16px;
+    font-weight: 400;
+    color: #62676e;
+}
+
 @media screen and (max-width: 1600px) {
   .header-style-1 .header-middle-ptb-1 {
     padding: 15px 0;
@@ -16602,6 +16848,10 @@ margin: 0;
 .hotline p span{
   padding-left: 10px;
 }
+.card-box{
+  padding: 20px 20px;
+  min-height: 233px;
+}
 }
 
 @media screen and (max-width: 1200px) {
@@ -16682,6 +16932,10 @@ footer .hotline p{
 footer .hotline p span{
   padding-left: 0px;
   font-size: 12px;
+}
+.download-invoice h3 {
+  font-size: 16px;
+  margin-bottom: 5px;
 }
 }
 
@@ -16809,6 +17063,14 @@ footer .hotline p span{
 }
 .footer-mid .widget-title{
   font-size: 22px;
+}
+.card-box {
+  padding: 20px 25px;
+  min-height: 200px;
+  margin-bottom: 25px;
+}
+.hh-grayBox{
+  margin-top: 0px;
 }
 
 }
@@ -17238,6 +17500,83 @@ footer .hotline p span{
 }
 .contact-infor li img{
   width: 16px !important;
+}
+.card-box {
+  padding: 15px;
+  min-height: auto;
+  margin-bottom: 15px;
+}
+.card-box h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+.rewards h5 {
+  font-size: 15px;
+}
+.shopping-img {
+  background-color: #fff;
+  padding: 30px;
+  border-radius: 8px;
+  width: 50%;
+  margin-bottom: 10px;
+}
+.download-invoice h3{
+  margin-bottom: 6px !important;
+}
+.pt45 {
+  padding-top: 30px;
+}
+.hh-grayBox {
+  margin-bottom: 20px;
+  padding: 5px;
+  padding-bottom: 20px;
+}
+.order-tracking .is-complete{
+  height: 26px;
+    width: 26px;
+}
+.order-tracking.completed .is-complete:after{
+  border-width: 0px 2px 2px 0;
+  width: 6px;
+  left: 10px;
+}
+.order-tracking .is-complete:after{
+  height: 11px;
+}
+.order-tracking::before{
+  width: calc(100% - 34px);
+  left: calc(-50% + 17px);
+}
+.order-tracking.completed p{
+  line-height: 22px;
+}
+.order-tracking p{
+  font-size: 13px;
+}
+.order-tracking p span {
+  font-size: 12px;
+}
+.delivery-updates-div h3 {
+  font-size: 20px;
+  margin-bottom: 15px;
+  margin-top: 0px;
+}
+.delivery-updates-div .delivery-update {
+  margin: 10px 0px;
+  border: 1px solid #ebebeb;
+  padding: 12px;
+}
+.delivery-updates-div .delivery-update h4{
+  font-size: 16px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  background-color: transparent;
+  padding: 0px;
+  margin-bottom: 8px;
+}
+.delivery-updates-div .delivery-update h6 {
+  font-size: 15px;
 }
 }
 

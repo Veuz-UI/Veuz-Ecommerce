@@ -23,7 +23,7 @@
 
                             </li>
                             <li>
-                                <a href="#"><span class="box2"><img src="assets/imgs/theme/track.png" alt=""
+                                <a href="order-tracking.php"><span class="box2"><img src="assets/imgs/theme/track.png" alt=""
                                             class="img-fluid"></span>Track Order</a>
                             </li>
                             <li>
@@ -546,7 +546,7 @@
                                             Profile</a>
                                     </li>
                                     <li>
-                                        <a href="#"><i class="fi fi-rs-location-alt mr-10"></i>Order
+                                        <a href="order-tracking.php"><i class="fi fi-rs-location-alt mr-10"></i>Order
                                             Tracking</a>
                                     </li>
                                     <li>

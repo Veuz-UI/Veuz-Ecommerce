@@ -1164,7 +1164,7 @@
         </div>
     </div>
     <!-- Vendor JS-->
-
+    <script src="https://kit.fontawesome.com/16b0815225.js" crossorigin="anonymous"></script>
     <script src="assets/js/vendor/jquery-3.6.0.min.js"></script>
     <script src="assets/js/vendor/bootstrap.bundle.min.js"></script>
     <script src="assets/js/plugins/slick.js"></script>
