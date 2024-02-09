@@ -8755,8 +8755,6 @@ span.fi-rs-apps {
   background-color: #ffffff;
   width: 100%;
   padding: 35px 25px 35px 35px;
-  -webkit-transition: all .25s ease 0s;
-  transition: all .25s ease 0s;
   opacity: 0;
   visibility: hidden;
   margin-top: 20px;
@@ -8890,6 +8888,8 @@ span.fi-rs-apps {
   opacity: 1;
   visibility: visible;
   margin-top: 0;
+  -webkit-transition: all .2s ease 0s;
+  transition: all .2s ease 0s;
 }
 
 .main-menu.hover-boder>nav>ul>li>a {
