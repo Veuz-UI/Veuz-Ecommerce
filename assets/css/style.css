@@ -16764,6 +16764,10 @@ margin: 0;
     color: #62676e;
 }
 
+.sm-pr-50{
+  padding-right: 50px;
+}
+
 @media screen and (max-width: 1600px) {
   .header-style-1 .header-middle-ptb-1 {
     padding: 15px 0;
