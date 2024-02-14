@@ -1,21 +1,6 @@
 <footer class="main">
-        <section class="newsletter mb-15 wow animate__animated animate__fadeIn">
-            <div class="container">
-                <div class="row">
-                    <div class="col-lg-12">
-                        <div class="position-relative newsletter-inner">
-                            <div class="newsletter-content text-center">
-                                <h5>Big Saving on Top selling Smartphone</h5>
-                                <h4>Get Up To 85% OFF on big billion day 2021</h4>
-                                <a href="products.php" class="shopnow">Shop Now</a>
-                            </div>
 
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-        <section class="section-padding pb-5 onsal">
+        <!-- <section class="section-padding pb-5 onsal">
             <div class="container">
                 <div class="section-title wow animate__animated animate__fadeIn" data-wow-delay="0">
                     <h3 class="">OUR PARTNERS</h3>
@@ -47,7 +32,7 @@
                 <input type="email" placeholder="Domain@gmail.com">
                 <button class="btn" type="submit">Subscribe</button>
             </form>
-        </div>
+        </div> -->
 
   
         <section class="section-padding footer-mid">
@@ -61,12 +46,39 @@
                                         alt="logo" /></a>
                                 <p class="font-lg text-heading">Lorem Ipsum is simply dummy text of the printing and
                                     typesetting industry.</p>
-                                    <ul class="contact-infor">
-                                <li><img src="assets/imgs/theme/icons/icon-location.svg" alt=""><strong>Address: </strong> <span> Riyadh, Jeddah, Al Khobar Bahrain, Qatar</span></li>
-                                <li><img src="assets/imgs/theme/icons/icon-contact.svg" alt=""><strong>Call Us:</strong><span><a href="tel:+919876124553">(+91) - 9876-124553</a> </span></li>
-                                <li><img src="assets/imgs/theme/icons/icon-email-2.svg" alt=""><strong>Email:</strong><span> <a href="mailto:sales@veuz.com">sales@veuz.com</a></span></li>
-                                <li><img src="assets/imgs/theme/icons/icon-clock.svg" alt=""><strong>Hours:</strong><span> 10:00 - 18:00, Mon - Sat</span></li>
-                            </ul>
+                                <ul class="contact-infor">
+                              
+                                    <li><img src="assets/imgs/theme/icons/icon-contact.svg" alt=""><strong>Call Us:</strong><span><a href="tel:+919876124553">(+91) - 9876-124553</a> </span></li>
+                                    <li><img src="assets/imgs/theme/icons/icon-email-2.svg" alt=""><strong>Email:</strong><span> <a href="mailto:sales@veuz.com">sales@veuz.com</a></span></li>
+                            
+                                </ul>
+                                <div class="download-app">
+                                    <p class="mt-25 mb-20">Secured Payment Gateways</p>
+                                    <ul>
+        
+                                        <li>
+                                            <a href="javascript:void(0)">
+                                                <img src="assets/imgs/theme/1.jpg" class="img-fluid blur-up lazyloaded"
+                                                    alt="payment icon"></a>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)">
+                                                <img src="assets/imgs/theme/2.jpg" class="img-fluid blur-up lazyloaded"
+                                                    alt="payment icon"></a>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)">
+                                                <img src="assets/imgs/theme/3.jpg" class="img-fluid blur-up lazyloaded"
+                                                    alt="payment icon"></a>
+                                        </li>
+                                        <li>
+                                            <a href="javascript:void(0)">
+                                                <img src="assets/imgs/theme/4.jpg" class="img-fluid blur-up lazyloaded"
+                                                    alt="payment icon"></a>
+                                        </li>
+                                    </ul>
+                                </div>
+                               
                             </div>
 
                         </div>
@@ -106,7 +118,7 @@
                     <div class="footer-link-widget widget-install-app col wow animate__animated animate__fadeInUp"
                         data-wow-delay=".5s">
                         <h4 class="widget-title">Install App</h4>
-                        <p class="font-lg text-heading mb-3">Get 10% off  your first order !</p>
+                        <p class="font-lg text-heading mb-25">Get 10% off  your first order !</p>
 
                         <div class="download-app">
                          
@@ -122,30 +134,7 @@
                             </div>
                           
 
-                            <p class="mb-20">Secured Payment Gateways</p>
-                            <ul>
-
-                                <li>
-                                    <a href="javascript:void(0)">
-                                        <img src="assets/imgs/theme/1.jpg" class="img-fluid blur-up lazyloaded"
-                                            alt="payment icon"></a>
-                                </li>
-                                <li>
-                                    <a href="javascript:void(0)">
-                                        <img src="assets/imgs/theme/2.jpg" class="img-fluid blur-up lazyloaded"
-                                            alt="payment icon"></a>
-                                </li>
-                                <li>
-                                    <a href="javascript:void(0)">
-                                        <img src="assets/imgs/theme/3.jpg" class="img-fluid blur-up lazyloaded"
-                                            alt="payment icon"></a>
-                                </li>
-                                <li>
-                                    <a href="javascript:void(0)">
-                                        <img src="assets/imgs/theme/4.jpg" class="img-fluid blur-up lazyloaded"
-                                            alt="payment icon"></a>
-                                </li>
-                            </ul>
+                          
                         </div>
 
 
@@ -158,20 +147,11 @@
                 <div class="col-12 mb-25">
                     <div class="footer-bottom"></div>
                 </div>
-                <div class="col-xl-4 col-lg-6 col-md-6">
-                    <p class="font-sm mb-0">Copyright 2024, <strong class="text-brand">Veuz</strong> - Ecommerce <br>All rights reserved</p>
+                <div class="col-lg-6 col-md-6">
+                    <p class="font-sm mb-0">Copyright 2024, <strong class="text-brand">Veuz</strong> - Ecommerce. All rights reserved</p>
                 </div>
-                <div class="col-xl-4 col-lg-6 text-center d-lg-none d-xl-block">
-                    <div class="hotline d-lg-inline-flex mr-30">
-                        <img src="assets/imgs/theme/icons/phone-call.svg" alt="hotline">
-                        <p>1036-0369<span>Working 8:00 - 22:00</span></p>
-                    </div>
-                    <div class="hotline d-lg-inline-flex">
-                        <img src="assets/imgs/theme/icons/phone-call.svg" alt="hotline">
-                        <p>1369-0369<span>24/7 Support Center</span></p>
-                    </div>
-                </div>
-                <div class="col-xl-4 col-lg-6 col-md-6 text-end d-none d-md-block">
+            
+                <div class="col-lg-6 col-md-6 text-end d-none d-md-block">
                     <div class="mobile-social-icon">
                         <h6>Follow Us</h6>
                         <a href="#"><i class="fa-brands fa-facebook"></i></a>

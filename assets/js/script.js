@@ -382,6 +382,18 @@
     /*----------------------------
         Category toggle function
     ------------------------------*/
+    $(document).on("click", function (e) {
+        var dropdown = $(".categories-dropdown-active-large");
+        var trigger = $(".categories-button-active");
+    
+        // Check if the click target is not within the dropdown or its trigger button
+        if (!dropdown.is(e.target) && dropdown.has(e.target).length === 0 &&
+            !trigger.is(e.target) && trigger.has(e.target).length === 0) {
+            dropdown.removeClass("open");
+            trigger.removeClass("open");
+        }
+    });
+    
     var searchToggle = $(".categories-button-active");
     searchToggle.on("click", function (e) {
         e.preventDefault();

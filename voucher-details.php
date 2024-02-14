@@ -77,7 +77,12 @@
                                 <h4>SAR 250<span>(50%OFF)</span></h4>
                                 <div class="save-sar">Save <span class="dis-price">SAR 250</span><span class="old-price">SAR
                                         500</span>(Inc of all taxes)</div>
-
+                                <div class="product-auto-renewal">
+                                    <div class="custome-checkbox">
+                                        <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox11" value="">
+                                        <label class="form-check-label" for="exampleCheckbox11"><span>Auto Renewal</span></label>
+                                    </div>
+                                </div>
                                 <div class="product-quantity">
                                     <h6>Quantity</h6>
                                     <div class="qty-container">
@@ -88,16 +93,7 @@
                                                 class="fa fa-plus"></i></button>
                                     </div>
                                 </div>
-                                <div class="product-delivery">
-                                    <h5>Delivery</h5>
-                                    <p>Enter Pincode to get Delivery Date, Assembly Information and other details.</p>
-                                    <div class="del-pincode">
-                                        <input type="text" placeholder="Enter your Pincode">
-                                        <button class="check-btn">Check</button>
-                                    </div>
-                                    <h6><img src="assets/imgs/delivery.svg" alt="">Delivery Within 6-8 business days to
-                                        673005</h6>
-                                </div>
+                                
                                 <div class="product-favshare-div">
                                     <div class="product-favshare">
                                         <button class="product-favt"><i class="fa-solid fa-heart-circle-plus"></i><span>Add to Favourites</span></button>
@@ -358,16 +354,7 @@
     </main>
 
     <?php include 'footer.php';?>
-    <!-- Preloader Start -->
-    <div id="preloader-active">
-        <div class="preloader d-flex align-items-center justify-content-center">
-            <div class="preloader-inner position-relative">
-                <div class="text-center">
-                    <img src="assets/imgs/theme/loading.gif" alt="" />
-                </div>
-            </div>
-        </div>
-    </div>
+
 
     <script src="https://kit.fontawesome.com/16b0815225.js" crossorigin="anonymous"></script>
     <script src="assets/js/vendor/jquery-3.6.0.min.js"></script>
@@ -407,18 +394,6 @@
         });
     </script>
 
-
-
-
-    <script>
-        $('#lightSlider').lightSlider({
-            gallery: true,
-            item: 1,
-            loop: true,
-            slideMargin: 0,
-            thumbItem: 5
-        });
-    </script>
     <script>
         var buttonPlus = $(".qty-btn-plus");
         var buttonMinus = $(".qty-btn-minus");

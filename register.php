@@ -24,6 +24,16 @@
 </head>
 
 <body class="bg1">
+       <!-- Preloader Start -->
+       <div id="preloader-active">
+        <div class="preloader d-flex align-items-center justify-content-center">
+            <div class="preloader-inner position-relative">
+                <div class="text-center">
+                    <img src="assets/imgs/theme/loading.gif" alt="" />
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="login-page">
         <div class="container px-0">
             <div class="row">
@@ -124,16 +134,7 @@
     </div>
 
 
-     <!-- Preloader Start -->
-     <div id="preloader-active">
-        <div class="preloader d-flex align-items-center justify-content-center">
-            <div class="preloader-inner position-relative">
-                <div class="text-center">
-                    <img src="assets/imgs/theme/loading.gif" alt="" />
-                </div>
-            </div>
-        </div>
-    </div>
+  
 
     <script src="https://kit.fontawesome.com/16b0815225.js" crossorigin="anonymous"></script>
     <script src="assets/js/vendor/jquery-3.6.0.min.js"></script>

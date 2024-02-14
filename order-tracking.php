@@ -175,7 +175,7 @@
                                                 <h4>Mon, June 24 <span>10:30</span></h4>
                                             </div>
                                             <div class="col-lg-10">
-                                                <h6>Order Received</h6>
+                                                <h6><i class="fa-solid fa-check"></i>Order Received</h6>
                                             </div>
                                         </div>
                                     </div>
@@ -185,7 +185,7 @@
                                                 <h4>Mon, June 24 <span>12:35</span></h4>
                                             </div>
                                             <div class="col-lg-10">
-                                                <h6>Your order is being processed in Dubai - UAE warehouse.</h6>
+                                                <h6><i class="fa-solid fa-check"></i>Your order is being processed in Dubai - UAE warehouse.</h6>
                                             </div>
                                         </div>
                                     </div>
@@ -196,7 +196,7 @@
                                                 <h4>Mon, June 24 <span>17:15</span></h4>
                                             </div>
                                             <div class="col-lg-10">
-                                                <h6>Your order is ready to be shipped from Dubai - UAE warehouse.</h6>
+                                                <h6><i class="fa-solid fa-check"></i>Your order is ready to be shipped from Dubai - UAE warehouse.</h6>
                                             </div>
                                         </div>
                                     </div>
@@ -206,7 +206,7 @@
                                                 <h4>Tue, June 25 <span>10:30</span></h4>
                                             </div>
                                             <div class="col-lg-10">
-                                                <h6>Your order is shipped</h6>
+                                                <h6><i class="fa-solid fa-check"></i>Your order is shipped</h6>
                                             </div>
                                         </div>
                                     </div>
@@ -216,7 +216,7 @@
                                                 <h4>Wed, June 26 <span>16:30</span></h4>
                                             </div>
                                             <div class="col-lg-10">
-                                                <h6>Your order has arrived in Riyadh - KSA warehouse.</h6>
+                                                <h6><i class="fa-solid fa-check"></i>Your order has arrived in Riyadh - KSA warehouse.</h6>
                                             </div>
                                         </div>
                                     </div>
@@ -226,7 +226,7 @@
                                                 <h4>Thu, June 27 <span>10:30</span></h4>
                                             </div>
                                             <div class="col-lg-10">
-                                                <h6>Your order has been picked up by ARAMEX and on the way to Jeddah</h6>
+                                                <h6><i class="fa-solid fa-check"></i>Your order has been picked up by ARAMEX and on the way to Jeddah</h6>
                                             </div>
                                         </div>
                                     </div>
@@ -236,7 +236,7 @@
                                                 <h4>Thu, June 27 <span>19:30</span></h4>
                                             </div>
                                             <div class="col-lg-10">
-                                                <h6>Your order has arrived in Jeddah.</h6>
+                                                <h6><i class="fa-solid fa-check"></i>Your order has arrived in Jeddah.</h6>
                                             </div>
                                         </div>
                                     </div>
@@ -246,7 +246,7 @@
                                                 <h4>Fri, June 28 <span>11:30</span></h4>
                                             </div>
                                             <div class="col-lg-10">
-                                                <h6>Your order is out for delivery</h6>
+                                                <h6><i class="fa-solid fa-check"></i>Your order is out for delivery</h6>
                                             </div>
                                         </div>
                                     </div>
@@ -266,16 +266,7 @@
     </main>
 
     <?php include 'footer.php';?>
-    <!-- Preloader Start -->
-    <div id="preloader-active">
-        <div class="preloader d-flex align-items-center justify-content-center">
-            <div class="preloader-inner position-relative">
-                <div class="text-center">
-                    <img src="assets/imgs/theme/loading.gif" alt="" />
-                </div>
-            </div>
-        </div>
-    </div>
+
     <!-- Vendor JS-->
     <script src="https://kit.fontawesome.com/16b0815225.js" crossorigin="anonymous"></script>
     <script src="assets/js/vendor/jquery-3.6.0.min.js"></script>

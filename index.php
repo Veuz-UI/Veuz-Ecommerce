@@ -757,32 +757,41 @@
                 <div class="row">
                     <div class="col-md-4">
                         <div class="item-box itm1">
-                            <img src="assets/imgs/shop/cup.jpg" alt="">
+                            <div class="item-img-div">
+                                <a href="product-details.php"><img src="assets/imgs/shop/cup.jpg" alt=""></a>
+                            </div>
+                        
                             <div class="itm-cntnt">
                                 <h3>Coffe cup design</h3>
                                 <h6>Now in all Color Varient Available..</h6>
-                                <div class="circl"><i class="fi-rs-arrow-small-right"></i></div>
+                                <a href="product-details.php" class="circl"><i class="fi-rs-arrow-small-right"></i></a>
                             </div>
 
                         </div>
                     </div>
                     <div class="col-md-4 d-flex justify-content-center">
                         <div class="item-box itm2">
-                            <img src="assets/imgs/shop/card.jpg" alt="">
+                            <div class="item-img-div">
+                                <a href="product-details.php"><img src="assets/imgs/shop/card.jpg" alt=""></a>
+                            </div>
+                            
                             <div class="itm-cntnt">
                                 <h3>Business card print</h3>
                                 <h6>Now in all Color Varient Available..</h6>
-                                <div class="circl"><i class="fi-rs-arrow-small-right"></i></div>
+                                <a href="product-details.php" class="circl"><i class="fi-rs-arrow-small-right"></i></a>
                             </div>
                         </div>
                     </div>
                     <div class="col-md-4 d-flex justify-content-end">
                         <div class="item-box itm3">
-                            <img src="assets/imgs/shop/tshrt.jpg" alt="">
+                            <div class="item-img-div">
+                                <a href="product-details.php"><img src="assets/imgs/shop/tshrt.jpg" alt=""></a>
+                            </div>
+                            
                             <div class="itm-cntnt">
                                 <h3>T-shirt print</h3>
                                 <h6>Now in all Color Varient Available..</h6>
-                                <div class="circl"><i class="fi-rs-arrow-small-right"></i></div>
+                                <a href="product-details.php" class="circl"><i class="fi-rs-arrow-small-right"></i></a>
                             </div>
                         </div>
                     </div>
@@ -855,7 +864,7 @@
                             </div>
                             <div class="row">
                                 <div class="col-xl-4">
-                                    <img src="assets/imgs/shop/prdct1.jpg" alt="" class="onsale-img">
+                                    <a href="product-details.php"><img src="assets/imgs/shop/prdct1.jpg" alt="" class="onsale-img"></a>
                                 </div>
                                 <div class="col-xl-8 onsale-prdct">
                                     <div class="product-content-wrap">
@@ -899,7 +908,7 @@
                             </div>
                             <div class="row">
                                 <div class="col-xl-4">
-                                    <img src="assets/imgs/shop/prdct2.jpg" alt="" class="onsale-img">
+                                    <a href="product-details.php"><img src="assets/imgs/shop/prdct2.jpg" alt="" class="onsale-img"></a>
                                 </div>
                                 <div class="col-xl-8 onsale-prdct">
                                     <div class="product-content-wrap">
@@ -943,7 +952,7 @@
                             </div>
                             <div class="row">
                                 <div class="col-xl-4">
-                                    <img src="assets/imgs/shop/prdct3.jpg" alt="" class="onsale-img">
+                                    <a href="product-details.php"> <img src="assets/imgs/shop/prdct3.jpg" alt="" class="onsale-img"></a>
                                 </div>
                                 <div class="col-xl-8 onsale-prdct">
                                     <div class="product-content-wrap">
@@ -991,7 +1000,7 @@
                             </div>
                             <div class="row">
                                 <div class="col-xl-4">
-                                    <img src="assets/imgs/shop/prdct4.jpg" alt="" class="onsale-img">
+                                    <a href="product-details.php"><img src="assets/imgs/shop/prdct4.jpg" alt="" class="onsale-img"></a>
                                 </div>
                                 <div class="col-xl-8 onsale-prdct">
                                     <div class="product-content-wrap">
@@ -1046,7 +1055,7 @@
                             </div>
                             <div class="row">
                                 <div class="col-xl-4">
-                                    <img src="assets/imgs/shop/prdct5.jpg" alt="" class="onsale-img">
+                                    <a href="product-details.php"><img src="assets/imgs/shop/prdct5.jpg" alt="" class="onsale-img"></a>
                                 </div>
                                 <div class="col-xl-8 onsale-prdct">
                                     <div class="product-content-wrap">
@@ -1101,7 +1110,7 @@
                             </div>
                             <div class="row">
                                 <div class="col-xl-4">
-                                    <img src="assets/imgs/shop/prdct6.jpg" alt="" class="onsale-img">
+                                    <a href="product-details.php"><img src="assets/imgs/shop/prdct6.jpg" alt="" class="onsale-img"></a>
                                 </div>
                                 <div class="col-xl-8 onsale-prdct">
                                     <div class="product-content-wrap">
@@ -1149,20 +1158,26 @@
         <!--End Deals-->
 
 
+        <section class="newsletter mb-15 wow animate__animated animate__fadeIn">
+            <div class="container">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <div class="position-relative newsletter-inner">
+                            <div class="newsletter-content text-center">
+                                <h5>Big Saving on Top selling Smartphone</h5>
+                                <h4>Get Up To 85% OFF on big billion day 2021</h4>
+                                <a href="products.php" class="shopnow">Shop Now</a>
+                            </div>
 
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
     </main>
     <?php include 'footer.php';?>
-    <!-- Preloader Start -->
-    <div id="preloader-active">
-        <div class="preloader d-flex align-items-center justify-content-center">
-            <div class="preloader-inner position-relative">
-                <div class="text-center">
-                    <img src="assets/imgs/theme/loading.gif" alt="" />
-                </div>
-            </div>
-        </div>
-    </div>
+
     <!-- Vendor JS-->
     <script src="https://kit.fontawesome.com/16b0815225.js" crossorigin="anonymous"></script>
     <script src="assets/js/vendor/jquery-3.6.0.min.js"></script>
@@ -1262,6 +1277,54 @@
             }
         }
     });
+</script>
+<script>
+const products = [
+  "Product 1",
+  "Product 2",
+  "Product 3",
+  "Product 4",
+  "Product 5",
+];
+
+const searchInput = document.getElementById("searchInput");
+const suggestionsList = document.getElementById("suggestions");
+
+// Event listener for input field
+searchInput.addEventListener("input", function () {
+  const userInput = this.value.toLowerCase();
+  const suggestions = products.filter((product) =>
+    product.toLowerCase().startsWith(userInput)
+  );
+
+  displaySuggestions(suggestions);
+});
+
+// Event listener for suggested items
+suggestionsList.addEventListener("click", function (event) {
+  if (event.target.tagName === "LI") {
+    searchInput.value = event.target.textContent;
+    suggestionsList.innerHTML = "";
+  }
+});
+
+// Event listener to close suggestions dropdown when clicking outside
+document.addEventListener("click", function (event) {
+  if (!event.target.matches("#searchInput") && !event.target.matches("#suggestions")) {
+    suggestionsList.innerHTML = "";
+  }
+});
+
+// Function to display suggestions
+function displaySuggestions(suggestions) {
+  suggestionsList.innerHTML = "";
+  suggestions.forEach((suggestion) => {
+    const li = document.createElement("li");
+    li.textContent = suggestion;
+    suggestionsList.appendChild(li);
+  });
+}
+
 </script>
 </body>
 

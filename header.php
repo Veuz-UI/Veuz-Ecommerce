@@ -1,3 +1,13 @@
+<!-- Preloader Start -->
+<div id="preloader-active">
+    <div class="preloader d-flex align-items-center justify-content-center">
+        <div class="preloader-inner position-relative">
+            <div class="text-center">
+                <img src="assets/imgs/theme/loading.gif" alt="" />
+            </div>
+        </div>
+    </div>
+</div>
 <header class="header-area header-style-1 header-height-2">
 
     <div class="header-top header-top-ptb-1 d-none d-lg-block">
@@ -110,7 +120,8 @@
                                     <option>Hoodies</option>
 
                                 </select> -->
-                            <input type="text" placeholder="Search Products ..." />
+                            <input type="text" id="searchInput" placeholder="Search Products ..." />
+                            <ul id="suggestions"></ul>
                             <a href="" class="search-btn"><i class="fi-rs-search"></i>Search</a>
                         </form>
                     </div>
