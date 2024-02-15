@@ -40,10 +40,10 @@
                 <div class="col-md-6 order-md-1 order-2">
                     <div class="login-right-div">
                         <div class="login-form">
-                            <h2>Forgot Password</h2>
-                            <p>Please enter the OTP to verify your mail.</p>
+                            <h2>Sign up or Sign in</h2>
+                            <p>Please enter the OTP to verify your phone.</p>
 
-                            <form class="form-horizontal" action="resetpw.php">
+                            <form class="form-horizontal" action="index.php">
 
                                 <div class="mb-2">
                    
@@ -66,7 +66,7 @@
 
 
                                 <div class="mt-4 text-center login-bottom">
-                                    <a href="login.php" class="text-muted"><i class="mdi mdi-chevron-left me-1"></i> Back to login</a>
+                                    <a href="login.php"><i class="mdi mdi-chevron-left me-1"></i> Change Phone Number ?</a>
                                 </div>
                             </form>
 

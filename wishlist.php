@@ -32,7 +32,7 @@
             <div class="container">
                 <div class="row">
                     <div class="col-xl-3 col-lg-4">
-                        <ul class="breadcrumb-list pt-md-0 mb-md-2">
+                        <ul class="breadcrumb-list pt-md-0">
                             <li> <a href="index.php">Home</a>
                                 <span class="separator" aria-hidden="true">&rsaquo;</span></li>
                             <li class="active-brudcrumb">

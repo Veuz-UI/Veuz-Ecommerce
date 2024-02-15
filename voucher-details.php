@@ -146,13 +146,13 @@
                                                         </a>
                                                     </div>
         
-                                                    <div class="product-badges product-badges-position product-badges-mrg">
-                                                        <span class="new">In Stock</span>
-                                                    </div>
+                                                 
+                                            <a href="voucher-details.php"><div class="product-badges product-badges-position product-badges-mrg">
+                                                <span class="new">Renew</span>
+                                            </div></a>
         
                                                     <div class="product-badges product-badge-position product-badges-mrg">
-                                                        <span><i class="fi-rs-eye"></i></span> <span><i
-                                                                class="fi-rs-heart toggle-heart"></i></span>
+                                                    <span><i class="fa-regular fa-trash-can"></i></span>
                                                     </div>
                                                 </div>
                                                 <div class="product-content-wrap">
@@ -160,14 +160,7 @@
                                                     <h2><a href="#">Kalyan Jewellers Diamond Jewellery 
                                                         Physical Gift Card</a></h2>
                                                   
-                                                    <div class="voucher-price">
-                                                        <div class="d-flex">
-                                                            <span class="new-voucher-price">399 SR</span>
-                                                            <span class="old-voucher-price">499 SR</span>
-                                                        </div>
-                                              
-                                                        <span class="voucher-price-off">3% OFF</span>
-                                                    </div>
+                                                        <div class="voucher-date">Expiry Date : <span>12/05/2024</span></div>
                                                  
                                                 </div>
                                             </div>
@@ -181,12 +174,12 @@
                                                        
                                                     </div>
         
-                                                    <div class="product-badges product-badges-position product-badges-mrg">
-                                                        <span class="hot">Limited Stock</span>
-                                                    </div>
+                                                 
+                                            <a href="voucher-details.php"><div class="product-badges product-badges-position product-badges-mrg">
+                                                <span class="new">Renew</span>
+                                            </div></a>
                                                     <div class="product-badges product-badge-position product-badges-mrg">
-                                                        <span><i class="fi-rs-eye"></i></span> <span><i
-                                                                class="fi-rs-heart toggle-heart"></i></span>
+                                                    <span><i class="fa-regular fa-trash-can"></i></span>
                                                     </div>
                                                 </div>
                                                 <div class="product-content-wrap">
@@ -194,14 +187,7 @@
                                                     <h2><a href="#">Kalyan Jewellers Diamond Jewellery 
                                                         Physical Gift Card</a></h2>
                                                   
-                                                    <div class="voucher-price">
-                                                        <div class="d-flex">
-                                                            <span class="new-voucher-price">399 SR</span>
-                                                            <span class="old-voucher-price">499 SR</span>
-                                                        </div>
-                                              
-                                                        <span class="voucher-price-off">3% OFF</span>
-                                                    </div>
+                                                        <div class="voucher-date">Expiry Date : <span>12/05/2024</span></div>
                                                   
                                                 </div>
                                             </div>
@@ -215,12 +201,12 @@
                                                         
                                                     </div>
         
-                                                    <div class="product-badges product-badges-position product-badges-mrg">
-                                                        <span class="new">In Stock</span>
-                                                    </div>
+                                                 
+                                            <a href="voucher-details.php"><div class="product-badges product-badges-position product-badges-mrg">
+                                                <span class="new">Renew</span>
+                                            </div></a>
                                                     <div class="product-badges product-badge-position product-badges-mrg">
-                                                        <span><i class="fi-rs-eye"></i></span> <span><i
-                                                                class="fi-rs-heart toggle-heart"></i></span>
+                                                    <span><i class="fa-regular fa-trash-can"></i></span>
                                                     </div>
                                                 </div>
                                                 <div class="product-content-wrap">
@@ -228,14 +214,7 @@
                                                     <h2><a href="#">Kalyan Jewellers Diamond Jewellery 
                                                         Physical Gift Card</a></h2>
                                                    
-                                                    <div class="voucher-price">
-                                                        <div class="d-flex">
-                                                            <span class="new-voucher-price">399 SR</span>
-                                                            <span class="old-voucher-price">499 SR</span>
-                                                        </div>
-                                              
-                                                        <span class="voucher-price-off">3% OFF</span>
-                                                    </div>
+                                                        <div class="voucher-date">Expiry Date : <span>12/05/2024</span></div>
                                                   
                                                 </div>
                                             </div>
@@ -250,12 +229,12 @@
                                                        
                                                     </div>
         
-                                                    <div class="product-badges product-badges-position product-badges-mrg">
-                                                        <span class="new">In Stock</span>
-                                                    </div>
+                                                 
+                                            <a href="voucher-details.php"><div class="product-badges product-badges-position product-badges-mrg">
+                                                <span class="new">Renew</span>
+                                            </div></a>
                                                     <div class="product-badges product-badge-position product-badges-mrg">
-                                                        <span><i class="fi-rs-eye"></i></span> <span><i
-                                                                class="fi-rs-heart toggle-heart"></i></span>
+                                                    <span><i class="fa-regular fa-trash-can"></i></span>
                                                     </div>
                                                 </div>
                                                 <div class="product-content-wrap">
@@ -263,14 +242,7 @@
                                                     <h2><a href="#">Kalyan Jewellers Diamond Jewellery 
                                                         Physical Gift Card</a></h2>
                                                    
-                                                    <div class="voucher-price">
-                                                        <div class="d-flex">
-                                                            <span class="new-voucher-price">399 SR</span>
-                                                            <span class="old-voucher-price">499 SR</span>
-                                                        </div>
-                                              
-                                                        <span class="voucher-price-off">3% OFF</span>
-                                                    </div>
+                                                        <div class="voucher-date">Expiry Date : <span>12/05/2024</span></div>
                                                   
                                                 </div>
                                             </div>
@@ -284,12 +256,12 @@
                                                        
                                                     </div>
         
-                                                    <div class="product-badges product-badges-position product-badges-mrg">
-                                                        <span class="hot">Limited Stock</span>
-                                                    </div>
+                                                  
+                                            <a href="voucher-details.php"><div class="product-badges product-badges-position product-badges-mrg">
+                                                <span class="new">Renew</span>
+                                            </div></a>
                                                     <div class="product-badges product-badge-position product-badges-mrg">
-                                                        <span><i class="fi-rs-eye"></i></span> <span><i
-                                                                class="fi-rs-heart toggle-heart"></i></span>
+                                                    <span><i class="fa-regular fa-trash-can"></i></span>
                                                     </div>
                                                 </div>
                                                 <div class="product-content-wrap">
@@ -297,14 +269,7 @@
                                                     <h2><a href="#">Kalyan Jewellers Diamond Jewellery 
                                                         Physical Gift Card</a></h2>
                                                    
-                                                    <div class="voucher-price">
-                                                        <div class="d-flex">
-                                                            <span class="new-voucher-price">399 SR</span>
-                                                            <span class="old-voucher-price">499 SR</span>
-                                                        </div>
-                                              
-                                                        <span class="voucher-price-off">3% OFF</span>
-                                                    </div>
+                                                        <div class="voucher-date">Expiry Date : <span>12/05/2024</span></div>
                                                    
                                                 </div>
                                             </div>
@@ -319,12 +284,12 @@
         
                                                     </div>
         
-                                                    <div class="product-badges product-badges-position product-badges-mrg">
-                                                        <span class="hot">Limited Stock</span>
-                                                    </div>
+                                                   
+                                            <a href="voucher-details.php"><div class="product-badges product-badges-position product-badges-mrg">
+                                                <span class="new">Renew</span>
+                                            </div></a>
                                                     <div class="product-badges product-badge-position product-badges-mrg">
-                                                        <span><i class="fi-rs-eye"></i></span> <span><i
-                                                                class="fi-rs-heart toggle-heart"></i></span>
+                                                    <span><i class="fa-regular fa-trash-can"></i></span>
                                                     </div>
                                                 </div>
                                                 <div class="product-content-wrap">
@@ -332,14 +297,7 @@
                                                     <h2><a href="#">Kalyan Jewellers Diamond Jewellery 
                                                         Physical Gift Card</a></h2>
                                                   
-                                                    <div class="voucher-price">
-                                                        <div class="d-flex">
-                                                            <span class="new-voucher-price">399 SR</span>
-                                                            <span class="old-voucher-price">499 SR</span>
-                                                        </div>
-                                              
-                                                        <span class="voucher-price-off">3% OFF</span>
-                                                    </div>
+                                                        <div class="voucher-date">Expiry Date : <span>12/05/2024</span></div>
                                                   
                                                 </div>
                                             </div>

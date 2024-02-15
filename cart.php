@@ -138,7 +138,7 @@
                                             <div class="total-price">Total <span>617 SAR</span></div>
                                             <div class="single-bill estimated-delivery">Estimated Delivery By <span>01 Feb, 2023</span></div>
                                         </div>
-                                         <a href="checkout.php"><button class="proceed-btn">Proceed to Checkout</button></a>
+                                        <button class="proceed-btn" data-bs-toggle="modal" data-bs-target="#modal-signup">Proceed to Checkout</button>
                                     </div>
                                 </div>
                             </div>
@@ -152,6 +152,42 @@
 
     
     </main>
+
+<div class="modal fade signup-modal" id="modal-signup" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-md">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="signup-modaldiv">
+            <h3>Sign up or Sign in</h3>
+
+            <div class="form-group">
+                <label for="">Mobile Number</label>
+                <input type="text" class="form-control" placeholder="Enter Your Mobile Number">
+            </div>
+            <button type="button" class="btn-modal show-otp">Continue</button>
+        </div>
+        <div class="otp-modaldiv" style="display: none;">
+            <h3>Verify with OTP</h3>
+
+            <div class="form-group">
+                <label for="">Sent to +918782334422 <a href="javascript: void(0);" class="change-phone">Change ?</a></label>
+                <div class="otp-input">
+                    <input id="otp-first" class="form-control input-otp" type="number" min="0" max="9" step="1" aria-label="first digit" />
+                    <input id="otp-second" class="form-control input-otp" type="number" min="0" max="9" step="1" aria-label="second digit" />
+                    <input id="otp-third" class="form-control input-otp" type="number" min="0" max="9" step="1" aria-label="third digit" />
+                    <input id="otp-fourth" class="form-control input-otp" type="number" min="0" max="9" step="1" aria-label="fourth digit" />
+                </div>
+            </div>
+            <a href="checkout.php"><button type="button" class="btn-modal">Submit</button></a>
+        </div>
+      </div>
+ 
+    </div>
+  </div>
+</div>
 
     <?php include 'footer.php';?>
 
@@ -279,6 +315,69 @@
         }
     });
 </script>
+    <!-- otp script -->
+    <script>
+        console.clear();
+        let inputs = document.querySelectorAll(".input-otp");
+        let values = Array(4);
+        let clipData;
+        inputs[0].focus();
+
+        inputs.forEach((tag, index) => {
+            tag.addEventListener('keyup', (event) => {
+                if (event.code === "Backspace" && hasNoValue(index)) {
+                    if (index > 0) inputs[index - 1].focus();
+                }
+
+                //else if any input move focus to next or out
+                else if (tag.value !== "") {
+                    (index < inputs.length - 1) ? inputs[index + 1].focus(): tag.blur();
+                }
+
+                //add val to array to track prev vals
+                values[index] = event.target.value;
+            });
+
+            tag.addEventListener('input', () => {
+                //replace digit if already exists
+                if (tag.value > 10) {
+                    tag.value = tag.value % 10;
+                }
+            });
+
+            tag.addEventListener('paste', (event) => {
+                event.preventDefault();
+                clipData = event.clipboardData.getData("text/plain").split('');
+                filldata(index);
+            })
+        })
+
+        function filldata(index) {
+            for (let i = index; i < inputs.length; i++) {
+                inputs[i].value = clipData.shift();
+            }
+        }
+
+        function hasNoValue(index) {
+            if (values[index] || values[index] === 0)
+                return false;
+
+            return true;
+        }
+    </script>
+    <script>
+        $(document).ready(function() {
+            $('.show-otp').click(function() {
+                $('.signup-modaldiv').hide();
+                $('.otp-modaldiv').show();
+            });
+    
+            $('.change-phone').click(function() {
+                $('.otp-modaldiv').hide();
+                $('.signup-modaldiv').show();
+            });
+        });
+    </script>
 </body>
 
 </html>

@@ -54,7 +54,7 @@
                         </div>
                         <div class="col-md-12">
                             <div class="notification-list">
-                                <h5>Today</h5>
+                                <h5 class="mt-0">Today</h5>
                                 <div class="row">
                                     <div class="col-lg-4 col-xl-3">
                                         <div class="single-notification">

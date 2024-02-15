@@ -11951,6 +11951,35 @@ footer .hotline img {
   .header-action .header-action-icon {
     margin-right: 33px;
   }
+  .notification-list .single-notification{
+    height: auto !important;
+    margin-bottom: 20px;
+  }
+  .notification-list h5{
+    margin-top: 10px !important;
+  }
+
+  .contact-infor li img{
+    max-width: 16px !important;
+  }
+
+  .download-app ul img {
+    max-width: 35px !important;
+    margin-right: 10px;
+}
+.download-app a{
+  margin-bottom: 5px;
+}
+.download-app a img {
+  max-width: 90px;
+}
+.qr-img {
+  width: 65px;
+  margin-bottom: 10px;
+}
+.footer-mid {
+  padding-bottom: 40px !important;
+}
 
   .header-action .header-action-icon.header-action-mrg-none {
     margin-right: 33px;
@@ -13709,6 +13738,201 @@ hr {
   max-width: 35px;
 }
 
+/* tracking */
+
+.track-boxes {
+  width: 100%;
+  height: 180px;
+  background-color: #f6f7fb;
+  border-radius: 10px;
+  position: relative;
+  margin: 20px 0px;
+}
+
+.boxx {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
+  padding: 0 200px 53px;
+  box-sizing: border-box;
+  opacity: 0;
+  transform-origin: center;
+  transform: scale(1.2, 1.2);
+}
+
+.track-progress {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.track-bar {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: #a7adb7;
+  width: 100%;
+  height: 3px;
+  border-radius: 10px;
+  transform: translate(-50%, -50%);
+  overflow: hidden;
+}
+.bar__fill {
+  display: block;
+  background: #27aa80;
+  height: 100%;
+  width: 0%;
+}
+
+.track-point {
+  position: relative;
+  color: #AC9585;
+  cursor: pointer;
+}
+.track-point:before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 120px;
+  height: 120px;
+  border-radius: 100%;
+  transform: translate(-50%, -50%);
+  transition: 0.3s ease;
+}
+.show-radius .track-point:before {
+  background: rgba(0, 0, 0, 0.1);
+}
+.point--complete, .point--active {
+  color: #BA7C3F;
+}
+
+.track-bullet {
+  z-index: 1;
+  position: relative;
+  background: #AFAFAF;
+  height: 30px;
+  width: 30px;
+  border-radius: 100%;
+  transition: 0.3s ease;
+}
+.point--complete .track-bullet, .point--active .track-bullet {
+  background: #27aa80;
+}
+.track-point .track-bullet:after {
+  display: block;
+  position: absolute;
+  content: '';
+  height: 14px;
+  width: 7px;
+  top: -2px;
+  bottom: 0;
+  left: 11px;
+  margin: auto 0;
+  border: 0px solid #AFAFAF;
+  border-width: 0px 3px 3px 0;
+  transform: rotate(45deg);
+  border-color: #fff;
+  opacity: 0;
+  transition: 1s;
+}
+
+.track-point.point--active .track-bullet:after {
+  opacity: 1;
+  transition: 1s;
+}
+
+.track-label {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: max-content;
+  margin: 10px 0 0 0;
+  display: flex;
+  transform: translate(-50%, 0);
+  gap: 3px;
+  flex-direction: column;
+  align-items: center;
+  color: #62676e;
+  line-height: 24px;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.track-label span{
+  font-size: 14px;
+  color: #747474;
+}
+
+.point--active .track-label {
+  color: #000;
+}
+
+.signup-modal .modal-header{
+  padding-bottom: 0px;
+  border-bottom: 0px;
+  padding-right: 1.5rem;
+}
+
+.signup-modal .btn-close{
+  opacity: .8;
+  margin-top: 0px;
+}
+
+.signup-modal .modal-body{
+  padding: 0px 1.5rem 30px;
+}
+
+.signup-modal .modal-body h3{
+  font-size: 25px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 20px;
+}
+
+.signup-modal .modal-body label{
+  font-size: 14px;
+  color: #555;
+}
+
+.signup-modal .modal-body input{
+  border-radius: 0px;
+  height: 45px;
+  padding: 10px 15px;
+  font-size: 15px;
+}
+
+.signup-modal .btn-modal{
+  margin: 0px;
+  background-color: #199D18;
+  color: #fff;
+  border: 0px;
+  padding: 10px 30px;
+  font-size: 16px;
+  line-height: 16px;
+  border-radius: 5px;
+}
+
+.btn-close:focus{
+  box-shadow: none !important;
+}
+
+.signup-modal .otp-input{
+  display: flex;
+  margin-bottom: 25px;
+  margin-top: 10px;
+  width: 70%;
+}
+
+.otp-modaldiv label a{
+  margin-left: 5px;
+}
+
 
 @media screen and (max-width: 2560px) {
 
@@ -14143,6 +14367,18 @@ hr {
 @media only screen and (max-width: 1200px) {
   .header-style-1 .header-middle-ptb-1 {
     padding: 20px 0;
+  }
+
+  .onsal .mar-t{
+    margin-bottom: 30px;
+  }
+
+  .prdcts .mar-top {
+    margin-top: 50px;
+}
+
+  .newsletter .newsletter-inner{
+    margin-bottom: 25px;
   }
 
   .product-rate h6 {
@@ -15169,10 +15405,10 @@ background-color: #a9442a;
   color: #333;
   margin-bottom: 18px;
   font-size: 18px;
+  margin-top: 25px;
 }
 
 .notification-list .single-notification{
-  margin-bottom: 25px;
   box-shadow: 0px 4px 15px 0px rgba(0, 0, 0, 0.07);
   padding: 25px;
   height: 100%;
@@ -15652,7 +15888,15 @@ background-color: #a9442a;
   top: -208px;
 }
 
-
+.voucher-list .product-badges span{
+  font-weight: 600;
+}
+.voucher-list .product-content-wrap{
+  min-height: 110px;
+}
+.voucher-list .product-badges i:hover{
+  color: #EF423D;
+}
 
 /* login */
 
@@ -15687,7 +15931,7 @@ background-color: #a9442a;
 }
 
 .login-page .container {
-  width: 1200px;
+  width: 1100px;
   border-radius: 15px;
   box-shadow: 0px 0px 12px rgb(0 0 0 / 15%);
   background-color: white;
@@ -15695,22 +15939,22 @@ background-color: #a9442a;
 }
 
 .login-right-div .login-form {
-  width: 63%;
+  width: 65%;
 }
 
 .login-right-div h2 {
-  font-size: 30px;
+  font-size: 32px;
   font-weight: 700;
   color: #263238;
-  margin-bottom: 12px;
+  margin-bottom: 20px;
 }
 
 .login-right-div p {
-  color: var(--bs-gray-600);
-  margin-bottom: 20px;
+  color: #666;
+  margin-bottom: 25px;
   line-height: 28px;
-  font-size: 15px;
-  font-weight: 300;
+  font-size: 16px;
+  font-weight: 400;
 }
 
 .login-form .form-check label{
@@ -15726,7 +15970,7 @@ background-color: #a9442a;
 
 .login-form .form-control {
   border-color: #ebebeb;
-  border-radius: 40px;
+  border-radius: 5px;
   padding: 8px 20px;
   color: #222;
   font-size: 14px;
@@ -15779,9 +16023,10 @@ background-color: #a9442a;
   color: #199D19 !important;
 }
 .signup-using h5{
-  font-size: 18px;
-    font-weight: 600;
-    margin-top: 20px;
+  font-size: 20px;
+  font-weight: 600;
+  margin-top: 30px;
+  margin-bottom: 20px;
 }
 
 .otp-input .form-control {
@@ -15833,14 +16078,15 @@ margin: 0;
 
 .login-bottom a {
   transition: 1s;
+  color: #666;
+}
+
+.login-bottom a:hover{
+  transition: 1s;
+  color: #199D18;
 }
 .login-bottom p{
   color: #888;
-}
-
-.login-bottom a:hover {
-  transition: 1s;
-  color: #666 !important;
 }
 
 .register-form .form-check {
@@ -15849,16 +16095,21 @@ margin: 0;
 }
 
 .social-list-item {
-  height: 2rem;
-  width: 2rem;
+  height: 2.5rem;
+  width: 2.5rem;
   display: flex;
   align-items: center;
+  font-size: 16px;
   justify-content: center;
   border-radius: 50%;
   color: #adb5bd;
   text-align: center;
   -webkit-transition: all .4s;
   transition: all .4s;
+}
+
+.login-form .list-inline-item:not(:last-child) {
+  margin-right: 0.4rem;
 }
 
 .login-page .form-check label a{
@@ -16939,8 +17190,8 @@ margin: 0;
     font-weight: 600;
   }
   #scrollUp{
-    right: 10px;
-    bottom: 10px;
+    right: 60px;
+    bottom: 110px;
   }
 }
 
@@ -16951,16 +17202,16 @@ margin: 0;
   .contact-infor li{
     flex-wrap: wrap;
   }
-  .contact-infor li:first-child span{
-    padding-left: 25px;
-  }
   #scrollUp {
-    right: 20px;
-    bottom: 130px;
+    right: 10px;
+    bottom: 110px;
 }
 }
 
 @media screen and (max-width: 1366px) {
+  .login-left-div{
+    background-position: 0% 49%;
+  }
   .section-title1 h3{
     font-size: 28px;
     margin-bottom: 20px;
@@ -17007,6 +17258,13 @@ margin: 0;
     left: 25px;
     top: 18px;
   }
+  .product-cart-wrap .product-content-wrap {
+    padding: 0 20px 20px 20px;
+    min-height: 280px;
+}
+.prdcts .slider-arrow .slider-btn.slider-prev, .prdcts .slider-arrow .slider-btn.slider-next{
+  top: -300px;
+}
   .search-btn{
     padding: 15px 30px 15px 50px;
   }
@@ -17085,6 +17343,15 @@ footer .hotline p span{
   font-size: 16px;
   margin-bottom: 5px;
 }
+.voucher-list .product-content-wrap {
+  min-height: 110px !important;
+}
+.voucher-list .slider-arrow .slider-btn.slider-prev, .voucher-list .slider-arrow .slider-btn.slider-next {
+  top: -190px !important;
+}
+.offer-list .product-img-action-wrap .product-img a img{
+  margin: 0px !important;
+}
 }
 
 @media screen and (max-width: 1024px) {
@@ -17150,7 +17417,10 @@ footer .hotline p span{
   margin-left: 0px;
 }
 .product-color-filter{
-  padding: 8px 0px 0px;
+  padding: 8px 0px 15px;
+}
+.products-leftfilter{
+  margin-bottom: 15px;
 }
 .cart-rightside {
   padding-left: 20px;
@@ -17225,11 +17495,15 @@ footer .hotline p span{
 
 @media screen and (min-width:100px) and (max-width:766px) {
   .login-left-div {
-    height: 235px;
-    background-position: 0% 29%;
+    height: 350px;
+    background-position: 0% 49%;
     background-size: cover;
     background-repeat: no-repeat;
     border-radius: 0;
+  }
+  .notification-list .single-notification{
+    height: auto;
+    margin-bottom: 20px;
   }
 
   .login-page {
@@ -17250,7 +17524,7 @@ footer .hotline p span{
   }
 
   .login-right-div {
-    padding: 25px 0px 0px;
+    padding: 40px 0px 0px;
     min-height: auto;
   }
 
@@ -17293,17 +17567,12 @@ footer .hotline p span{
     margin-top: 20px;
   }
 
-  .products-leftfilter{
-    padding: 15px;
-    margin-bottom: 15px;
-  }
-
   .products-filter-div h4{
     font-size: 18px;
-    margin-bottom: 15px;
+ 
   }
   .products-filter-div{
-    padding-bottom: 15px;
+    padding: 20px 15px;
   }
   .history-div {
     min-height: auto;
@@ -17726,6 +17995,13 @@ footer .hotline p span{
 .delivery-updates-div .delivery-update h6 {
   font-size: 15px;
 }
+.download-app ul img {
+  max-width: 35px !important;
+  margin-right: 10px;
+}
+.download-app ul a{
+  margin-bottom: 0px;
+}
 }
 
 @media only screen and (max-width: 480px) {
@@ -17739,6 +18015,9 @@ footer .hotline p span{
 .header-action-2 .header-action-icon-2>a{
   margin-right: 0px;
   margin-left: 10px;
+}
+.prdcts .mar-top {
+  margin-top: 10px !important;
 }
 .header-action-2 .header-action-icon-2>a img{
   max-width: 20px;
@@ -17810,15 +18089,18 @@ footer .hotline p span{
   margin-bottom: 40px;
 }
 .prdcts .slider-arrow .slider-btn.slider-prev{
-  top: -270px;
+  top: -290px;
   font-size: 16px;
 }
 .prdcts .slider-arrow .slider-btn.slider-next{
-  top: -270px;
+  top: -290px;
   font-size: 16px;
 }
+.onsal .mar-t {
+  margin-bottom: 20px;
+}
 .voucher-list .slider-arrow .slider-btn.slider-prev, .voucher-list .slider-arrow .slider-btn.slider-next{
-  top: -178px;
+  top: -178px !important;
 }
 .voucher-img{
   padding: 20px 0px;
@@ -17834,7 +18116,7 @@ footer .hotline p span{
   margin-bottom: 0px;
 }
 .filter-results{
-  padding: 0px 0px 15px 0px;
+  padding: 10px;
 }
 .cart-dropdown-wrap{
   padding: 18px 18px 20px;

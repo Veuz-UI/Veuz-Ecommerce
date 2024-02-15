@@ -24,48 +24,42 @@
 </head>
 
 <body class="bg1">
-    <!-- Preloader Start -->
-    <div id="preloader-active">
-        <div class="preloader d-flex align-items-center justify-content-center">
-            <div class="preloader-inner position-relative">
-                <div class="text-center">
-                    <img src="assets/imgs/theme/loading.gif" alt="" />
+        <!-- Preloader Start -->
+        <div id="preloader-active">
+            <div class="preloader d-flex align-items-center justify-content-center">
+                <div class="preloader-inner position-relative">
+                    <div class="text-center">
+                        <img src="assets/imgs/theme/loading.gif" alt="" />
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="login-page">
-        <div class="container">
-            <div class="row">
-                <div class="col-md-6 order-md-1 order-2">
-                    <div class="login-right-div">
-                        <div class="login-form">
-                            <h2>Login</h2>
-                            <p>Welcome Back ! please enter your details.</p>
+        <div class="login-page">
+            <div class="container px-0">
+                <div class="row">
+                    <div class="col-md-6 order-md-1 order-2">
+                        <div class="login-right-div">
+                            <div class="login-form">
+                                <h2>Sign up or Sign in</h2>
+                                <p>Welcome Back ! Please enter your Phone Number.</p>
+                                <!-- <p>Enter your email and we will send you a OTP to reset your password.</p> -->
 
-                            <form class="form-horizontal" action="index.php">
-                                <input type="text" name="type" value="1" hidden>
-                                <div class="mb-md-3 mb-2">    
-                                    <input type="text" class="form-control" id="username" placeholder="Enter username">
-                                </div>
-
-                                <div class="mb-3">
-                                    <input type="password" class="form-control" placeholder="Enter password">
-                                </div>
-
-                                <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="remember-check">
-                                    <label class="form-check-label" for="remember-check">
-                                            Remember me
-                                        </label>
-                                </div>
-
-                                <div class="mt-3 d-grid">
-                                    <button class="btn btn-primary waves-effect waves-light" type="submit">Log In</button>
-                                </div>
-
-                                <div class="signup-using text-center">
-                                    <h5 class="mb-3">Sign in with</h5>
+                                <form class="form-horizontal" action="otp.php">
+        
+                                    <div class="mb-3">
+        
+                                        <input type="tel" class="form-control" id="phone" placeholder="Enter Phone Number" required>  
+                                        <div class="invalid-feedback">
+                                            Please Enter Phone Number
+                                        </div>      
+                                    </div>
+                                    
+                                    <div class="mt-3 d-grid">
+                                      <button class="btn btn-primary waves-effect waves-light" type="submit">Submit</button> 
+                                    </div>
+        
+                                    <div class="signup-using text-center">
+                                    <h5>Sign in with</h5>
 
                                     <ul class="list-inline">
                                         <li class="list-inline-item">
@@ -85,44 +79,43 @@
                                         </li>
                                     </ul>
                                 </div>
-
-                                <div class="mt-md-4 mt-3 text-center">
-                                    <a href="forgotpw.php" class="text-muted link-clr"><i class="mdi mdi-lock me-1"></i> Forgot your password?</a>
-                                </div>
-                            </form>
-
+                                    <!-- <div class="mt-4 text-center login-bottom">
+                                        <a href="login.php" class="text-muted"><i class="mdi mdi-chevron-left me-1"></i> Back to login</a>
+                                    </div> -->
+                                </form>
+        
+                                
+                            </div>
+                           
                         </div>
                     </div>
-                </div>
-                <div class="col-md-6 order-md-2 order-1 px-0">
-                    <div class="login-left-div">
-                      
+                    <div class="col-md-6 order-md-2 order-1">
+                        <div class="login-left-div">
+                            <img src="assets/images/login.png" alt="">
+                        </div>
                     </div>
+              
                 </div>
-
+                
+        
             </div>
-
-
+            <!-- <div class="mt-4 text-center login-bottom">
+                            
+                <div>
+                    <p>Don't have an account ? <a href="register.php" class="fw-medium text-primary "> Signup now </a> </p>
+                   
+                </div>
+            </div> -->
         </div>
-        <div class="mt-md-4 mt-3 text-center login-bottom">
-            <div>
-                <p>Don't have an account ? <a href="register.php" class="fw-medium text-primary"> Signup now </a> </p>
-                <!-- <p>© <script>document.write(new Date().getFullYear())</script> All Rights Reserved. Design & Develop by Veuz concepts.</p> -->
-            </div>
-        </div>
-    </div>
 
 
 
-    <!-- Vendor JS-->
-    <script src="https://kit.fontawesome.com/16b0815225.js" crossorigin="anonymous"></script>
-    <script src="assets/js/vendor/jquery-3.6.0.min.js"></script>
-    <script src="assets/js/vendor/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/plugins/slick.js"></script>
-    <script src="assets/js/plugins/wow.js"></script>
-    <script src="assets/js/plugins/magnific-popup.js"></script>
-    <script src="assets/js/script.js"></script>
-   
-</body>
-
+        <script src="https://kit.fontawesome.com/16b0815225.js" crossorigin="anonymous"></script>
+        <script src="assets/js/vendor/jquery-3.6.0.min.js"></script>
+        <script src="assets/js/vendor/bootstrap.bundle.min.js"></script>
+        <script src="assets/js/plugins/slick.js"></script>
+        <script src="assets/js/plugins/wow.js"></script>
+        <script src="assets/js/plugins/magnific-popup.js"></script>
+        <script src="assets/js/script.js"></script>
+    </body>
 </html>

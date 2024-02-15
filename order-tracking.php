@@ -145,23 +145,29 @@
                                 </div>
                             </div>
                             <div class="col-md-12">
-                                <div class="hh-grayBox pt45 pb20">
-                                    <div class="row justify-content-between">
-                                        <div class="order-tracking completed">
-                                            <span class="is-complete"></span>
-                                            <p>Ordered<br><span>Mon, June 24</span></p>
+                               
+                                 <div class="track-boxes">                               
+                                    <div class="boxx">
+                                        <div class="track-progress">
+                                        <div class="track-bar">
+                                            <div class="bar__fill"></div>
                                         </div>
-                                        <div class="order-tracking completed">
-                                            <span class="is-complete"></span>
-                                            <p>Shipped<br><span>Tue, June 25</span></p>
+                                        <div class="track-point">
+                                            <div class="track-bullet"></div>
+                                            <label class="track-label">Ordered <span>Mon, June 24</span></label>
                                         </div>
-                                        <div class="order-tracking completed">
-                                            <span class="is-complete"></span>
-                                            <p>Out for Delivery<br><span>Fri, June 28</span></p>
+                                        <div class="track-point">
+                                            <div class="track-bullet"></div>
+                                            <label class="track-label">Shipped <span>Tue, June 25</span></label>
                                         </div>
-                                        <div class="order-tracking">
-                                            <span class="is-complete"></span>
-                                            <p>Delivered<br><span>Fri, June 28</span></p>
+                                        <div class="track-point">
+                                            <div class="track-bullet"></div>
+                                            <label class="track-label">Out for Delivery <span>Fri, June 28</span></label>
+                                        </div>
+                                        <div class="track-point">
+                                            <div class="track-bullet"></div>
+                                            <label class="track-label">Delivered <span>Fri, June 28</span></label>
+                                        </div>
                                         </div>
                                     </div>
                                 </div>
@@ -275,6 +281,7 @@
     <script src="assets/js/plugins/wow.js"></script>
     <script src="assets/js/plugins/magnific-popup.js"></script>
     <script src="assets/js/script.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/1.18.0/TweenMax.min.js"></script>
     <script>
         $(document).ready(function () {
             $('.customer-logos').slick({
@@ -391,6 +398,50 @@
                 }
             }
         });
+    </script>
+    <script>
+        var $boxOne = $('.boxx');
+
+var boxOne = new TimelineMax();
+
+boxOne.to($boxOne, 0.6, {
+  opacity: 1,
+  scale: 1,
+  ease: Back.easeOut
+}, 1.2);
+
+var currentPointIndex = 0; // Keep track of the current point index
+var lastPointIndex = $('.track-point').length - 1; // Get the index of the last track point
+var barFillWidth = 0; // Initial width of bar__fill
+
+var progressAnimation = function() {
+  var getTotalPoints = $('.track-point').length,
+    getCompleteIndex = currentPointIndex - 1; // Get the index of the previously active point
+
+  // Update the width of bar__fill based on the current point index
+  barFillWidth = (100 / (getTotalPoints - 1)) * (getCompleteIndex + 1);
+  TweenMax.to($('.bar__fill'), 0.6, {
+    width: barFillWidth + '%'
+  });
+
+  // Make the current point active and update the styling of previous points
+  $('.track-point').eq(currentPointIndex).addClass('point--active');
+  $('.track-point').eq(currentPointIndex).prevAll().addClass('point--complete');
+  $('.track-point').eq(currentPointIndex).nextAll().removeClass('point--complete');
+
+  // Move to the next point
+  currentPointIndex++;
+
+  // If we have reached the second to last point, stop the animation
+  if (currentPointIndex >= lastPointIndex) {
+    clearInterval(animateProgress);
+  }
+};
+
+var animateProgress = setInterval(progressAnimation, 1200);
+
+
+
     </script>
 </body>
 
