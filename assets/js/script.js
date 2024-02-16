@@ -464,6 +464,61 @@
         $(".shop-filter-toogle").toggleClass("active");
     });
 
+
+    // product search
+
+
+const products = [
+  "Product 1",
+  "Product 2",
+  "Product 3",
+  "Product 4",
+  "Gift pack",
+  "Shirts",
+  "Hoodies",
+];
+
+const searchInput = document.getElementById("searchInput");
+const suggestionsList = document.getElementById("suggestions");
+
+// Event listener for input field
+searchInput.addEventListener("input", function () {
+  const userInput = this.value.toLowerCase();
+  const suggestions = products.filter((product) =>
+    product.toLowerCase().startsWith(userInput)
+  );
+
+  displaySuggestions(suggestions);
+});
+
+// Event listener for suggested items
+suggestionsList.addEventListener("click", function (event) {
+  if (event.target.tagName === "LI") {
+    searchInput.value = event.target.textContent;
+    suggestionsList.innerHTML = "";
+  }
+});
+
+// Event listener to close suggestions dropdown when clicking outside
+document.addEventListener("click", function (event) {
+  if (!event.target.matches("#searchInput") && !event.target.matches("#suggestions")) {
+    suggestionsList.innerHTML = "";
+  }
+});
+
+// Function to display suggestions
+function displaySuggestions(suggestions) {
+  suggestionsList.innerHTML = "";
+  suggestions.forEach((suggestion) => {
+    const li = document.createElement("li");
+    li.textContent = suggestion;
+    suggestionsList.appendChild(li);
+  });
+}
+
+
+
+
     /*-------------------------------------
         Product details big image slider
     ---------------------------------------*/

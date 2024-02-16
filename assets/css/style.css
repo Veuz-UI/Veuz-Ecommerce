@@ -17994,6 +17994,14 @@ footer .hotline p span{
 }
 .delivery-updates-div .delivery-update h6 {
   font-size: 15px;
+  padding-left: 28px;
+}
+.delivery-updates-div .delivery-update h6 i{
+  width: 20px;
+  height: 20px;
+  font-size: 11px;
+  left: 0px;
+  top: 4px;
 }
 .download-app ul img {
   max-width: 35px !important;
@@ -18001,6 +18009,15 @@ footer .hotline p span{
 }
 .download-app ul a{
   margin-bottom: 0px;
+}
+.boxx{
+  padding: 0 25px 50px;
+}
+.track-boxes{
+  margin: 0px 0px 20px;
+}
+.logo.logo-width-1{
+  left: 47%;
 }
 }
 
