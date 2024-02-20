@@ -56,7 +56,7 @@
                
                             <div class="row g-4">
                                 <div class="col-xl-3 col-lg-6">
-                                    <div class="history-div">
+                                    <a href="order-tracking.php"><div class="history-div">
                                         <h4>Cancelled<i class="fa-solid fa-xmark"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
                                         <h6><span class="refund">Refund Initiated : </span><span class="refund-rs">467 SAR</span> on Sun, 28 Aug 2022.</h6> 
@@ -70,10 +70,11 @@
                                                 <h5>Size: <span>L</span></h5>
                                             </div>
                                         </div>
-                                    </div>
+                                       
+                                    </div></a> 
                                 </div>
                                 <div class="col-xl-3 col-lg-6">
-                                    <div class="history-div">
+                                    <a href="order-tracking.php"><div class="history-div">
                                         <h4>Exchange Delivered<i class="fa-solid fa-right-left"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
                                      
@@ -87,10 +88,11 @@
                                                 <h5>Size: <span>L</span></h5>
                                             </div>
                                         </div>
-                                    </div>
+                                        <button class="rate-rvw-btn">Rate & Review Product</button>
+                                    </div></a> 
                                 </div>
                                 <div class="col-xl-3 col-lg-6">
-                                    <div class="history-div">
+                                    <a href="order-tracking.php"><div class="history-div">
                                         <h4>Refund Credited<i class="fa-solid fa-rotate-left"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
                                         <h6><span class="refund">Refund Initiated : </span><span class="refund-rs">467 SAR</span> on Sun, 28 Aug 2022.</h6> 
@@ -104,10 +106,11 @@
                                                 <h5>Size: <span>L</span></h5>
                                             </div>
                                         </div>
-                                    </div>
+                                       
+                                    </div></a> 
                                 </div>
                                 <div class="col-xl-3 col-lg-6">
-                                    <div class="history-div">
+                                    <a href="order-tracking.php"> <div class="history-div">
                                         <h4>Delivered<i class="fa-solid fa-truck-ramp-box"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
                                        
@@ -121,10 +124,11 @@
                                                 <h5>Size: <span>L</span></h5>
                                             </div>
                                         </div>
-                                    </div>
+                                        <button class="rate-rvw-btn">Rate & Review Product</button>
+                                    </div></a> 
                                 </div>
                                 <div class="col-xl-3 col-lg-6">
-                                    <div class="history-div">
+                                    <a href="order-tracking.php"><div class="history-div">
                                         <h4>Exchange Delivered<i class="fa-solid fa-right-left"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
                                        
@@ -138,10 +142,11 @@
                                                 <h5>Size: <span>L</span></h5>
                                             </div>
                                         </div>
-                                    </div>
+                                        <button class="rate-rvw-btn">Rate & Review Product</button>
+                                    </div></a> 
                                 </div>
                                 <div class="col-xl-3 col-lg-6">
-                                    <div class="history-div">
+                                    <a href="order-tracking.php"><div class="history-div">
                                         <h4>Refund Credited<i class="fa-solid fa-rotate-left"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
                                         <h6><span class="refund">Refund Initiated : </span><span class="refund-rs">467 SAR</span> on Sun, 28 Aug 2022.</h6> 
@@ -155,10 +160,11 @@
                                                 <h5>Size: <span>L</span></h5>
                                             </div>
                                         </div>
-                                    </div>
+                                        
+                                    </div></a> 
                                 </div>
                                 <div class="col-xl-3 col-lg-6">
-                                    <div class="history-div">
+                                    <a href="order-tracking.php"><div class="history-div">
                                         <h4>Cancelled<i class="fa-solid fa-xmark"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
                                         <h6><span class="refund">Refund Initiated : </span><span class="refund-rs">467 SAR</span> on Sun, 28 Aug 2022.</h6> 
@@ -172,10 +178,10 @@
                                                 <h5>Size: <span>L</span></h5>
                                             </div>
                                         </div>
-                                    </div>
+                                    </div></a> 
                                 </div>
                                 <div class="col-xl-3 col-lg-6">
-                                    <div class="history-div">
+                                    <a href="order-tracking.php"><div class="history-div">
                                         <h4>Exchange Delivered<i class="fa-solid fa-right-left"></i></h4>
                                         <p>On sun, 28 Aug 2022 as per your request</p>
                                      
@@ -189,7 +195,8 @@
                                                 <h5>Size: <span>L</span></h5>
                                             </div>
                                         </div>
-                                    </div>
+                                        <button class="rate-rvw-btn">Rate & Review Product</button>
+                                    </div></a> 
                                 </div>
                                
                             </div>
@@ -217,6 +224,40 @@
         </section>
 
     </main>
+
+    <div class="modal fade signup-modal" id="modal-rating" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-md">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="rating-div">
+                <div class="rate-img">
+                    <img src="assets/imgs/shop/pr1.jpg" alt="">
+                 </div>
+                 <h4>New Trending T-shirt Limited Model</h4>
+                  <h3>Rate the product</h3>
+                  <p>How did you find this product based on your usage?</p>
+      
+                  <div class="product-star rating-star">
+                    <span class="fa fa-star" aria-hidden="true"></span>
+                    <span class="fa fa-star" aria-hidden="true"></span>
+                    <span class="fa fa-star" aria-hidden="true"></span>
+                    <span class="fa fa-star" aria-hidden="true"></span>
+                    <span class="fa fa-star" aria-hidden="true"></span>
+                  </div>
+                <div class="form-group">
+                    <textarea placeholder="Write a review here..." rows="" id="review_text"></textarea>
+                </div>
+                  <button type="button" class="btn-modal" data-bs-dismiss="modal">Submit</button>
+              </div>
+     
+            </div>
+       
+          </div>
+        </div>
+    </div>
 
     <?php include 'footer.php';?>
 
@@ -354,6 +395,22 @@
                 $this.siblings("ul").slideDown();
             }
         }
+    });
+</script>
+<script>
+    $(document).ready(function() {
+        $('.rating-star span').click(function() {
+            $('.rating-star span').removeClass('checked');
+            $(this).addClass('checked').prevAll().addClass('checked');
+        });
+    });
+</script>
+<script>
+    document.querySelectorAll(".rate-rvw-btn").forEach(function(button) {
+        button.addEventListener("click", function(event) {
+            event.preventDefault(); 
+            $('#modal-rating').modal('show'); 
+        });
     });
 </script>
 </body>

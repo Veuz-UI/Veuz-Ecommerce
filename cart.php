@@ -75,6 +75,17 @@
                                             
                                         </div>
                                         <div class="cart-btns">
+                                          
+                                            <div class="dropdown">
+                                                <button class="shr-btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <i class="fi-rs-share"></i>
+                                                </button>
+                                                <ul class="dropdown-menu" style="margin: 0px;">
+                                                    <li><a class="dropdown-item" href="#"><i class="fa-brands fa-facebook" aria-hidden="true"></i>Facebook</a></li>
+                                                    <li><a class="dropdown-item" href="#"><i class="fa-brands fa-instagram" aria-hidden="true"></i>Instagram</a></li>
+                                                    <li><a class="dropdown-item" href="#"><i class="fa-solid fa-link" aria-hidden="true"></i>Copy Link</a></li>
+                                                </ul>
+                                            </div>
                                             <button class="fav-btn">
                                                 <i class="fi-rs-heart toggle-heart"></i>
                                             </button>
@@ -105,6 +116,16 @@
                                             
                                         </div>
                                         <div class="cart-btns">
+                                            <div class="dropdown">
+                                                <button class="shr-btn dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <i class="fi-rs-share"></i>
+                                                </button>
+                                                <ul class="dropdown-menu" style="margin: 0px;">
+                                                    <li><a class="dropdown-item" href="#"><i class="fa-brands fa-facebook" aria-hidden="true"></i>Facebook</a></li>
+                                                    <li><a class="dropdown-item" href="#"><i class="fa-brands fa-instagram" aria-hidden="true"></i>Instagram</a></li>
+                                                    <li><a class="dropdown-item" href="#"><i class="fa-solid fa-link" aria-hidden="true"></i>Copy Link</a></li>
+                                                </ul>
+                                            </div>
                                             <button class="fav-btn">
                                                 <i class="fi-rs-heart toggle-heart"></i>
                                             </button>

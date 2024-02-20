@@ -54,7 +54,7 @@
                     </div>
                     <div class="col-xl-12">
                         <div class="row">
-                            <div class="col-xl-3 col-lg-6">
+                            <div class="col-xl-3 col-md-6">
                                 <div class="card-box">
                                     <h3>Shipping Address</h3>
                                     <h4>Mad Jack</h4>
@@ -89,7 +89,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-xl-3 col-lg-6">
+                            <div class="col-xl-3 col-md-6">
                                 <div class="card-box reward-box">
                                     <h3>Your Rewards</h3>
 
@@ -112,7 +112,7 @@
 
                                 </div>
                             </div>
-                            <div class="col-xl-4 col-lg-8">
+                            <div class="col-xl-4 col-md-8">
                                 <div class="card-box">
 
                                     <div class="row">
@@ -137,14 +137,14 @@
 
                                 </div>
                             </div>
-                            <div class="col-xl-2 col-lg-4">
+                            <div class="col-xl-2 col-md-4">
                                 <div class="card-box download-invoice">
                                     <i class="fi-rs-download downld-icn"></i>
                                     <h3>Download Invoice</h3>
                                     <a href="#" download><button class="download-btn"><i class="fa-regular fa-file-lines"></i>Invoice</button></a>
                                 </div>
                             </div>
-                            <div class="col-md-12">
+                            <div class="col-xl-10 col-md-8">
                                
                                  <div class="track-boxes">                               
                                     <div class="boxx">
@@ -172,25 +172,31 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="col-xl-2 col-md-4">
+                                <div class="card-box return-box">
+                                    <h3>Do you want to return the product?</h3>
+                                   <button class="return-btn" data-bs-toggle="modal" data-bs-target="#modal-return"><i class="fi-rs-time-past"></i>Return</button>
+                                </div>
+                            </div>
                             <div class="col-md-12">
                                 <div class="delivery-updates-div">
                                     <h3>Delivery Updates</h3>
                                     <div class="delivery-update">
                                         <div class="row align-items-center">
-                                            <div class="col-lg-2">
+                                            <div class="col-lg-2 col-md-3">
                                                 <h4>Mon, June 24 <span>10:30</span></h4>
                                             </div>
-                                            <div class="col-lg-10">
+                                            <div class="col-lg-10 col-md-9">
                                                 <h6><i class="fa-solid fa-check"></i>Order Received</h6>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="delivery-update">
                                         <div class="row align-items-center">
-                                            <div class="col-lg-2">
+                                            <div class="col-lg-2 col-md-3">
                                                 <h4>Mon, June 24 <span>12:35</span></h4>
                                             </div>
-                                            <div class="col-lg-10">
+                                            <div class="col-lg-10 col-md-9">
                                                 <h6><i class="fa-solid fa-check"></i>Your order is being processed in Dubai - UAE warehouse.</h6>
                                             </div>
                                         </div>
@@ -198,60 +204,60 @@
                                    
                                     <div class="delivery-update">
                                         <div class="row align-items-center">
-                                            <div class="col-lg-2">
+                                            <div class="col-lg-2 col-md-3">
                                                 <h4>Mon, June 24 <span>17:15</span></h4>
                                             </div>
-                                            <div class="col-lg-10">
+                                            <div class="col-lg-10 col-md-9">
                                                 <h6><i class="fa-solid fa-check"></i>Your order is ready to be shipped from Dubai - UAE warehouse.</h6>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="delivery-update">
                                         <div class="row align-items-center">
-                                            <div class="col-lg-2">
+                                            <div class="col-lg-2 col-md-3">
                                                 <h4>Tue, June 25 <span>10:30</span></h4>
                                             </div>
-                                            <div class="col-lg-10">
+                                            <div class="col-lg-10 col-md-9">
                                                 <h6><i class="fa-solid fa-check"></i>Your order is shipped</h6>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="delivery-update">
                                         <div class="row align-items-center">
-                                            <div class="col-lg-2">
+                                            <div class="col-lg-2 col-md-3">
                                                 <h4>Wed, June 26 <span>16:30</span></h4>
                                             </div>
-                                            <div class="col-lg-10">
+                                            <div class="col-lg-10 col-md-9">
                                                 <h6><i class="fa-solid fa-check"></i>Your order has arrived in Riyadh - KSA warehouse.</h6>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="delivery-update">
                                         <div class="row align-items-center">
-                                            <div class="col-lg-2">
+                                            <div class="col-lg-2 col-md-3">
                                                 <h4>Thu, June 27 <span>10:30</span></h4>
                                             </div>
-                                            <div class="col-lg-10">
+                                            <div class="col-lg-10 col-md-9">
                                                 <h6><i class="fa-solid fa-check"></i>Your order has been picked up by ARAMEX and on the way to Jeddah</h6>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="delivery-update">
                                         <div class="row align-items-center">
-                                            <div class="col-lg-2">
+                                            <div class="col-lg-2 col-md-3">
                                                 <h4>Thu, June 27 <span>19:30</span></h4>
                                             </div>
-                                            <div class="col-lg-10">
+                                            <div class="col-lg-10 col-md-9">
                                                 <h6><i class="fa-solid fa-check"></i>Your order has arrived in Jeddah.</h6>
                                             </div>
                                         </div>
                                     </div>
                                     <div class="delivery-update">
                                         <div class="row align-items-center">
-                                            <div class="col-lg-2">
+                                            <div class="col-lg-2 col-md-3">
                                                 <h4>Fri, June 28 <span>11:30</span></h4>
                                             </div>
-                                            <div class="col-lg-10">
+                                            <div class="col-lg-10 col-md-9">
                                                 <h6><i class="fa-solid fa-check"></i>Your order is out for delivery</h6>
                                             </div>
                                         </div>
@@ -270,6 +276,80 @@
 
 
     </main>
+
+    <div class="alert alert-success alert-dismissible succ-alert d-none" role="alert">
+        <img src="assets/imgs/icons/gif-success.gif"> Return initiated successfully.
+        <button type="button" class="alert-close" data-dismiss="alert" aria-label="Close">
+            <span aria-hidden="true">X</span>
+        </button>
+    </div>
+    <div class="modal fade signup-modal" id="modal-return" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-md">
+          <div class="modal-content">
+            <div class="modal-header">
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="return-div">
+                    <h3>Reason for return</h3>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="custome-radio">
+                                <input class="form-check-input" required="" type="radio" name="return-type1" id="returnRadios1">
+                                <label class="form-check-label" for="returnRadios1">Received a broken/damaged item</label>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="custome-radio">
+                                <input class="form-check-input" required="" type="radio" name="return-type1" id="returnRadios2">
+                                <label class="form-check-label" for="returnRadios2">I have multiple issues with product</label>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="custome-radio">
+                                <input class="form-check-input" required="" type="radio" name="return-type1" id="returnRadios3">
+                                <label class="form-check-label" for="returnRadios3">Product is missing in the package</label>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="custome-radio">
+                                <input class="form-check-input" required="" type="radio" name="return-type1" id="returnRadios4">
+                                <label class="form-check-label" for="returnRadios4">Received wrong item</label>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="custome-radio">
+                                <input class="form-check-input" required="" type="radio" name="return-type1" id="returnRadios5">
+                                <label class="form-check-label" for="returnRadios5">Quality of the product not as expected</label>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="custome-radio">
+                                <input class="form-check-input" required="" type="radio" name="return-type1" id="returnRadios6">
+                                <label class="form-check-label" for="returnRadios6">Don't like the size/fit of the product</label>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="custome-radio">
+                                <input class="form-check-input" required="" type="radio" name="return-type1" id="returnRadios7">
+                                <label class="form-check-label" for="returnRadios7">Quality of the product not as expected</label>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <textarea placeholder="Comments" rows=""></textarea>
+                            </div>
+                        </div>
+                    </div>
+             
+                  <button type="button" class="btn-modal" id="return-submit" data-bs-dismiss="modal">Submit</button>
+              </div>
+     
+            </div>
+       
+          </div>
+        </div>
+      </div>
 
     <?php include 'footer.php';?>
 
@@ -442,6 +522,15 @@ var animateProgress = setInterval(progressAnimation, 1200);
 
 
 
+    </script>
+    <script>
+        $('#return-submit').click(function() {
+            $('.succ-alert').removeClass('d-none');
+        });
+
+        $('.alert-close').click(function() {
+            $('.succ-alert').addClass('d-none');
+        });
     </script>
 </body>
 

@@ -283,7 +283,7 @@
                                                                         <h3>Home Address <span>(Default)</span></h3>
                                                                         <div class="address-icons">
                                                                           
-                                                                            <i class="fa-regular fa-pen-to-square"></i>
+                                                                            <i class="fa-regular fa-pen-to-square edit-addressinfo1"></i>
                                                                             <i class="fa-regular fa-trash-can"></i>
                                                                         </div>
                                                                     </div>
@@ -307,7 +307,7 @@
                                                                                     <path d="M7.75198 20.1709L8.75198 18.1709V15.1709H13.752C14.0172 15.1709 14.2716 15.0655 14.4591 14.878C14.6466 14.6905 14.752 14.4361 14.752 14.1709V12.5849C14.752 12.0589 14.538 11.5429 14.166 11.1709L12.752 9.7569V6.1709C13.0172 6.1709 13.2716 6.06554 13.4591 5.87801C13.6466 5.69047 13.752 5.43611 13.752 5.1709V2.1709C13.752 1.0679 12.855 0.170898 11.752 0.170898H3.75198C2.64898 0.170898 1.75198 1.0679 1.75198 2.1709V5.1709C1.75198 5.43611 1.85734 5.69047 2.04488 5.87801C2.23241 6.06554 2.48677 6.1709 2.75198 6.1709V9.7569L1.33798 11.1709C0.963811 11.5465 0.753189 12.0547 0.751984 12.5849V14.1709C0.751984 14.4361 0.857341 14.6905 1.04488 14.878C1.23241 15.0655 1.48677 15.1709 1.75198 15.1709H6.75198V18.1709L7.75198 20.1709ZM3.75198 2.1709H11.752V4.1709H3.75198V2.1709ZM2.75198 12.5849L4.45898 10.8779C4.55203 10.7852 4.62581 10.675 4.6761 10.5537C4.72638 10.4323 4.75217 10.3022 4.75198 10.1709V6.1709H10.752V10.1709C10.752 10.4369 10.857 10.6909 11.045 10.8779L12.752 12.5849V13.1709H2.75198V12.5849Z" fill="black"/>
                                                                                     </svg>
                                                                                     
-                                                                                <i class="fa-regular fa-pen-to-square"></i>
+                                                                                <i class="fa-regular fa-pen-to-square edit-addressinfo1"></i>
                                                                                 <i class="fa-regular fa-trash-can"></i>
                                                                             </div>
                                                                         </div>
@@ -622,6 +622,10 @@
           $('#update-addressinfo').on('click', function() {
             $('#address-edit-div').addClass('d-none'); 
             $('#user-address-div').removeClass('d-none');
+          });
+          $('.edit-addressinfo1').on('click', function() {
+            $('#user-address-div').addClass('d-none'); 
+            $('#address-edit-div').removeClass('d-none');
           });
         });
       </script>

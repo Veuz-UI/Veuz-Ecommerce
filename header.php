@@ -38,7 +38,7 @@
                             </li>
                             <li>
                                 <a href="login.php"><span class="box3"><img src="assets/imgs/theme/login.png" alt=""
-                                            class="img-fluid"></span>Register / login</a>
+                                            class="img-fluid"></span>Sign In</a>
                             </li>
                         </ul>
                     </div>

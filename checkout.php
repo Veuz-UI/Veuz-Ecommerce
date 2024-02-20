@@ -55,7 +55,30 @@
                         <div class="col-md-7">
                          <div class="shipping-addrss">
                             <h4>Shipping Address</h4>
-                            <div class="row">
+                            <div class="row addrs-checkout">
+                                <div class="col-lg-6 col-md-12">
+                                    <div class="existing-address active">
+                                       <div class="addrss-head"> <h3>Bishru Rahman <span>HOME</span></h3> <a class="edit-addrs">Edit</a></div>
+                                       <p>4898 Joanne Lane Street, Boston, Massachusetts, United States, 02110</p>
+                                       <h6>+96763266563</h6>
+                                    </div>
+                                  
+                                </div>
+                                <div class="col-lg-6 col-md-12">
+                                    <div class="existing-address">
+                                        <div class="addrss-head"> <h3>Bishru Rahman <span>OFFICE</span></h3> <a class="edit-addrs">Edit</a></div>
+                                        <p>4898 Joanne Lane Street, Boston, Massachusetts, United States, 02110</p>
+                                        <h6>+96763266563</h6>
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="hr-or"><span>or</span></div>
+                                </div>
+                            
+                            </div>
+                          
+                            <div class="row addrs-checkout">
+                                <h4>Add a new address</h4>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Full Name</label>
@@ -131,7 +154,82 @@
                                     <button class="submit-btn">Add Address</button>
                                 </div>
                             </div>
-                            
+                            <div class="row edit-addrs-checkout d-none">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Full Name</label>
+                                        <input type="text" class="form-control" placeholder="Enter Your Name" value="Bishru">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Mobile Number</label>
+                                        <input type="text" class="form-control" placeholder="Enter Mobile Number" value="Rahman">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Pincode</label>
+                                        <input type="text" class="form-control" placeholder="Enter Your Pincode" value="02110">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>City</label>
+                                        <input type="text" class="form-control" placeholder="Enter Your City" value="Boston">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>State</label>
+                                        <input type="text" class="form-control" placeholder="Enter Your State" value="Massachusetts">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Building name or number</label>
+                                        <input type="text" class="form-control" placeholder="Enter Building Details">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Street name or number</label>
+                                        <input type="text" class="form-control" placeholder="Enter your street details" value="4898 Joanne Lane Street">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Landmark <span>(Optional)</span></label>
+                                        <input type="text" class="form-control" placeholder="Enter landmark details" value="Boston">
+                                    </div>
+                                </div>
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <label>Address Type <span>(Optional)</span></label>
+                                        <div class="address-type">
+                                            <div class="custome-radio">
+                                                <input class="form-check-input" required="" type="radio" name="address-type1" id="exampleRadios5" checked>
+                                                <label class="form-check-label" for="exampleRadios5">Home</label>
+                                            </div>
+                                            <div class="custome-radio">
+                                                <input class="form-check-input" required="" type="radio" name="address-type1" id="exampleRadios6">
+                                                <label class="form-check-label" for="exampleRadios6">Office</label>
+                                            </div>
+                                          
+                                        </div>
+                                        <div class="default-shipping">
+                                            <div class="custome-checkbox">
+                                                <input class="form-check-input" type="checkbox" name="checkbox" id="exampleCheckbox11" value="" checked>
+                                                <label class="form-check-label" for="exampleCheckbox11"><span>Use this as my default shipping address.</span></label>
+                                            </div>
+                                          
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-12 mt-2">
+                                    <button class="submit-btn" id="save-address">Save Changes</button>
+                                </div>
+                            </div>
                          </div>
                          <div class="shipping-addrss">
                             <h4>Payment Method</h4>
@@ -357,6 +455,14 @@
       });
     });
   </script>
+  <script>
+    $(document).ready(function() {
+      $('.existing-address').on('click', function() {
+        $('.existing-address').removeClass('active');
+        $(this).addClass('active');
+      });
+    });
+  </script>
  <script>
     $(document).ready(function() {
       $('#toggleDetailsBtn').on('click', function() {
@@ -419,6 +525,19 @@
                 $this.siblings("ul").slideDown();
             }
         }
+    });
+</script>
+<script>
+    $(document).ready(function() {
+        $('.edit-addrs').click(function() {
+            $('.addrs-checkout').addClass('d-none');
+            $('.edit-addrs-checkout').removeClass('d-none');
+        });
+
+        $('#save-address').click(function() {
+            $('.edit-addrs-checkout').addClass('d-none');
+            $('.addrs-checkout').removeClass('d-none');
+        });
     });
 </script>
 </body>

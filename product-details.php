@@ -153,7 +153,7 @@
                                     </div>
                                 </div>
                                 <div class="product-btm-btns">
-                                    <button class="addtocart-btn"><i class="fi-rs-shopping-cart"></i>Add to cart</button>
+                                <a href="cart.php"><button class="addtocart-btn"><i class="fi-rs-shopping-cart"></i>Add to cart</button></a>
                                     <a href="cart.php"><button class="buynow-btn">Buy Now</button></a>
                                 </div>
                             </div>
