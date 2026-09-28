@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useAuth } from '@/context/AuthContext';
 
 export const Header: React.FC = () => {
+  const { user, logout, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchCatOpen, setSearchCatOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Search by CATEGORIES');
@@ -173,15 +175,6 @@ export const Header: React.FC = () => {
                           <img src="/assets/imgs/theme/track.png" alt="" className="img-fluid" />
                         </span>
                         Track Order
-                      </Link>
-                    </li>
-
-                    <li>
-                      <Link href="/login">
-                        <span className="box3">
-                          <img src="/assets/imgs/theme/login.png" alt="" className="img-fluid" />
-                        </span>
-                        Sign In
                       </Link>
                     </li>
                   </ul>
@@ -389,21 +382,118 @@ export const Header: React.FC = () => {
                         e.preventDefault();
                         setMobileAccountOpen(!mobileAccountOpen);
                       }}
-                      title="Account"
+                      title={user ? user.name : "Account"}
+                      style={{ display: 'flex', alignItems: 'center' }}
                     >
-                      <img className="svgInject" alt="Account" src="/assets/imgs/theme/icons/icon-user.svg" />
+                      {user ? (
+                        <img
+                          src={user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}`}
+                          alt={user.name}
+                          style={{
+                            width: '26px',
+                            height: '26px',
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                            border: isAdmin ? '2px solid #2563eb' : '2px solid #3BB77E'
+                          }}
+                        />
+                      ) : (
+                        <img className="svgInject" alt="Account" src="/assets/imgs/theme/icons/icon-user.svg" />
+                      )}
                     </a>
 
                     <div className={"cart-dropdown-wrap cart-dropdown-hm2 account-dropdown " + (mobileAccountOpen ? "open" : "")}>
-                      <ul>
-                        {profileMenuItems.map((item, idx) => (
-                          <li key={idx}>
-                            <Link href={item.link} onClick={() => setMobileAccountOpen(false)}>
-                              <i className={item.icon + " mr-10"}></i>{item.name}
+                      {user ? (
+                        <ul>
+                          <li style={{ padding: '8px 12px', borderBottom: '1px solid #f1f5f9', marginBottom: '6px' }}>
+                            <div style={{ fontWeight: '700', fontSize: '13px', color: '#1e293b' }}>{user.name}</div>
+                            <div style={{ fontSize: '11px', color: '#64748b' }}>{user.email}</div>
+                          </li>
+
+                          {/* Admin: Show Back to Dashboard ONLY (No user profile link) */}
+                          {isAdmin ? (
+                            <>
+                              <li>
+                                <Link
+                                  href="/dashboard"
+                                  onClick={() => setMobileAccountOpen(false)}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px',
+                                    background: '#eff6ff',
+                                    color: '#1d4ed8',
+                                    fontWeight: '700',
+                                    padding: '8px 12px',
+                                    borderRadius: '6px'
+                                  }}
+                                >
+                                  <i className="fi fi-rs-apps"></i>Back to Dashboard ⚡
+                                </Link>
+                              </li>
+                              <li>
+                                <a
+                                  href="/login"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setMobileAccountOpen(false);
+                                    logout();
+                                  }}
+                                  style={{ color: '#ef4444' }}
+                                >
+                                  <i className="fi fi-rs-sign-out mr-10"></i>Sign out
+                                </a>
+                              </li>
+                            </>
+                          ) : (
+                            /* Regular Customer: Show profile, order history, wishlist */
+                            <>
+                              <li>
+                                <Link href="/profile" onClick={() => setMobileAccountOpen(false)}>
+                                  <i className="fi fi-rs-user mr-10"></i>My Profile
+                                </Link>
+                              </li>
+                              <li>
+                                <Link href="/history" onClick={() => setMobileAccountOpen(false)}>
+                                  <i className="fi-rs-time-past mr-10"></i>Order History
+                                </Link>
+                              </li>
+                              <li>
+                                <Link href="/wishlist" onClick={() => setMobileAccountOpen(false)}>
+                                  <i className="fi fi-rs-heart mr-10"></i>My Wishlist
+                                </Link>
+                              </li>
+                              <li>
+                                <a
+                                  href="/"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setMobileAccountOpen(false);
+                                    logout();
+                                  }}
+                                  style={{ color: '#ef4444' }}
+                                >
+                                  <i className="fi fi-rs-sign-out mr-10"></i>Sign out
+                                </a>
+                              </li>
+                            </>
+                          )}
+                        </ul>
+                      ) : (
+                        /* Guest: Sign in / Register */
+                        <ul>
+                          <li>
+                            <Link href="/login" onClick={() => setMobileAccountOpen(false)}>
+                              <i className="fi fi-rs-user mr-10"></i>Sign In
                             </Link>
                           </li>
-                        ))}
-                      </ul>
+                          <li>
+                            <Link href="/register" onClick={() => setMobileAccountOpen(false)}>
+                              <i className="fi fi-rs-label mr-10"></i>Create Account
+                            </Link>
+                          </li>
+                        </ul>
+                      )}
                     </div>
                   </div>
 
@@ -850,7 +940,7 @@ export const Header: React.FC = () => {
                   {/* Account / Profile Icon with Hover Dropdown */}
                   <div
                     ref={accountRef}
-                    className={"header-action-icon-2 " + (accountOpen ? "active" : "")}
+                    className={"header-action-icon-2 header-action-user-profile " + (accountOpen ? "active" : "")}
                     onMouseEnter={handleAccountMouseEnter}
                     onMouseLeave={handleAccountMouseLeave}
                   >
@@ -860,21 +950,122 @@ export const Header: React.FC = () => {
                         e.preventDefault();
                         setAccountOpen(!accountOpen);
                       }}
-                      title="My Account"
+                      title={user ? user.name : "My Account"}
+                      className="header-user-btn"
                     >
-                      <img className="svgInject" alt="Account" src="/assets/imgs/theme/icons/icon-user.svg" />
+                      {user ? (
+                        <div className="header-user-content">
+                          <img
+                            src={user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}`}
+                            alt={user.name}
+                            className="header-user-avatar"
+                            style={{
+                              border: isAdmin ? '2px solid #2563eb' : '2px solid #3BB77E'
+                            }}
+                          />
+                          <span className="header-user-name">
+                            {user.name.split(' ')[0]}
+                          </span>
+                          <i className="fi-rs-angle-small-down header-user-chevron"></i>
+                        </div>
+                      ) : (
+                        <img className="svgInject" alt="Account" src="/assets/imgs/theme/icons/icon-user.svg" />
+                      )}
                     </a>
 
-                    <div className={"cart-dropdown-wrap cart-dropdown-hm2 account-dropdown " + (accountOpen ? "open" : "")}>
-                      <ul>
-                        {profileMenuItems.map((item, idx) => (
-                          <li key={idx}>
-                            <Link href={item.link} onClick={() => setAccountOpen(false)}>
-                              <i className={item.icon + " mr-10"}></i>{item.name}
+                    <div className={"cart-dropdown-wrap cart-dropdown-hm2 account-dropdown " + (accountOpen ? "open" : "")} style={{ minWidth: '220px' }}>
+                      {user ? (
+                        <ul>
+                          <li
+                            className="account-header-item"
+                            style={{
+                              margin: '-16px -18px 12px -18px',
+                              padding: '12px 18px',
+                              background: '#f8fafc',
+                              borderBottom: '1px solid #e2e8f0',
+                              borderTopLeftRadius: '9px',
+                              borderTopRightRadius: '9px',
+                              borderBottomLeftRadius: '0',
+                              borderBottomRightRadius: '0'
+                            }}
+                          >
+                            <div className="account-header-name" style={{ fontWeight: '700', fontSize: '14px', color: '#1e293b' }}>
+                              {user.name}
+                            </div>
+                            <div className="account-header-email" style={{ fontSize: '12px', color: '#64748b', marginTop: '2px', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                              {user.email}
+                            </div>
+                          </li>
+
+                          {/* Admin: Quick Access to Dashboard */}
+                          {isAdmin && (
+                            <li>
+                              <Link href="/dashboard" onClick={() => setAccountOpen(false)}>
+                                <i className="fi fi-rs-apps mr-10"></i>Dashboard Overview
+                              </Link>
+                            </li>
+                          )}
+
+                          {/* Profile */}
+                          <li>
+                            <Link href="/profile" onClick={() => setAccountOpen(false)}>
+                              <i className="fi fi-rs-user mr-10"></i>Profile
                             </Link>
                           </li>
-                        ))}
-                      </ul>
+
+                          {/* Settings */}
+                          <li>
+                            <Link href="/profile#settings" onClick={() => setAccountOpen(false)}>
+                              <i className="fi fi-rs-settings-sliders mr-10"></i>Settings
+                            </Link>
+                          </li>
+
+                          {/* Order History & Wishlist (Customer) */}
+                          {!isAdmin && (
+                            <>
+                              <li>
+                                <Link href="/history" onClick={() => setAccountOpen(false)}>
+                                  <i className="fi-rs-time-past mr-10"></i>Order History
+                                </Link>
+                              </li>
+                              <li>
+                                <Link href="/wishlist" onClick={() => setAccountOpen(false)}>
+                                  <i className="fi fi-rs-heart mr-10"></i>My Wishlist
+                                </Link>
+                              </li>
+                            </>
+                          )}
+
+                          {/* Sign out */}
+                          <li style={{ borderTop: '1px solid #f1f5f9', marginTop: '6px', paddingTop: '8px' }}>
+                            <a
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setAccountOpen(false);
+                                logout();
+                              }}
+                              style={{ color: '#ef4444', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                            >
+                              <i className="fi fi-rs-sign-out mr-10"></i>Sign out
+                            </a>
+                          </li>
+                        </ul>
+                      ) : (
+                        /* Guest */
+                        <ul>
+                          <li>
+                            <Link href="/login" onClick={() => setAccountOpen(false)}>
+                              <i className="fi fi-rs-user mr-10"></i>Sign In
+                            </Link>
+                          </li>
+                          <li>
+                            <Link href="/register" onClick={() => setAccountOpen(false)}>
+                              <i className="fi fi-rs-label mr-10"></i>Create Account
+                            </Link>
+                          </li>
+                        </ul>
+                      )}
                     </div>
                   </div>
 
@@ -1180,18 +1371,86 @@ export const Header: React.FC = () => {
                     onClick={() => toggleAccordion('account')}
                     style={{ cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#253D4E' }}
                   >
-                    <span><i className="fi fi-rs-user mr-10 text-success"></i>My Account</span>
+                    <span>
+                      <i className="fi fi-rs-user mr-10 text-success"></i>
+                      {user ? `Account (${user.name.split(' ')[0]})` : 'My Account'}
+                    </span>
                     <span className="menu-expand"><i className="fi-rs-angle-small-down"></i></span>
                   </div>
                   {openAccordion === 'account' && (
                     <ul className="dropdown-menu-list">
-                      {profileMenuItems.map((item, idx) => (
-                        <li key={idx}>
-                          <Link href={item.link} onClick={() => setMobileMenuOpen(false)}>
-                            <i className={item.icon + " mr-10"}></i>{item.name}
-                          </Link>
-                        </li>
-                      ))}
+                      {user ? (
+                        isAdmin ? (
+                          <>
+                            <li>
+                              <Link
+                                href="/dashboard"
+                                onClick={() => setMobileMenuOpen(false)}
+                                style={{ color: '#2563eb', fontWeight: '700' }}
+                              >
+                                <i className="fi fi-rs-apps mr-10"></i>Back to Dashboard
+                              </Link>
+                            </li>
+                            <li>
+                              <a
+                                href="/login"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setMobileMenuOpen(false);
+                                  logout();
+                                }}
+                                style={{ color: '#ef4444', fontWeight: '600' }}
+                              >
+                                <i className="fi fi-rs-sign-out mr-10"></i>Sign out
+                              </a>
+                            </li>
+                          </>
+                        ) : (
+                          <>
+                            <li>
+                              <Link href="/profile" onClick={() => setMobileMenuOpen(false)}>
+                                <i className="fi fi-rs-user mr-10"></i>My Profile
+                              </Link>
+                            </li>
+                            <li>
+                              <Link href="/history" onClick={() => setMobileMenuOpen(false)}>
+                                <i className="fi-rs-time-past mr-10"></i>Order History
+                              </Link>
+                            </li>
+                            <li>
+                              <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)}>
+                                <i className="fi fi-rs-heart mr-10"></i>My Wishlist
+                              </Link>
+                            </li>
+                            <li>
+                              <a
+                                href="/"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  setMobileMenuOpen(false);
+                                  logout();
+                                }}
+                                style={{ color: '#ef4444', fontWeight: '600' }}
+                              >
+                                <i className="fi fi-rs-sign-out mr-10"></i>Sign out
+                              </a>
+                            </li>
+                          </>
+                        )
+                      ) : (
+                        <>
+                          <li>
+                            <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
+                              <i className="fi fi-rs-user mr-10"></i>Sign In
+                            </Link>
+                          </li>
+                          <li>
+                            <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
+                              <i className="fi fi-rs-label mr-10"></i>Create Account
+                            </Link>
+                          </li>
+                        </>
+                      )}
                     </ul>
                   )}
                 </li>

@@ -347,6 +347,93 @@
   line-height: 1 !important;
 }
 
+/* User Profile Action in Desktop Header (Horizontal Avatar + Name) */
+.header-action-2 .header-action-icon-2.header-action-user-profile {
+  position: relative !important;
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  padding: 0 4px 0 10px !important;
+  width: auto !important;
+  min-width: max-content !important;
+}
+
+.header-action-2 .header-action-icon-2.header-action-user-profile > a,
+.header-action-2 .header-action-icon-2.header-action-user-profile > a.header-user-btn {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+  line-height: 1 !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  padding: 4px 10px 4px 6px !important;
+  border-radius: 30px !important;
+  border: 1px solid transparent !important;
+  transition: all 0.2s ease !important;
+}
+
+.header-action-2 .header-action-icon-2.header-action-user-profile:hover > a.header-user-btn {
+  background-color: #f1fbf5 !important;
+  border-color: #e2f5ea !important;
+}
+
+.header-action-2 .header-action-icon-2.header-action-user-profile .header-user-content {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 8px !important;
+  white-space: nowrap !important;
+}
+
+.header-action-2 .header-action-icon-2.header-action-user-profile img.header-user-avatar {
+  width: 32px !important;
+  height: 32px !important;
+  max-width: 32px !important;
+  min-width: 32px !important;
+  border-radius: 50% !important;
+  display: inline-block !important;
+  object-fit: cover !important;
+  margin: 0 !important;
+  flex-shrink: 0 !important;
+  vertical-align: middle !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+}
+
+.header-action-2 .header-action-icon-2.header-action-user-profile span.header-user-name {
+  display: inline-block !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #253D4E !important;
+  max-width: 120px !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  line-height: 1.2 !important;
+  margin: 0 !important;
+  vertical-align: middle !important;
+  transition: color 0.2s ease !important;
+}
+
+.header-action-2 .header-action-icon-2.header-action-user-profile:hover span.header-user-name {
+  color: #3BB77E !important;
+}
+
+.header-action-2 .header-action-icon-2.header-action-user-profile i.header-user-chevron {
+  font-size: 11px !important;
+  color: #7E7E7E !important;
+  display: inline-block !important;
+  margin-left: 2px !important;
+  transition: transform 0.2s ease, color 0.2s ease !important;
+}
+
+.header-action-2 .header-action-icon-2.header-action-user-profile:hover i.header-user-chevron,
+.header-action-2 .header-action-icon-2.header-action-user-profile.active i.header-user-chevron {
+  color: #3BB77E !important;
+  transform: rotate(180deg) !important;
+}
+
 /* Account Profile Dropdown Menu */
 .cart-dropdown-wrap.account-dropdown {
   position: absolute !important;
@@ -400,6 +487,39 @@
   margin: 0 0 12px 0 !important;
   padding: 0 !important;
   display: block !important;
+}
+
+.cart-dropdown-wrap.account-dropdown ul li.account-header-item {
+  margin: -16px -18px 12px -18px !important;
+  padding: 12px 18px !important;
+  background-color: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  border-top-left-radius: 9px !important;
+  border-top-right-radius: 9px !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  display: block !important;
+}
+
+.cart-dropdown-wrap.account-dropdown ul li.account-header-item .account-header-name {
+  font-weight: 700 !important;
+  font-size: 14px !important;
+  color: #1e293b !important;
+  line-height: 1.3 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.cart-dropdown-wrap.account-dropdown ul li.account-header-item .account-header-email {
+  font-weight: 400 !important;
+  font-size: 12px !important;
+  color: #64748b !important;
+  line-height: 1.3 !important;
+  margin: 3px 0 0 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 
 .cart-dropdown-wrap.account-dropdown ul li:last-child {
