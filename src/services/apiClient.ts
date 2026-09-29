@@ -59,6 +59,16 @@ class ApiClient {
     return this.handleResponse<T>(res);
   }
 
+  public async patch<T = any>(endpoint: string, body?: any, headers: Record<string, string> = {}): Promise<T> {
+    const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: this.getHeaders(headers),
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    return this.handleResponse<T>(res);
+  }
+
   public async delete<T = any>(endpoint: string, headers: Record<string, string> = {}): Promise<T> {
     const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
     const res = await fetch(url, {

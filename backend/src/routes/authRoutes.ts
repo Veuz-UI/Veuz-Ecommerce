@@ -9,6 +9,9 @@ import {
   verifyEmail,
   forgotPassword,
   resetPassword,
+  updateProfile,
+  changePassword,
+  deleteAccount,
 } from '../controllers/authController.js';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
@@ -25,6 +28,9 @@ router.post('/verify-email', verifyEmail);
 
 // Protected routes (Logged in user)
 router.get('/me', authenticateToken, getMe);
+router.put('/profile', authenticateToken, updateProfile);
+router.post('/change-password', authenticateToken, changePassword);
+router.delete('/account', authenticateToken, deleteAccount);
 router.post('/send-verification', authenticateToken, sendVerificationEmail);
 
 // Admin-Only routes (Protected with requireAdmin)

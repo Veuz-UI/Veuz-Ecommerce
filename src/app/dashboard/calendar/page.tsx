@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 interface CalendarEvent {
@@ -14,6 +14,22 @@ interface CalendarEvent {
 }
 
 export default function CalendarPage() {
+  // Guarantee calendar page starts at the top
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        if ('scrollRestoration' in window.history) {
+          window.history.scrollRestoration = 'manual';
+        }
+      } catch (e) {}
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      const pc = document.querySelector('.page-content');
+      if (pc) pc.scrollTop = 0;
+    }
+  }, []);
+
   const today = new Date();
   const [currentYear, setCurrentYear] = useState<number>(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState<number>(today.getMonth()); // 0-indexed

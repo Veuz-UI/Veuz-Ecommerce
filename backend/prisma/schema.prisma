@@ -35,7 +35,14 @@ model User {
   password           String
   avatar             String?
   role               Role            @default(CUSTOMER)
+  phone              String?
+  alternatePhone     String?
+  dateOfBirth        String?
+  gender             String?
+  address            Json?
+  settings           Json?
   isEmailVerified    Boolean         @default(false)
+  isBlocked          Boolean         @default(false)
   verifyToken        String?         @unique
   verifyTokenExpires DateTime?
   is2FAEnabled       Boolean         @default(false)

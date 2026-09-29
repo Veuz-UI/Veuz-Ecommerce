@@ -414,7 +414,7 @@ export const Header: React.FC = () => {
                           {isAdmin ? (
                             <>
                               <li>
-                                <Link
+                                <a
                                   href="/dashboard"
                                   onClick={() => setMobileAccountOpen(false)}
                                   style={{
@@ -429,7 +429,7 @@ export const Header: React.FC = () => {
                                   }}
                                 >
                                   <i className="fi fi-rs-apps"></i>Back to Dashboard ⚡
-                                </Link>
+                                </a>
                               </li>
                               <li>
                                 <a
@@ -449,8 +449,29 @@ export const Header: React.FC = () => {
                             /* Regular Customer: Show profile, order history, wishlist */
                             <>
                               <li>
-                                <Link href="/profile" onClick={() => setMobileAccountOpen(false)}>
+                                <Link
+                                  href="/profile#basic-info"
+                                  onClick={() => {
+                                    setMobileAccountOpen(false);
+                                    if (typeof window !== 'undefined' && window.location.pathname === '/profile') {
+                                      window.location.hash = '#basic-info';
+                                    }
+                                  }}
+                                >
                                   <i className="fi fi-rs-user mr-10"></i>My Profile
+                                </Link>
+                              </li>
+                              <li>
+                                <Link
+                                  href="/profile#settings"
+                                  onClick={() => {
+                                    setMobileAccountOpen(false);
+                                    if (typeof window !== 'undefined' && window.location.pathname === '/profile') {
+                                      window.location.hash = '#settings';
+                                    }
+                                  }}
+                                >
+                                  <i className="fi fi-rs-settings-sliders mr-10"></i>Settings
                                 </Link>
                               </li>
                               <li>
@@ -1000,22 +1021,38 @@ export const Header: React.FC = () => {
                           {/* Admin: Quick Access to Dashboard */}
                           {isAdmin && (
                             <li>
-                              <Link href="/dashboard" onClick={() => setAccountOpen(false)}>
+                              <a href="/dashboard" onClick={() => setAccountOpen(false)}>
                                 <i className="fi fi-rs-apps mr-10"></i>Dashboard Overview
-                              </Link>
+                              </a>
                             </li>
                           )}
 
                           {/* Profile */}
                           <li>
-                            <Link href="/profile" onClick={() => setAccountOpen(false)}>
+                            <Link
+                              href="/profile#basic-info"
+                              onClick={() => {
+                                setAccountOpen(false);
+                                if (typeof window !== 'undefined' && window.location.pathname === '/profile') {
+                                  window.location.hash = '#basic-info';
+                                }
+                              }}
+                            >
                               <i className="fi fi-rs-user mr-10"></i>Profile
                             </Link>
                           </li>
 
                           {/* Settings */}
                           <li>
-                            <Link href="/profile#settings" onClick={() => setAccountOpen(false)}>
+                            <Link
+                              href="/profile#settings"
+                              onClick={() => {
+                                setAccountOpen(false);
+                                if (typeof window !== 'undefined' && window.location.pathname === '/profile') {
+                                  window.location.hash = '#settings';
+                                }
+                              }}
+                            >
                               <i className="fi fi-rs-settings-sliders mr-10"></i>Settings
                             </Link>
                           </li>
@@ -1383,13 +1420,13 @@ export const Header: React.FC = () => {
                         isAdmin ? (
                           <>
                             <li>
-                              <Link
+                              <a
                                 href="/dashboard"
                                 onClick={() => setMobileMenuOpen(false)}
                                 style={{ color: '#2563eb', fontWeight: '700' }}
                               >
                                 <i className="fi fi-rs-apps mr-10"></i>Back to Dashboard
-                              </Link>
+                              </a>
                             </li>
                             <li>
                               <a
@@ -1408,8 +1445,29 @@ export const Header: React.FC = () => {
                         ) : (
                           <>
                             <li>
-                              <Link href="/profile" onClick={() => setMobileMenuOpen(false)}>
+                              <Link
+                                href="/profile#basic-info"
+                                onClick={() => {
+                                  setMobileMenuOpen(false);
+                                  if (typeof window !== 'undefined' && window.location.pathname === '/profile') {
+                                    window.location.hash = '#basic-info';
+                                  }
+                                }}
+                              >
                                 <i className="fi fi-rs-user mr-10"></i>My Profile
+                              </Link>
+                            </li>
+                            <li>
+                              <Link
+                                href="/profile#settings"
+                                onClick={() => {
+                                  setMobileMenuOpen(false);
+                                  if (typeof window !== 'undefined' && window.location.pathname === '/profile') {
+                                    window.location.hash = '#settings';
+                                  }
+                                }}
+                              >
+                                <i className="fi fi-rs-settings-sliders mr-10"></i>Settings
                               </Link>
                             </li>
                             <li>

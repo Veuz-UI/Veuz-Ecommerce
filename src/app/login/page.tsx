@@ -18,9 +18,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Restore remembered credentials on initial mount
+  // Restore remembered credentials on initial mount and scroll to top
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      try {
+        if ('scrollRestoration' in window.history) {
+          window.history.scrollRestoration = 'manual';
+        }
+        window.scrollTo(0, 0);
+      } catch (e) {}
+
       const isRemembered = localStorage.getItem('veuz_remember_me') === 'true';
       const savedEmail = localStorage.getItem('veuz_remembered_email');
       if (isRemembered && savedEmail) {
@@ -78,11 +85,21 @@ export default function LoginPage() {
     setLoading(false);
 
     if (res.success && res.user) {
+      if (typeof window !== 'undefined') {
+        try {
+          if ('scrollRestoration' in window.history) {
+            window.history.scrollRestoration = 'manual';
+          }
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        } catch (e) {}
+      }
       // Role-based smart redirection
       if (res.user.role === 'ADMIN' || res.user.role === 'SUPER_ADMIN') {
-        router.push('/dashboard');
+        router.push('/dashboard', { scroll: true });
       } else {
-        router.push('/');
+        router.push('/', { scroll: true });
       }
     } else {
       setErrorMsg(res.message || 'Invalid email or password.');

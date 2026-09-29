@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import authRoutes from './routes/authRoutes.js';
+import adminUserRoutes from './routes/adminUserRoutes.js';
 import { apiRateLimiter } from './middleware/rateLimiter.js';
 import { prisma } from './config/prisma.js';
 
@@ -126,6 +127,7 @@ app.get('/api/health', async (req: Request, res: Response) => {
 // 7. API ROUTES
 // ========================================================
 app.use('/api/auth', authRoutes);
+app.use('/api/admin/users', adminUserRoutes);
 
 // ========================================================
 // 8. 404 NOT FOUND HANDLER

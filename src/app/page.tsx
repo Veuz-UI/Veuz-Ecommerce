@@ -10,13 +10,42 @@ export default function HomePage() {
   const [isCatHovered, setIsCatHovered] = useState(false);
   const newProdScrollRef = useRef<HTMLDivElement>(null);
 
+  // Guarantee that the home page always starts at the very top (0, 0)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        if ('scrollRestoration' in window.history) {
+          window.history.scrollRestoration = 'manual';
+        }
+      } catch (e) {}
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    }
+  }, []);
+
   const scrollNewProd = (direction: 'prev' | 'next') => {
     if (newProdScrollRef.current) {
       const container = newProdScrollRef.current;
       const firstCol = container.querySelector('.new-prod-pair-column') as HTMLElement;
       const colWidth = firstCol ? firstCol.offsetWidth + 20 : 300;
-      const scrollAmount = direction === 'next' ? colWidth : -colWidth;
-      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      const maxScroll = container.scrollWidth - container.clientWidth;
+
+      if (maxScroll <= 0) return;
+
+      if (direction === 'next') {
+        if (container.scrollLeft >= maxScroll - 15) {
+          container.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          container.scrollBy({ left: colWidth, behavior: 'smooth' });
+        }
+      } else {
+        if (container.scrollLeft <= 15) {
+          container.scrollTo({ left: maxScroll, behavior: 'smooth' });
+        } else {
+          container.scrollBy({ left: -colWidth, behavior: 'smooth' });
+        }
+      }
     }
   };
   const [activeNewProdIndex, setActiveNewProdIndex] = useState(0);
@@ -250,8 +279,23 @@ export default function HomePage() {
       const container = mostSearchedScrollRef.current;
       const firstCol = container.querySelector('.new-prod-pair-column') as HTMLElement;
       const colWidth = firstCol ? firstCol.offsetWidth + 20 : 300;
-      const scrollAmount = direction === 'next' ? colWidth : -colWidth;
-      container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      const maxScroll = container.scrollWidth - container.clientWidth;
+
+      if (maxScroll <= 0) return;
+
+      if (direction === 'next') {
+        if (container.scrollLeft >= maxScroll - 15) {
+          container.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          container.scrollBy({ left: colWidth, behavior: 'smooth' });
+        }
+      } else {
+        if (container.scrollLeft <= 15) {
+          container.scrollTo({ left: maxScroll, behavior: 'smooth' });
+        } else {
+          container.scrollBy({ left: -colWidth, behavior: 'smooth' });
+        }
+      }
     }
   };
 
@@ -360,6 +404,110 @@ export default function HomePage() {
       price: '389 SR',
       rating: '5.0/5',
       reviews: '690 - Reviews',
+      link: '/product-details'
+    },
+    {
+      id: 'ms-9',
+      title: 'DuPont Tyvek 500 Chemical & Particle Protective Hooded Coverall',
+      desc: 'Breathable high-density polyethylene barrier fabric protecting against airborne particulates and hazardous light chemical splash.',
+      img: '/assets/imgs/shop/pr3.jpg',
+      badge: 'Top Searched',
+      badgeClass: 'new',
+      oldPrice: '95 SR',
+      discount: '15% OFF',
+      price: '80 SR',
+      rating: '4.9/5',
+      reviews: '1940 - Reviews',
+      link: '/product-details'
+    },
+    {
+      id: 'ms-10',
+      title: 'Dräger X-plore 3500 Twin-Filter Chemical Half Mask Respirator',
+      desc: 'Ergonomic DrägerFlex material with low-profile backward filter position providing optimal peripheral vision and seal.',
+      img: '/assets/imgs/shop/pr1.jpg',
+      badge: 'Best Seller',
+      badgeClass: 'hot',
+      price: '165 SR',
+      rating: '4.8/5',
+      reviews: '1150 - Reviews',
+      link: '/product-details'
+    },
+    {
+      id: 'ms-11',
+      title: 'Timberland PRO Pit Boss 6-Inch Steel Toe Heavy Work Boots',
+      desc: 'Rugged oiled leather with PRO 24/7 comfort suspension system and heat/oil resistant non-marking rubber outsole.',
+      img: '/assets/imgs/shop/pr2.jpg',
+      badge: 'Trending',
+      badgeClass: 'hot',
+      oldPrice: '420 SR',
+      discount: '10% OFF',
+      price: '378 SR',
+      rating: '4.9/5',
+      reviews: '2890 - Reviews',
+      link: '/product-details'
+    },
+    {
+      id: 'ms-12',
+      title: 'Bolle Safety Contour Smoke Lens Ultra-Lightweight Eyewear',
+      desc: 'Featherlight 21g frame with non-slip TIPGRIP temples and platinum anti-fog/anti-scratch ballistic lens coating.',
+      img: '/assets/imgs/shop/pr3.jpg',
+      badge: 'In Stock',
+      badgeClass: 'new',
+      price: '62 SR',
+      rating: '4.7/5',
+      reviews: '1430 - Reviews',
+      link: '/product-details'
+    },
+    {
+      id: 'ms-13',
+      title: 'Showa 377 Nitrile Coated Heavy Duty Mechanical Grip Gloves',
+      desc: 'Double nitrile coating with extra foam nitrile palm finish for superior oily grip and mechanical abrasion resistance.',
+      img: '/assets/imgs/shop/pr1.jpg',
+      badge: 'Top Searched',
+      badgeClass: 'new',
+      oldPrice: '75 SR',
+      discount: '20% OFF',
+      price: '60 SR',
+      rating: '5.0/5',
+      reviews: '2210 - Reviews',
+      link: '/product-details'
+    },
+    {
+      id: 'ms-14',
+      title: 'KStrong Kapture Elite Tower Harness with Comfort Lumbar Belt',
+      desc: 'Full body fall protection harness with front, dorsal, and side positioning D-rings plus breathable ergonomic padding.',
+      img: '/assets/imgs/shop/pr2.jpg',
+      badge: 'Limited Stock',
+      badgeClass: 'hot',
+      price: '495 SR',
+      rating: '4.9/5',
+      reviews: '580 - Reviews',
+      link: '/product-details'
+    },
+    {
+      id: 'ms-15',
+      title: '3M Peltor Optime III Extreme High-Noise Ear Muffs (35dB SNR)',
+      desc: 'Double-casing cup technology minimizing resonance in severe high-frequency noise environments like power plants.',
+      img: '/assets/imgs/shop/pr3.jpg',
+      badge: 'Best Seller',
+      badgeClass: 'hot',
+      oldPrice: '155 SR',
+      discount: '16% OFF',
+      price: '130 SR',
+      rating: '4.8/5',
+      reviews: '1720 - Reviews',
+      link: '/product-details'
+    },
+    {
+      id: 'ms-16',
+      title: 'Red Wing PetroKing S3 Anti-Static Oil & Gas Industry Safety Boots',
+      desc: 'Full grain leather with puncture-resistant insole and Vibram rubber sole certified for hazardous refinery sites.',
+      img: '/assets/imgs/shop/pr1.jpg',
+      badge: 'Trending',
+      badgeClass: 'new',
+      price: '520 SR',
+      rating: '5.0/5',
+      reviews: '3410 - Reviews',
       link: '/product-details'
     }
   ];
@@ -1015,13 +1163,14 @@ export default function HomePage() {
                             </div>
                           </div>
 
-                          <div className="product-card-bottom">
+                          <div className="product-card-bottom d-flex align-items-center justify-content-between">
                             <span className="express-delivery-badge">
                               <i className="fi-rs-bolt"></i>Express Delivery
                             </span>
                             <div className="d-flex align-items-center" style={{ gap: '8px' }}>
                               <button
                                 type="button"
+                                aria-label="Add To Wishlist"
                                 className={`btn-wishlist-action ${wishlist[prod.id] ? 'active text-danger' : ''}`}
                                 title="Wishlist"
                                 onClick={() => toggleWishlist(prod.id)}

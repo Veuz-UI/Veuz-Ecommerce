@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 export default function DashboardLayout({
   children,
@@ -27,23 +29,55 @@ export default function DashboardLayout({
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [themeOffcanvasOpen, setThemeOffcanvasOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isLayoutReady, setIsLayoutReady] = useState(false);
+  const [overlayRemoved, setOverlayRemoved] = useState(false);
+  const [sidebarBackdrop, setSidebarBackdrop] = useState(false);
 
-  // Security Gate: If user signs out or is unauthenticated, redirect directly to /login
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.replace('/login');
+  // Dropdown Refs & Click Outside Handler
+  const profileDropdownRef = useRef<HTMLDivElement>(null);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const profileHoverTimeout = useRef<NodeJS.Timeout | null>(null);
+
+  const handleProfileMouseEnter = () => {
+    if (profileHoverTimeout.current) {
+      clearTimeout(profileHoverTimeout.current);
+      profileHoverTimeout.current = null;
     }
-  }, [user, isLoading, router]);
+    setProfileDropdownOpen(true);
+  };
 
-  // Sync Rasket HTML attributes on <html> element and strictly isolate assets
+  const handleProfileMouseLeave = () => {
+    if (profileHoverTimeout.current) {
+      clearTimeout(profileHoverTimeout.current);
+    }
+    profileHoverTimeout.current = setTimeout(() => {
+      setProfileDropdownOpen(false);
+    }, 180);
+  };
+
   useEffect(() => {
-    const html = document.documentElement;
-    html.setAttribute('data-bs-theme', theme);
-    html.setAttribute('data-topbar-color', topbarColor);
-    html.setAttribute('data-menu-color', 'light');
-    html.setAttribute('data-menu-size', menuSize);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileDropdownRef.current && !profileDropdownRef.current.contains(event.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      if (profileHoverTimeout.current) {
+        clearTimeout(profileHoverTimeout.current);
+      }
+    };
+  }, []);
 
-    // Actively disable any storefront stylesheets (from /assets/) so they NEVER conflict with dashboard!
+  // 1. One-time synchronous stylesheet isolation for the dashboard
+  useIsomorphicLayoutEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    // Synchronously disable any storefront stylesheets (from /assets/) before paint
     const storefrontLinks = document.querySelectorAll<HTMLLinkElement>(
       'link[data-origin="storefront"], link[href*="/assets/css/"]'
     );
@@ -53,32 +87,124 @@ export default function DashboardLayout({
       }
     });
 
-    // Responsive initial check for mobile/tablet screens
-    const handleResize = () => {
-      if (window.innerWidth <= 1140) {
-        html.setAttribute('data-menu-size', 'hidden');
-      } else {
-        html.setAttribute('data-menu-size', menuSize);
-      }
-    };
-    window.addEventListener('resize', handleResize);
+    // Synchronously enable dashboard stylesheets before paint
+    const dashLinks = document.querySelectorAll<HTMLLinkElement>('link[href*="/dashboard-assets/"]');
+    dashLinks.forEach((link) => {
+      link.disabled = false;
+    });
 
     return () => {
-      window.removeEventListener('resize', handleResize);
-      // Clean up attributes when leaving the dashboard so storefront website is NEVER polluted!
-      html.removeAttribute('data-bs-theme');
-      html.removeAttribute('data-topbar-color');
-      html.removeAttribute('data-menu-color');
-      html.removeAttribute('data-menu-size');
-
       // Re-enable storefront styles when leaving dashboard
       storefrontLinks.forEach((link) => {
         if (!link.href.includes('/dashboard-assets/')) {
           link.disabled = false;
         }
       });
+
+      // Disable dashboard styles when leaving dashboard
+      dashLinks.forEach((link) => {
+        link.disabled = true;
+      });
+
+      // Clean up attributes when leaving dashboard so storefront website is 100% pure
+      const html = document.documentElement;
+      html.removeAttribute('data-bs-theme');
+      html.removeAttribute('data-topbar-color');
+      html.removeAttribute('data-menu-color');
+      html.removeAttribute('data-menu-size');
+      html.classList.remove('sidebar-enable');
     };
+  }, []); // Run ONLY once when mounting/unmounting dashboard!
+
+  // 2. Synchronously sync Rasket HTML attributes on <html> element without touching stylesheets
+  useIsomorphicLayoutEffect(() => {
+    if (typeof document === 'undefined') return;
+    const html = document.documentElement;
+    html.setAttribute('data-bs-theme', theme);
+    html.setAttribute('data-topbar-color', topbarColor);
+    html.setAttribute('data-menu-color', 'light');
+    html.setAttribute('data-menu-size', menuSize);
   }, [theme, topbarColor, menuColor, menuSize]);
+
+  // 3. Responsive resize check
+  useEffect(() => {
+    const handleResize = () => {
+      if (typeof window === 'undefined') return;
+      if (window.innerWidth <= 1140) {
+        setMenuSize((prev) => (prev !== 'hidden' ? 'hidden' : prev));
+      } else {
+        setMenuSize((prev) => (prev === 'hidden' ? 'default' : prev));
+        document.documentElement.classList.remove('sidebar-enable');
+        setSidebarBackdrop(false);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Robust readiness & security management
+  useEffect(() => {
+    if (isLoading) return;
+
+    if (!user) {
+      router.replace('/login');
+      return;
+    }
+
+    if (!isAdmin) {
+      setIsLayoutReady(true);
+      setOverlayRemoved(true);
+      return;
+    }
+
+    // Give browser 180ms to compute CSS layout underneath the overlay
+    const readyTimer = setTimeout(() => {
+      setIsLayoutReady(true);
+    }, 180);
+
+    // Unmount overlay after 250ms fade-out finishes (180ms + 250ms = 430ms)
+    const removeTimer = setTimeout(() => {
+      setOverlayRemoved(true);
+    }, 430);
+
+    return () => {
+      clearTimeout(readyTimer);
+      clearTimeout(removeTimer);
+    };
+  }, [isLoading, user, isAdmin, router, pathname]);
+
+  // Guarantee that entering the dashboard or switching dashboard subpages always starts at the top
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      if ('scrollRestoration' in window.history) {
+        window.history.scrollRestoration = 'manual';
+      }
+    } catch (e) {}
+
+    const scrollToTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+      const pc = document.querySelector('.page-content');
+      if (pc) pc.scrollTop = 0;
+      const wr = document.querySelector('.wrapper');
+      if (wr) wr.scrollTop = 0;
+    };
+
+    scrollToTop();
+    const rId = requestAnimationFrame(scrollToTop);
+    const t1 = setTimeout(scrollToTop, 50);
+    const t2 = setTimeout(scrollToTop, 150);
+
+    return () => {
+      cancelAnimationFrame(rId);
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [pathname]);
 
   // Fullscreen Handler
   const toggleFullscreen = () => {
@@ -95,10 +221,20 @@ export default function DashboardLayout({
 
   // Menu Size Toggle (Hamburger)
   const toggleMenuSize = () => {
-    setMenuSize((prev) => {
-      if (prev === 'condensed' || prev === 'hidden') return 'default';
-      return 'condensed';
-    });
+    if (typeof window !== 'undefined' && window.innerWidth <= 1140) {
+      const html = document.documentElement;
+      const isEnabled = html.classList.toggle('sidebar-enable');
+      setSidebarBackdrop(isEnabled);
+    } else {
+      setMenuSize((prev) => (prev === 'condensed' ? 'default' : 'condensed'));
+    }
+  };
+
+  const closeSidebarDrawer = () => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.remove('sidebar-enable');
+    }
+    setSidebarBackdrop(false);
   };
 
   // Submenu Toggle Accordion
@@ -116,104 +252,17 @@ export default function DashboardLayout({
     setTopbarColor('light');
     setMenuColor('light');
     setMenuSize('default');
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.remove('sidebar-enable');
+    }
+    setSidebarBackdrop(false);
   };
-
-  if (isLoading || (!isLoading && !user)) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#0f172a',
-          color: '#ffffff',
-        }}
-      >
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Redirecting...</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Security Gate: Protect Dashboard from regular non-admin customers
-  if (!isLoading && user && !isAdmin) {
-    return (
-      <div
-        style={{
-          minHeight: '100vh',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          backgroundColor: '#0f172a',
-          color: '#ffffff',
-          fontFamily: 'system-ui, sans-serif',
-          padding: '20px',
-          textAlign: 'center',
-        }}
-      >
-        <div style={{ maxWidth: '440px' }}>
-          <div
-            style={{
-              width: '64px',
-              height: '64px',
-              borderRadius: '50%',
-              backgroundColor: 'rgba(239, 68, 68, 0.2)',
-              color: '#ef4444',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '28px',
-              margin: '0 auto 20px auto',
-            }}
-          >
-            🚫
-          </div>
-          <h1 style={{ fontSize: '24px', fontWeight: '800', marginBottom: '8px' }}>Access Denied</h1>
-          <p style={{ color: '#94a3b8', fontSize: '14px', lineHeight: '1.6', marginBottom: '24px' }}>
-            This administrator dashboard is strictly protected. Only authorized administrators with verified credentials can enter.
-          </p>
-          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-            <Link
-              href="/"
-              style={{
-                padding: '10px 20px',
-                borderRadius: '8px',
-                backgroundColor: '#1e293b',
-                color: '#ffffff',
-                textDecoration: 'none',
-                fontSize: '14px',
-                fontWeight: '600',
-              }}
-            >
-              Return to Storefront
-            </Link>
-            <Link
-              href="/login"
-              style={{
-                padding: '10px 20px',
-                borderRadius: '8px',
-                backgroundColor: '#2563eb',
-                color: '#ffffff',
-                textDecoration: 'none',
-                fontSize: '14px',
-                fontWeight: '600',
-              }}
-            >
-              Admin Sign In
-            </Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
       {/* ========================================================
           ISOLATED DASHBOARD ASSETS (from src/Dashboard/assets)
-          These styles and fonts are strictly scoped to /dashboard!
+          Rendered immediately from mount so styles are cached & ready!
          ======================================================== */}
       <link href="/dashboard-assets/css/vendor.min.css" rel="stylesheet" type="text/css" />
       <link href="/dashboard-assets/css/icons.min.css" rel="stylesheet" type="text/css" />
@@ -221,6 +270,14 @@ export default function DashboardLayout({
       <script src="/dashboard-assets/vendor/iconify-icon/iconify-icon.min.js" async></script>
 
       <style dangerouslySetInnerHTML={{ __html: `
+        @keyframes dashSpin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes dashFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
         /* Always enforce Light Mode Side Menu */
         .main-nav {
           background-color: #ffffff !important;
@@ -229,7 +286,6 @@ export default function DashboardLayout({
 
         .main-nav .menu-title {
           color: #64748b !important;
-          font-weight: 600 !important;
         }
 
         .main-nav .navbar-nav .nav-link {
@@ -359,7 +415,109 @@ export default function DashboardLayout({
         }
       `}} />
 
-      <div className="wrapper">
+      {!isLoading && !user ? (
+        /* Unauthenticated: Redirecting state */
+        <div
+          style={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#f8fafc',
+            color: '#0f172a',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+          }}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <div
+              style={{
+                width: '42px',
+                height: '42px',
+                border: '3.5px solid #e2e8f0',
+                borderTopColor: '#2563eb',
+                borderRadius: '50%',
+                animation: 'dashSpin 0.7s linear infinite',
+                margin: '0 auto 16px auto',
+              }}
+            />
+            <h6 style={{ fontWeight: '700', fontSize: '15px', color: '#0f172a', margin: '0 0 4px 0' }}>
+              Redirecting to Sign In...
+            </h6>
+          </div>
+        </div>
+      ) : !isLoading && user && !isAdmin ? (
+        /* Access Denied for regular non-admin customers */
+        <div
+          style={{
+            minHeight: '100vh',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#f8fafc',
+            color: '#0f172a',
+            fontFamily: 'system-ui, sans-serif',
+            padding: '20px',
+            textAlign: 'center',
+          }}
+        >
+          <div style={{ maxWidth: '440px', background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', padding: '36px', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+            <div
+              style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                color: '#ef4444',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '28px',
+                margin: '0 auto 20px auto',
+              }}
+            >
+              🚫
+            </div>
+            <h1 style={{ fontSize: '22px', fontWeight: '800', marginBottom: '8px', color: '#0f172a' }}>Access Denied</h1>
+            <p style={{ color: '#64748b', fontSize: '14px', lineHeight: '1.6', marginBottom: '24px' }}>
+              This administrator dashboard is strictly protected. Only authorized administrators with verified credentials can enter.
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+              <a
+                href="/"
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  color: '#334155',
+                  textDecoration: 'none',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                }}
+              >
+                Return to Storefront
+              </a>
+              <a
+                href="/login"
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '8px',
+                  backgroundColor: '#2563eb',
+                  color: '#ffffff',
+                  textDecoration: 'none',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                }}
+              >
+                Admin Sign In
+              </a>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Main Dashboard UI with Zero-FOUC Overlay */
+        <>
+          <div className="wrapper">
 
         {/* ========================================================
             1. TOPBAR (Exact Rasket Topbar)
@@ -400,7 +558,7 @@ export default function DashboardLayout({
                 
                 {/* Storefront Shortcut Link */}
                 <div className="topbar-item d-none d-sm-flex me-1">
-                  <Link
+                  <a
                     href="/"
                     className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
                     title="View Storefront"
@@ -408,25 +566,9 @@ export default function DashboardLayout({
                   >
                     <iconify-icon icon="solar:shop-2-broken" class="fs-18 align-middle"></iconify-icon>
                     <span>Storefront</span>
-                  </Link>
+                  </a>
                 </div>
 
-                {/* Theme Color (Light/Dark) */}
-                <div className="topbar-item">
-                  <button
-                    type="button"
-                    className="topbar-button"
-                    id="light-dark-mode"
-                    onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-                    title="Toggle Dark/Light Mode"
-                  >
-                    {theme === 'light' ? (
-                      <iconify-icon icon="solar:moon-broken" class="fs-24 align-middle light-mode"></iconify-icon>
-                    ) : (
-                      <iconify-icon icon="solar:sun-broken" class="fs-24 align-middle dark-mode"></iconify-icon>
-                    )}
-                  </button>
-                </div>
 
                 {/* Fullscreen Toggle */}
                 <div className="dropdown topbar-item d-none d-lg-flex">
@@ -444,7 +586,7 @@ export default function DashboardLayout({
                 </div>
 
                 {/* Notification Dropdown */}
-                <div className="dropdown topbar-item position-relative">
+                <div ref={notificationsRef} className="dropdown topbar-item position-relative">
                   <button
                     type="button"
                     className="topbar-button position-relative"
@@ -522,25 +664,18 @@ export default function DashboardLayout({
                   )}
                 </div>
 
-                {/* Theme Settings Button */}
-                <div className="topbar-item d-none d-md-flex">
-                  <button
-                    type="button"
-                    className="topbar-button"
-                    id="theme-settings-btn"
-                    onClick={() => setThemeOffcanvasOpen(true)}
-                    title="Theme Settings"
-                  >
-                    <iconify-icon icon="solar:settings-broken" class="fs-24 align-middle"></iconify-icon>
-                  </button>
-                </div>
 
                 {/* User Dropdown */}
-                <div className="dropdown topbar-item position-relative">
+                <div
+                  ref={profileDropdownRef}
+                  className="dropdown topbar-item position-relative"
+                  onMouseEnter={handleProfileMouseEnter}
+                  onMouseLeave={handleProfileMouseLeave}
+                >
                   <button
                     type="button"
                     className="topbar-button"
-                    onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                    onClick={() => setProfileDropdownOpen((prev) => !prev)}
                     style={{ background: 'transparent', border: 'none' }}
                   >
                     <span className="d-flex align-items-center gap-2">
@@ -561,56 +696,179 @@ export default function DashboardLayout({
                   {profileDropdownOpen && (
                     <div
                       className="dropdown-menu dropdown-menu-end show"
+                      onMouseEnter={handleProfileMouseEnter}
+                      onMouseLeave={handleProfileMouseLeave}
                       style={{
                         position: 'absolute',
                         right: 0,
                         top: '100%',
                         marginTop: '8px',
                         display: 'block',
-                        minWidth: '220px',
-                        boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
-                        borderRadius: '8px',
+                        minWidth: '235px',
+                        padding: 0,
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.12), 0 8px 10px -6px rgba(0, 0, 0, 0.04)',
+                        borderRadius: '12px',
                         zIndex: 1050,
+                        overflow: 'hidden',
                       }}
                     >
-                      <h6 className="dropdown-header">Welcome {user?.name || 'Administrator'}!</h6>
-                      <div className="px-3 pb-2">
-                        <span className="badge bg-primary-subtle text-primary fs-10">
-                          {user?.role || 'ADMIN'}
-                        </span>
-                      </div>
-
-                      <Link
-                        className="dropdown-item"
-                        href="/dashboard"
-                        onClick={() => setProfileDropdownOpen(false)}
-                      >
-                        <i className="bx bx-home-alt text-muted fs-18 align-middle me-1"></i>
-                        <span className="align-middle">Dashboard Overview</span>
-                      </Link>
-
-                      <Link
-                        className="dropdown-item"
-                        href="/"
-                        onClick={() => setProfileDropdownOpen(false)}
-                      >
-                        <i className="bx bx-store text-muted fs-18 align-middle me-1"></i>
-                        <span className="align-middle">Go to Storefront</span>
-                      </Link>
-
-                      <div className="dropdown-divider my-1"></div>
-
-                      <button
-                        type="button"
-                        className="dropdown-item text-danger"
-                        onClick={() => {
-                          setProfileDropdownOpen(false);
-                          logout();
+                      {/* Invisible hover bridge to prevent mouse leaving during cursor transit */}
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '-12px',
+                          left: 0,
+                          right: 0,
+                          height: '12px',
+                        }}
+                      />
+                      {/* User Header */}
+                      <div
+                        style={{
+                          padding: '12px 18px',
+                          backgroundColor: '#f8fafc',
+                          borderBottom: '1px solid #f1f5f9',
                         }}
                       >
-                        <i className="bx bx-log-out fs-18 align-middle me-1"></i>
-                        <span className="align-middle">Logout (Admin)</span>
-                      </button>
+                        <div
+                          style={{
+                            fontSize: '11px',
+                            fontWeight: 600,
+                            color: '#64748b',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.5px',
+                            lineHeight: 1.2,
+                            marginBottom: '3px',
+                          }}
+                        >
+                          Welcome
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '14px',
+                            fontWeight: 700,
+                            color: '#0f172a',
+                            lineHeight: '1.3',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                          title={user?.name || 'Administrator'}
+                        >
+                          {user?.name || 'Administrator'}
+                        </div>
+                        <div style={{ marginTop: '6px' }}>
+                          <span
+                            className="badge bg-primary-subtle text-primary"
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 700,
+                              padding: '2.5px 7px',
+                              borderRadius: '4px',
+                              letterSpacing: '0.4px',
+                              textTransform: 'uppercase',
+                            }}
+                          >
+                            {user?.role || 'ADMIN'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Menu List */}
+                      <div style={{ padding: '6px 0' }}>
+                        {/* 1. My Profile */}
+                        <a
+                          className="dropdown-item d-flex align-items-center"
+                          href="/profile"
+                          onClick={() => setProfileDropdownOpen(false)}
+                          style={{
+                            padding: '9px 18px',
+                            fontSize: '13.5px',
+                            fontWeight: 500,
+                            color: '#334155',
+                            gap: '12px',
+                            transition: 'background-color 0.15s ease, color 0.15s ease',
+                          }}
+                        >
+                          <i
+                            className="bx bx-user text-muted fs-18"
+                            style={{ width: '20px', textAlign: 'center', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          ></i>
+                          <span className="align-middle">My Profile</span>
+                        </a>
+
+                        {/* 2. Settings */}
+                        <a
+                          className="dropdown-item d-flex align-items-center"
+                          href="/profile#settings"
+                          onClick={() => setProfileDropdownOpen(false)}
+                          style={{
+                            padding: '9px 18px',
+                            fontSize: '13.5px',
+                            fontWeight: 500,
+                            color: '#334155',
+                            gap: '12px',
+                            transition: 'background-color 0.15s ease, color 0.15s ease',
+                          }}
+                        >
+                          <i
+                            className="bx bx-cog text-muted fs-18"
+                            style={{ width: '20px', textAlign: 'center', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          ></i>
+                          <span className="align-middle">Settings</span>
+                        </a>
+
+                        {/* 3. Go to Storefront */}
+                        <a
+                          className="dropdown-item d-flex align-items-center"
+                          href="/"
+                          onClick={() => setProfileDropdownOpen(false)}
+                          style={{
+                            padding: '9px 18px',
+                            fontSize: '13.5px',
+                            fontWeight: 500,
+                            color: '#334155',
+                            gap: '12px',
+                            transition: 'background-color 0.15s ease, color 0.15s ease',
+                          }}
+                        >
+                          <i
+                            className="bx bx-store text-muted fs-18"
+                            style={{ width: '20px', textAlign: 'center', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          ></i>
+                          <span className="align-middle">Go to Storefront</span>
+                        </a>
+
+                        <div className="dropdown-divider my-1 border-top" style={{ borderColor: '#f1f5f9' }}></div>
+
+                        {/* 4. Logout (Admin) */}
+                        <button
+                          type="button"
+                          className="dropdown-item d-flex align-items-center text-danger w-100"
+                          onClick={() => {
+                            setProfileDropdownOpen(false);
+                            logout();
+                          }}
+                          style={{
+                            padding: '9px 18px',
+                            fontSize: '13.5px',
+                            fontWeight: 600,
+                            gap: '12px',
+                            background: 'transparent',
+                            border: 'none',
+                            textAlign: 'left',
+                            transition: 'background-color 0.15s ease, color 0.15s ease',
+                          }}
+                        >
+                          <i
+                            className="bx bx-log-out fs-18 text-danger"
+                            style={{ width: '20px', textAlign: 'center', flexShrink: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+                          ></i>
+                          <span className="align-middle">Logout (Admin)</span>
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -675,6 +933,16 @@ export default function DashboardLayout({
                     <iconify-icon icon="solar:calendar-broken"></iconify-icon>
                   </span>
                   <span className="nav-text"> Calendar </span>
+                </Link>
+              </li>
+
+              {/* 3. User Management */}
+              <li className="nav-item">
+                <Link className={`nav-link ${pathname?.startsWith('/dashboard/users') ? 'active' : ''}`} href="/dashboard/users">
+                  <span className="nav-icon">
+                    <iconify-icon icon="solar:users-group-two-rounded-broken"></iconify-icon>
+                  </span>
+                  <span className="nav-text"> User Management </span>
                 </Link>
               </li>
 
@@ -835,8 +1103,8 @@ export default function DashboardLayout({
         {/* ========================================================
             4. PAGE CONTENT (Right side container)
            ======================================================== */}
-        <div className="page-content">
-          <div className="container-fluid">
+        <div className="page-content" style={{ backgroundColor: '#f8fafc', minHeight: 'calc(100vh - 70px)' }}>
+          <div className="container-fluid py-3">
             {children}
           </div>
 
@@ -854,8 +1122,58 @@ export default function DashboardLayout({
           </footer>
           {/* ========== Footer End ========== */}
         </div>
-
       </div>
+
+      {/* Mobile Sidebar Drawer Backdrop */}
+      {sidebarBackdrop && (
+        <div
+          className="offcanvas-backdrop fade show"
+          onClick={closeSidebarDrawer}
+          style={{ zIndex: 1035 }}
+        />
+      )}
+
+      {/* Seamless Starter / Refresh Overlay with smooth fade-out */}
+      {!overlayRemoved && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 99999,
+            backgroundColor: '#f8fafc',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: isLayoutReady ? 0 : 1,
+            pointerEvents: isLayoutReady ? 'none' : 'auto',
+            transition: 'opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+          }}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <div
+              style={{
+                width: '44px',
+                height: '44px',
+                border: '3.5px solid #e2e8f0',
+                borderTopColor: '#2563eb',
+                borderRadius: '50%',
+                animation: 'dashSpin 0.7s linear infinite',
+                margin: '0 auto 16px auto',
+              }}
+            />
+            <h6 style={{ fontWeight: '700', fontSize: '15px', color: '#0f172a', margin: '0 0 4px 0' }}>
+              Loading Dashboard...
+            </h6>
+            <p style={{ color: '#64748b', fontSize: '13px', margin: 0 }}>
+              Preparing administrative workspace
+            </p>
+          </div>
+        </div>
+      )}
     </>
-  );
+  )}
+</>
+);
 }

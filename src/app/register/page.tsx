@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
@@ -8,6 +8,18 @@ import { useAuth } from '@/context/AuthContext';
 export default function RegisterPage() {
   const router = useRouter();
   const { register } = useAuth();
+
+  // Scroll to top on initial mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        if ('scrollRestoration' in window.history) {
+          window.history.scrollRestoration = 'manual';
+        }
+        window.scrollTo(0, 0);
+      } catch (e) {}
+    }
+  }, []);
 
   const [name, setName] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
@@ -129,8 +141,18 @@ export default function RegisterPage() {
     setLoading(false);
 
     if (res.success) {
+      if (typeof window !== 'undefined') {
+        try {
+          if ('scrollRestoration' in window.history) {
+            window.history.scrollRestoration = 'manual';
+          }
+          window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+          document.documentElement.scrollTop = 0;
+          document.body.scrollTop = 0;
+        } catch (e) {}
+      }
       // Customer registration complete -> redirect to home page
-      router.push('/');
+      router.push('/', { scroll: true });
     } else {
       setErrorMsg(res.message || 'Registration failed. Please try again.');
     }

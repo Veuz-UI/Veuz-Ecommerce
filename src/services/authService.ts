@@ -59,10 +59,38 @@ class AuthService {
   }
 
   /**
+   * Update Profile Details
+   */
+  public async updateProfile(data: Partial<User>): Promise<{ success: boolean; user: User; message?: string }> {
+    return apiClient.put<{ success: boolean; user: User; message?: string }>('/auth/profile', data);
+  }
+
+  /**
+   * Change Password
+   */
+  public async changePassword(data: { currentPassword: string; newPassword: string; confirmPassword?: string }): Promise<{ success: boolean; message?: string }> {
+    return apiClient.post<{ success: boolean; message?: string }>('/auth/change-password', data);
+  }
+
+  /**
+   * Delete Account
+   */
+  public async deleteAccount(): Promise<{ success: boolean; message?: string }> {
+    return apiClient.delete<{ success: boolean; message?: string }>('/auth/account');
+  }
+
+  /**
    * Send email verification link to customer
    */
   public async sendVerification(): Promise<ApiResponse> {
     return apiClient.post<ApiResponse>('/auth/send-verification');
+  }
+
+  /**
+   * Verify email with token
+   */
+  public async verifyEmail(token: string): Promise<ApiResponse> {
+    return apiClient.post<ApiResponse>('/auth/verify-email', { token });
   }
 
   /**

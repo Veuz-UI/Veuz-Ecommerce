@@ -1,38 +1,58 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useLayoutEffect } from 'react';
 import { usePathname } from 'next/navigation';
+
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 /**
  * StorefrontStyles Component
  * 
  * Exclusively loads storefront styles (Nest eCommerce theme: bootstrap, animate, uicons, style.css)
- * for the public website.
+ * for the public website and profile pages.
  * 
- * When entering /dashboard routes, it actively disables and removes storefront stylesheets
- * so they NEVER leak or override Rasket admin dashboard styles!
+ * Safely manages stylesheet isolation without toggling or disabling active stylesheets on re-render.
  */
 export const StorefrontStyles: React.FC = () => {
   const pathname = usePathname();
   const isDashboard = pathname?.startsWith('/dashboard');
 
-  useEffect(() => {
-    // If we are on storefront, enable any disabled storefront link elements
-    const links = document.querySelectorAll<HTMLLinkElement>('link[data-origin="storefront"]');
-    links.forEach((link) => {
-      link.disabled = false;
+  useIsomorphicLayoutEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    if (isDashboard) {
+      // If on dashboard, ensure storefront stylesheets are disabled
+      const sfLinks = document.querySelectorAll<HTMLLinkElement>('link[data-origin="storefront"]');
+      sfLinks.forEach((link) => {
+        if (!link.disabled) link.disabled = true;
+      });
+      return;
+    }
+
+    // 1. Only re-enable storefront links if they were previously disabled (e.g. returning from dashboard)
+    const sfLinks = document.querySelectorAll<HTMLLinkElement>('link[data-origin="storefront"]');
+    sfLinks.forEach((link) => {
+      if (link.disabled) {
+        link.disabled = false;
+      }
     });
 
-    return () => {
-      // If unmounting because we navigated to dashboard, disable storefront links
-      if (typeof window !== 'undefined' && window.location.pathname.startsWith('/dashboard')) {
-        const sfLinks = document.querySelectorAll<HTMLLinkElement>('link[data-origin="storefront"]');
-        sfLinks.forEach((link) => {
-          link.disabled = true;
-        });
+    // 2. Actively disable any dashboard links that might have leaked into the DOM
+    const dashLinks = document.querySelectorAll<HTMLLinkElement>('link[href*="/dashboard-assets/"]');
+    dashLinks.forEach((link) => {
+      if (!link.disabled) {
+        link.disabled = true;
       }
-    };
-  }, [pathname]);
+    });
+
+    // 3. Remove dashboard attributes from <html> so storefront layout is 100% clean
+    const html = document.documentElement;
+    if (html.hasAttribute('data-bs-theme')) html.removeAttribute('data-bs-theme');
+    if (html.hasAttribute('data-topbar-color')) html.removeAttribute('data-topbar-color');
+    if (html.hasAttribute('data-menu-color')) html.removeAttribute('data-menu-color');
+    if (html.hasAttribute('data-menu-size')) html.removeAttribute('data-menu-size');
+    if (html.classList.contains('sidebar-enable')) html.classList.remove('sidebar-enable');
+  }, [pathname, isDashboard]);
 
   if (isDashboard) {
     return null;

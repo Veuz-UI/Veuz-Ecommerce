@@ -177,6 +177,14 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
+    if (user.isBlocked) {
+      res.status(403).json({
+        success: false,
+        message: 'Your account has been suspended by an administrator. Please contact support.',
+      });
+      return;
+    }
+
     const token = signToken({
       id: user.id,
       email: user.email,
@@ -220,7 +228,7 @@ export const getMe = async (req: AuthenticatedRequest, res: Response): Promise<v
       return;
     }
 
-    const user = await prisma.user.findUnique({
+    const user = await (prisma.user as any).findUnique({
       where: { id: req.user.userId },
       select: {
         id: true,
@@ -228,6 +236,12 @@ export const getMe = async (req: AuthenticatedRequest, res: Response): Promise<v
         email: true,
         role: true,
         avatar: true,
+        phone: true,
+        alternatePhone: true,
+        dateOfBirth: true,
+        gender: true,
+        address: true,
+        settings: true,
         isEmailVerified: true,
         createdAt: true,
       },
@@ -566,3 +580,183 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     res.status(500).json({ success: false, message: 'Internal server error.' });
   }
 };
+
+// ========================================================
+// 8. UPDATE USER PROFILE
+// ========================================================
+export const updateProfile = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Authentication required' });
+      return;
+    }
+
+    const { name, email, phone, alternatePhone, dateOfBirth, gender, avatar, address, settings } = req.body;
+
+    const currentUser = await (prisma.user as any).findUnique({
+      where: { id: req.user.userId },
+    });
+
+    if (!currentUser) {
+      res.status(404).json({ success: false, message: 'User not found' });
+      return;
+    }
+
+    const updateData: any = {};
+
+    if (name !== undefined) updateData.name = name.trim();
+    if (phone !== undefined) updateData.phone = phone ? phone.trim() : null;
+    if (alternatePhone !== undefined) updateData.alternatePhone = alternatePhone ? alternatePhone.trim() : null;
+    if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth ? dateOfBirth.trim() : null;
+    if (gender !== undefined) updateData.gender = gender ? gender.trim() : null;
+    if (avatar !== undefined) updateData.avatar = avatar;
+    if (address !== undefined) updateData.address = address;
+    if (settings !== undefined) updateData.settings = settings;
+
+    // Email update rules:
+    if (email && email.toLowerCase().trim() !== currentUser.email.toLowerCase()) {
+      const newEmail = email.toLowerCase().trim();
+
+      // Rule: Admin email can only be changed by superadmin
+      if (currentUser.role === 'ADMIN' && req.user.role !== 'SUPER_ADMIN') {
+        res.status(403).json({
+          success: false,
+          message: 'Admin email is locked. It can only be changed by a Super Admin.',
+        });
+        return;
+      }
+
+      // Check uniqueness
+      const existingUser = await (prisma.user as any).findUnique({ where: { email: newEmail } });
+      if (existingUser && existingUser.id !== currentUser.id) {
+        res.status(400).json({ success: false, message: 'This email is already in use by another account.' });
+        return;
+      }
+
+      updateData.email = newEmail;
+      // Rule: When email is changed, it must be re-verified!
+      updateData.isEmailVerified = false;
+      updateData.verifyToken = crypto.randomBytes(32).toString('hex');
+      updateData.verifyTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    }
+
+    const updatedUser = await (prisma.user as any).update({
+      where: { id: req.user.userId },
+      data: updateData,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: updateData.email && updateData.isEmailVerified === false
+        ? 'Profile updated! A verification link has been sent to your new email.'
+        : 'Profile details successfully updated!',
+      user: {
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        avatar: updatedUser.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(updatedUser.name)}`,
+        phone: updatedUser.phone,
+        alternatePhone: updatedUser.alternatePhone,
+        dateOfBirth: updatedUser.dateOfBirth,
+        gender: updatedUser.gender,
+        address: updatedUser.address,
+        settings: updatedUser.settings,
+        isEmailVerified: updatedUser.isEmailVerified,
+      },
+    });
+  } catch (error: any) {
+    console.error('Update Profile Error:', error);
+    res.status(500).json({ success: false, message: error.message || 'Internal server error.' });
+  }
+};
+
+// ========================================================
+// 9. CHANGE PASSWORD
+// ========================================================
+export const changePassword = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Authentication required' });
+      return;
+    }
+
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+
+    if (!currentPassword || !newPassword) {
+      res.status(400).json({ success: false, message: 'Current password and new password are required' });
+      return;
+    }
+
+    if (confirmPassword && newPassword !== confirmPassword) {
+      res.status(400).json({ success: false, message: 'New password and confirm password do not match' });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      res.status(400).json({ success: false, message: 'New password must be at least 8 characters long' });
+      return;
+    }
+
+    const user = await (prisma.user as any).findUnique({
+      where: { id: req.user.userId },
+    });
+
+    if (!user) {
+      res.status(404).json({ success: false, message: 'User not found' });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      res.status(400).json({ success: false, message: 'Current password is incorrect' });
+      return;
+    }
+
+    const salt = await bcrypt.genSalt(12);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    await (prisma.user as any).update({
+      where: { id: user.id },
+      data: { password: hashedPassword },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Password successfully updated!',
+    });
+  } catch (error: any) {
+    console.error('Change Password Error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+};
+
+// ========================================================
+// 10. DELETE ACCOUNT
+// ========================================================
+export const deleteAccount = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.user) {
+      res.status(401).json({ success: false, message: 'Authentication required' });
+      return;
+    }
+
+    if (req.user.role === 'SUPER_ADMIN') {
+      res.status(403).json({ success: false, message: 'Super Admin account cannot be deleted.' });
+      return;
+    }
+
+    await (prisma.user as any).delete({
+      where: { id: req.user.userId },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Account successfully deleted.',
+    });
+  } catch (error: any) {
+    console.error('Delete Account Error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+};
+
