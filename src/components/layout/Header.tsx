@@ -2,14 +2,20 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { DEFAULT_SHOP_SETTINGS, ShopSettingsData, ShopCategory, MainMenuItem } from '@/data/defaultShopSettings';
+import { fetchShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsService';
 
 export const Header: React.FC = () => {
+  const router = useRouter();
   const { user, logout, isAdmin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchCatOpen, setSearchCatOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('Search by CATEGORIES');
+  const [searchInput, setSearchInput] = useState('');
   const [shopCatOpen, setShopCatOpen] = useState(false);
+  const [hoveredCategory, setHoveredCategory] = useState<ShopCategory | null>(null);
   const [langOpen, setLangOpen] = useState(false);
   const [mobileLangOpen, setMobileLangOpen] = useState(false);
   const [selectedLang, setSelectedLang] = useState('English');
@@ -32,6 +38,28 @@ export const Header: React.FC = () => {
       setAccountOpen(false);
     }, 300);
   };
+
+  // Desktop Mega Menu Graceful Hover State (280ms grace period to prevent premature closing on diagonal cursor moves)
+  const [activeMegaMenu, setActiveMegaMenu] = useState<string | null>(null);
+  const megaMenuTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleMegaMenuEnter = (menuKey: string) => {
+    if (megaMenuTimerRef.current) {
+      clearTimeout(megaMenuTimerRef.current);
+      megaMenuTimerRef.current = null;
+    }
+    setActiveMegaMenu(menuKey);
+  };
+
+  const handleMegaMenuLeave = () => {
+    if (megaMenuTimerRef.current) {
+      clearTimeout(megaMenuTimerRef.current);
+    }
+    megaMenuTimerRef.current = setTimeout(() => {
+      setActiveMegaMenu(null);
+    }, 280);
+  };
+
   const [mobileAccountOpen, setMobileAccountOpen] = useState(false);
   const [openAccordion, setOpenAccordion] = useState<string | null>(null);
 
@@ -62,6 +90,7 @@ export const Header: React.FC = () => {
       }
       if (shopCatRef.current && !shopCatRef.current.contains(event.target as Node)) {
         setShopCatOpen(false);
+        setHoveredCategory(null);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -72,14 +101,55 @@ export const Header: React.FC = () => {
     setOpenAccordion(prev => (prev === id ? null : id));
   };
 
-  const categories = [
-    { name: 'Tshirts', link: '/products' },
-    { name: 'Bag Print', link: '/products' },
-    { name: 'Gift Pack', link: '/products' },
-    { name: 'Paper Cup', link: '/products' },
-    { name: 'Brochure', link: '/products' },
-    { name: 'Hoodies', link: '/products' }
-  ];
+  const [shopCategories, setShopCategories] = useState<ShopCategory[]>(DEFAULT_SHOP_SETTINGS.categories);
+  const [mainMenuItems, setMainMenuItems] = useState<MainMenuItem[]>(DEFAULT_SHOP_SETTINGS.mainMenu);
+
+  // Sync settings dynamically from local cache & server
+  useEffect(() => {
+    let isMounted = true;
+    fetchShopSettings().then((data) => {
+      if (isMounted && data) {
+        if (Array.isArray(data.categories) && data.categories.length > 0) {
+          setShopCategories(data.categories);
+        }
+        if (Array.isArray(data.mainMenu) && data.mainMenu.length > 0) {
+          setMainMenuItems(data.mainMenu);
+        }
+      }
+    });
+
+    const handleUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent<ShopSettingsData>;
+      if (customEvent.detail) {
+        if (Array.isArray(customEvent.detail.categories)) {
+          setShopCategories(customEvent.detail.categories);
+        }
+        if (Array.isArray(customEvent.detail.mainMenu)) {
+          setMainMenuItems(customEvent.detail.mainMenu);
+        }
+      }
+    };
+
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'veuz_shop_settings_cache' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (parsed.categories) setShopCategories(parsed.categories);
+          if (parsed.mainMenu) setMainMenuItems(parsed.mainMenu);
+        } catch (err) {}
+      }
+    };
+
+    window.addEventListener(SHOP_SETTINGS_EVENT, handleUpdate);
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      isMounted = false;
+      window.removeEventListener(SHOP_SETTINGS_EVENT, handleUpdate);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
+
+  const categories = shopCategories.filter((c) => c.isActive !== false);
 
   const locations = [
     'Khobar Shamaliya',
@@ -201,7 +271,20 @@ export const Header: React.FC = () => {
               {/* Center: Search Bar with Category Selector & Yellow Search Button (Desktop & Tablet) */}
               <div className="header-right d-none d-xl-flex flex-grow-1 justify-content-center" style={{ maxWidth: '880px', width: '100%' }}>
                 <div className="search-style-2 w-100">
-                  <form action="#" onSubmit={(e) => e.preventDefault()}>
+                  <form
+                    action="#"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      const params = new URLSearchParams();
+                      if (searchInput.trim()) {
+                        params.set('q', searchInput.trim());
+                      }
+                      if (selectedCategory && selectedCategory !== 'Search by CATEGORIES') {
+                        params.set('category', selectedCategory);
+                      }
+                      router.push(`/products${params.toString() ? `?${params.toString()}` : ''}`);
+                    }}
+                  >
                     <div ref={searchCatRef} style={{ position: 'relative' }}>
                       <a
                         href="#"
@@ -211,8 +294,31 @@ export const Header: React.FC = () => {
                           setSearchCatOpen(!searchCatOpen);
                         }}
                       >
-                        <div className="search-cat" style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>
-                          {selectedCategory} <span></span>
+                        <div
+                          className="search-cat"
+                          style={{
+                            fontSize: '13px',
+                            whiteSpace: 'nowrap',
+                            justifyContent: 'flex-start',
+                            paddingLeft: '18px',
+                            paddingRight: '28px',
+                            textAlign: 'left',
+                          }}
+                        >
+                          <div
+                            style={{
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap',
+                              textAlign: 'left',
+                              maxWidth: '130px',
+                              fontWeight: '600',
+                              color: '#253D4E',
+                            }}
+                          >
+                            {selectedCategory}
+                          </div>
+                          <span></span>
                         </div>
                       </a>
                       
@@ -221,49 +327,66 @@ export const Header: React.FC = () => {
                           className="categories-dropdown-wrap categories-dropdown-active-large font-heading open"
                           style={{
                             display: 'block',
-                            minWidth: '220px',
+                            minWidth: '225px',
                             background: '#ffffff',
                             borderRadius: '8px',
                             boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
                             border: '1px solid #e2e8f0',
                             padding: '6px 0',
-                            zIndex: 9999
+                            zIndex: 9999,
                           }}
                         >
                           <div className="categori-dropdown-inner">
-                            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                            <ul
+                              className="search-categories-scroll-list"
+                              style={{
+                                listStyle: 'none',
+                                margin: 0,
+                                padding: 0,
+                                maxHeight: '232px', /* Always shows maximum 6 items before scrolling */
+                                overflowY: 'auto',
+                                overflowX: 'hidden',
+                                scrollbarWidth: 'thin',
+                                scrollbarColor: '#cbd5e1 transparent',
+                              }}
+                            >
                               <li
                                 onClick={() => {
                                   setSelectedCategory('Search by CATEGORIES');
                                   setSearchCatOpen(false);
                                 }}
                                 style={{
-                                  padding: '9px 18px',
+                                  padding: '9.5px 18px',
                                   cursor: 'pointer',
                                   fontSize: '13px',
-                                  fontWeight: selectedCategory === 'Search by CATEGORIES' ? '700' : '600',
+                                  fontWeight: selectedCategory === 'Search by CATEGORIES' ? '600' : '400',
                                   color: selectedCategory === 'Search by CATEGORIES' ? '#3BB77E' : '#253D4E',
                                   backgroundColor: selectedCategory === 'Search by CATEGORIES' ? '#f0fdf4' : 'transparent',
-                                  borderBottom: '1px solid #f1f5f9'
+                                  borderBottom: '1px solid #f1f5f9',
+                                  textAlign: 'left',
                                 }}
                               >
                                 Search by CATEGORIES
                               </li>
                               {categories.map((cat, idx) => (
                                 <li
-                                  key={idx}
+                                  key={cat.id || idx}
                                   onClick={() => {
                                     setSelectedCategory(cat.name);
                                     setSearchCatOpen(false);
                                   }}
                                   style={{
-                                    padding: '8px 18px',
+                                    padding: '9px 18px',
                                     cursor: 'pointer',
                                     fontSize: '13px',
-                                    fontWeight: selectedCategory === cat.name ? '700' : '500',
+                                    fontWeight: selectedCategory === cat.name ? '600' : '400',
                                     color: selectedCategory === cat.name ? '#3BB77E' : '#475569',
                                     backgroundColor: selectedCategory === cat.name ? '#f0fdf4' : 'transparent',
-                                    borderBottom: idx === categories.length - 1 ? 'none' : '1px solid #f8fafc'
+                                    borderBottom: idx === categories.length - 1 ? 'none' : '1px solid #f8fafc',
+                                    textAlign: 'left',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
                                   }}
                                 >
                                   {cat.name}
@@ -275,7 +398,13 @@ export const Header: React.FC = () => {
                       )}
                     </div>
 
-                    <input type="text" id="searchInput" placeholder="Search Products ..." />
+                    <input
+                      type="text"
+                      id="searchInput"
+                      placeholder="Search Products ..."
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                    />
                     
                     <button type="submit" className="search-btn">
                       <i className="fi-rs-search"></i>Search
@@ -616,31 +745,191 @@ export const Header: React.FC = () => {
                     onClick={(e) => {
                       e.preventDefault();
                       setShopCatOpen(!shopCatOpen);
+                      if (shopCatOpen) setHoveredCategory(null);
                     }}
                   >
                     <span className="fi-rs-apps"></span>
                     <span className="et">Shop by Categories</span>
                   </a>
                   
-                  <div className={"categories-dropdown-wrap categories-dropdown-active-large font-heading " + (shopCatOpen ? "open d-block" : "")}>
-                    <div className="categori-dropdown-inner">
-                      <ul>
-                        {categories.map((cat, idx) => (
-                          <li key={idx}>
-                            <Link href={cat.link} onClick={() => setShopCatOpen(false)}>
-                              <span>{cat.name}</span>
-                              <i className="fi-rs-angle-right w-100 d-flex justify-content-end"></i>
-                            </Link>
-                            <ul className="level-menu">
-                              <li><Link href={cat.link}>Custom {cat.name} 1</Link></li>
-                              <li><Link href={cat.link}>Custom {cat.name} 2</Link></li>
-                              <li><Link href={cat.link}>Custom {cat.name} 3</Link></li>
-                              <li><Link href={cat.link}>Custom {cat.name} 4</Link></li>
-                            </ul>
-                          </li>
-                        ))}
+                  <div
+                    className={"categories-dropdown-wrap categories-dropdown-active-large font-heading " + (shopCatOpen ? "open d-block" : "")}
+                    onMouseLeave={() => setHoveredCategory(null)}
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: 0,
+                      zIndex: 999,
+                      background: '#ffffff',
+                      border: '1px solid #BCE3C9',
+                      borderRadius: '8px',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+                      display: shopCatOpen ? 'flex' : 'none',
+                    }}
+                  >
+                    <div className="categori-dropdown-inner" style={{ position: 'relative', width: '270px' }}>
+                      <ul
+                        className="shop-categories-scroll-list"
+                        style={{
+                          listStyle: 'none',
+                          margin: 0,
+                          padding: '6px 0',
+                          maxHeight: '252px', /* Always show 6 items only before scrolling */
+                          overflowY: 'auto',
+                          overflowX: 'hidden',
+                          scrollbarWidth: 'thin',
+                          scrollbarColor: '#cbd5e1 transparent',
+                          width: '100%',
+                        }}
+                      >
+                        {categories.map((cat, idx) => {
+                          const isHovered = (hoveredCategory?.id && hoveredCategory.id === cat.id) || (hoveredCategory?.name === cat.name);
+                          return (
+                            <li
+                              key={cat.id || idx}
+                              onMouseEnter={() => setHoveredCategory(cat)}
+                              style={{
+                                height: '42px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                padding: '0 20px',
+                                backgroundColor: isHovered ? '#FDC839' : 'transparent',
+                                transition: 'background-color 0.2s',
+                                cursor: 'pointer',
+                              }}
+                            >
+                              <Link
+                                href={cat.link}
+                                onClick={() => {
+                                  setShopCatOpen(false);
+                                  setHoveredCategory(null);
+                                }}
+                                style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  width: '100%',
+                                  color: isHovered ? '#000000' : '#253D4E',
+                                  fontWeight: isHovered ? '700' : '600',
+                                  fontSize: '14px',
+                                  textDecoration: 'none',
+                                }}
+                              >
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>
+                                  {cat.name}
+                                </span>
+                                <i
+                                  className="fi-rs-angle-right"
+                                  style={{
+                                    fontSize: '11px',
+                                    color: isHovered ? '#000000' : '#4bb34d',
+                                    flexShrink: 0,
+                                  }}
+                                ></i>
+                              </Link>
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
+
+                    {/* Flyout Sub-menu positioned outside scroll container so it NEVER gets clipped */}
+                    {hoveredCategory && (
+                      <div
+                        className="shop-categories-flyout-menu"
+                        style={{
+                          position: 'absolute',
+                          left: '100%',
+                          top: '-1px',
+                          width: '240px',
+                          minHeight: '254px',
+                          maxHeight: '360px',
+                          overflowY: 'auto',
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #BCE3C9',
+                          borderRadius: '0 8px 8px 0',
+                          boxShadow: '8px 10px 25px rgba(0, 0, 0, 0.08)',
+                          zIndex: 1000,
+                          padding: '6px 0',
+                          scrollbarWidth: 'thin',
+                          scrollbarColor: '#cbd5e1 transparent',
+                        }}
+                      >
+                        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                          {hoveredCategory.subItems && hoveredCategory.subItems.length > 0 ? (
+                            hoveredCategory.subItems.map((sub, sIdx) => (
+                              <li
+                                key={sub.id || sIdx}
+                                style={{
+                                  height: '40px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  padding: '0 20px',
+                                  transition: 'background-color 0.15s',
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8f9fa')}
+                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                              >
+                                <Link
+                                  href={sub.link}
+                                  onClick={() => {
+                                    setShopCatOpen(false);
+                                    setHoveredCategory(null);
+                                  }}
+                                  style={{
+                                    color: '#253D4E',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    textDecoration: 'none',
+                                    width: '100%',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {sub.name}
+                                </Link>
+                              </li>
+                            ))
+                          ) : (
+                            [1, 2, 3, 4].map((num) => (
+                              <li
+                                key={num}
+                                style={{
+                                  height: '40px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  padding: '0 20px',
+                                  transition: 'background-color 0.15s',
+                                }}
+                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8f9fa')}
+                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                              >
+                                <Link
+                                  href={hoveredCategory.link}
+                                  onClick={() => {
+                                    setShopCatOpen(false);
+                                    setHoveredCategory(null);
+                                  }}
+                                  style={{
+                                    color: '#253D4E',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    textDecoration: 'none',
+                                    width: '100%',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  Custom {hoveredCategory.name} {num}
+                                </Link>
+                              </li>
+                            ))
+                          )}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -648,292 +937,143 @@ export const Header: React.FC = () => {
                 <div className="main-menu main-menu-padding-1 main-menu-lh-2 font-heading">
                   <nav>
                     <ul>
-                      
-                      {/* Mega Menu 1: Gift Products */}
-                      <li className="hot-deals position-static">
-                        <Link href="/products">
-                          Gift Products <i className="fi-rs-plus"></i>
-                        </Link>
-                        <ul className="mega-menu">
-                          <li className="sub-mega-menu sub-mega-menu-width-22">
-                            <Link className="menu-title" href="/products">Corporate Gifts</Link>
-                            <ul>
-                              <li><Link href="/products">Custom Pens &amp; Diaries</Link></li>
-                              <li><Link href="/products">Executive Gift Sets</Link></li>
-                              <li><Link href="/products">Thermal Flasks</Link></li>
-                              <li><Link href="/products">Leather Wallets</Link></li>
-                              <li><Link href="/products">Desk Organizers</Link></li>
-                              <li className="see-more-item">
-                                <Link href="/products" className="see-more-link">
-                                  See More <i className="fi-rs-arrow-small-right"></i>
-                                </Link>
-                              </li>
-                            </ul>
-                          </li>
-                          <li className="sub-mega-menu sub-mega-menu-width-22">
-                            <Link className="menu-title" href="/products">Event Giveaways</Link>
-                            <ul>
-                              <li><Link href="/products">Custom Mugs</Link></li>
-                              <li><Link href="/products">Tote Bags</Link></li>
-                              <li><Link href="/products">Keychains</Link></li>
-                              <li><Link href="/products">Badges &amp; Pins</Link></li>
-                              <li><Link href="/products">Wristbands</Link></li>
-                              <li className="see-more-item">
-                                <Link href="/products" className="see-more-link">
-                                  See More <i className="fi-rs-arrow-small-right"></i>
-                                </Link>
-                              </li>
-                            </ul>
-                          </li>
-                          <li className="sub-mega-menu sub-mega-menu-width-22">
-                            <Link className="menu-title" href="/products">Celebration Packs</Link>
-                            <ul>
-                              <li><Link href="/products">VIP Hampers</Link></li>
-                              <li><Link href="/products">Sweet Gift Boxes</Link></li>
-                              <li><Link href="/products">Festival Packages</Link></li>
-                              <li><Link href="/products">Custom Trophies</Link></li>
-                              <li><Link href="/products">Award Plaques</Link></li>
-                              <li className="see-more-item">
-                                <Link href="/products" className="see-more-link">
-                                  See More <i className="fi-rs-arrow-small-right"></i>
-                                </Link>
-                              </li>
-                            </ul>
-                          </li>
-                          <li className="sub-mega-menu sub-mega-menu-banner">
-                            <div className="menu-banner-wrap">
-                              <Link href="/products">
-                                <img src="/assets/imgs/banner/banner-menu.png" alt="Gift Deals" />
+                      {mainMenuItems.filter(m => m.isActive !== false).slice(0, 6).map((menuItem) => {
+                        const hasMega = menuItem.hasMegaMenu && menuItem.columns && menuItem.columns.length > 0;
+                        const isMenuOpen = activeMegaMenu === menuItem.id;
+
+                        if (hasMega) {
+                          return (
+                            <li
+                              key={menuItem.id}
+                              className={`position-static ${menuItem.isHotDeal ? 'hot-deals' : ''} ${isMenuOpen ? 'hover-active' : ''}`}
+                              onMouseEnter={() => handleMegaMenuEnter(menuItem.id)}
+                              onMouseLeave={handleMegaMenuLeave}
+                            >
+                              <Link href={menuItem.link} onClick={() => setActiveMegaMenu(null)}>
+                                {menuItem.name} <i className="fi-rs-plus"></i>
                               </Link>
-                              <div className="menu-banner-content">
-                                <h4>Hot deals</h4>
-                                <h3>Don&apos;t miss Trending</h3>
-                                <div className="menu-banner-price">
-                                  <span className="new-price text-success">Save up to 50%</span>
-                                </div>
-                                <div className="menu-banner-btn">
-                                  <Link href="/products">Shop now</Link>
-                                </div>
-                              </div>
-                              <div className="menu-banner-discount">
-                                <h3><span>25%</span> off</h3>
-                              </div>
-                            </div>
-                          </li>
-                        </ul>
-                      </li>
+                              <ul
+                                className={`mega-menu ${isMenuOpen ? 'is-open' : ''}`}
+                                onMouseEnter={() => handleMegaMenuEnter(menuItem.id)}
+                                onMouseLeave={handleMegaMenuLeave}
+                                onClick={() => setActiveMegaMenu(null)}
+                              >
+                                {menuItem.columns?.map((col) => (
+                                  <li key={col.id} className="sub-mega-menu sub-mega-menu-width-22">
+                                    <Link className="menu-title" href={col.link || menuItem.link}>{col.title}</Link>
+                                    <ul>
+                                      {col.items.map((subItem) => (
+                                        <li key={subItem.id}>
+                                          <Link href={subItem.link}>{subItem.name}</Link>
+                                        </li>
+                                      ))}
+                                      <li className="see-more-item">
+                                        <Link href={col.link || menuItem.link} className="see-more-link">
+                                          See More <i className="fi-rs-arrow-small-right"></i>
+                                        </Link>
+                                      </li>
+                                    </ul>
+                                  </li>
+                                ))}
 
-                      {/* Mega Menu 2: Accessories */}
-                      <li className="position-static">
-                        <Link href="/products">
-                          Accessories <i className="fi-rs-plus"></i>
-                        </Link>
-                        <ul className="mega-menu">
-                          <li className="sub-mega-menu sub-mega-menu-width-22">
-                            <Link className="menu-title" href="/products">Wearables</Link>
-                            <ul>
-                              <li><Link href="/products">Custom Caps</Link></li>
-                              <li><Link href="/products">Safety Helmets</Link></li>
-                              <li><Link href="/products">Reflective Vests</Link></li>
-                              <li><Link href="/products">Lanyards &amp; ID Badges</Link></li>
-                              <li><Link href="/products">Safety Gloves</Link></li>
-                              <li className="see-more-item">
-                                <Link href="/products" className="see-more-link">
-                                  See More <i className="fi-rs-arrow-small-right"></i>
-                                </Link>
-                              </li>
-                            </ul>
-                          </li>
-                          <li className="sub-mega-menu sub-mega-menu-width-22">
-                            <Link className="menu-title" href="/products">Bags &amp; Pouches</Link>
-                            <ul>
-                              <li><Link href="/products">Canvas Tote Bags</Link></li>
-                              <li><Link href="/products">Drawstring Bags</Link></li>
-                              <li><Link href="/products">Backpacks</Link></li>
-                              <li><Link href="/products">Laptop Sleeves</Link></li>
-                              <li><Link href="/products">Travel Pouches</Link></li>
-                              <li className="see-more-item">
-                                <Link href="/products" className="see-more-link">
-                                  See More <i className="fi-rs-arrow-small-right"></i>
-                                </Link>
-                              </li>
-                            </ul>
-                          </li>
-                          <li className="sub-mega-menu sub-mega-menu-width-22">
-                            <Link className="menu-title" href="/products">Office Accessories</Link>
-                            <ul>
-                              <li><Link href="/products">Mousepads</Link></li>
-                              <li><Link href="/products">Desk Mats</Link></li>
-                              <li><Link href="/products">USB Flash Drives</Link></li>
-                              <li><Link href="/products">Card Holders</Link></li>
-                              <li><Link href="/products">Badge Reels</Link></li>
-                              <li className="see-more-item">
-                                <Link href="/products" className="see-more-link">
-                                  See More <i className="fi-rs-arrow-small-right"></i>
-                                </Link>
-                              </li>
-                            </ul>
-                          </li>
-                          <li className="sub-mega-menu sub-mega-menu-banner">
-                            <div className="menu-banner-wrap">
-                              <Link href="/products">
-                                <img src="/assets/imgs/banner/banner-menu.png" alt="Accessories Offer" />
-                              </Link>
-                              <div className="menu-banner-content">
-                                <h4>Accessories</h4>
-                                <h3>Best Sellers 2026</h3>
-                                <div className="menu-banner-btn">
-                                  <Link href="/products">Explore</Link>
-                                </div>
-                              </div>
-                            </div>
-                          </li>
-                        </ul>
-                      </li>
+                                {menuItem.banner && menuItem.banner.enabled && (
+                                  <li className="sub-mega-menu sub-mega-menu-banner">
+                                    <div className="menu-banner-wrap">
+                                      <Link href={menuItem.banner.btnLink || menuItem.link}>
+                                        <img
+                                          src={menuItem.banner.image || '/assets/imgs/banner/banner-menu.png'}
+                                          alt={menuItem.banner.title || menuItem.name}
+                                        />
+                                      </Link>
+                                      <div className="menu-banner-content">
+                                        {menuItem.banner.tag && (
+                                          <h4
+                                            style={{
+                                              whiteSpace: 'nowrap',
+                                              overflow: 'hidden',
+                                              textOverflow: 'ellipsis',
+                                              maxWidth: '100%',
+                                              display: 'block',
+                                            }}
+                                            title={menuItem.banner.tag}
+                                          >
+                                            {menuItem.banner.tag}
+                                          </h4>
+                                        )}
+                                        <h3
+                                          style={{
+                                            display: '-webkit-box',
+                                            WebkitLineClamp: 2,
+                                            WebkitBoxOrient: 'vertical',
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            wordBreak: 'break-word',
+                                            maxHeight: '3em',
+                                            lineHeight: '1.5',
+                                          }}
+                                          title={menuItem.banner.title}
+                                        >
+                                          {menuItem.banner.title}
+                                        </h3>
+                                        {menuItem.banner.priceNote && (
+                                          <div className="menu-banner-price">
+                                            <span
+                                              className="new-price text-success"
+                                              style={{
+                                                display: '-webkit-box',
+                                                WebkitLineClamp: 2,
+                                                WebkitBoxOrient: 'vertical',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                wordBreak: 'break-word',
+                                                lineHeight: '1.25',
+                                              }}
+                                              title={menuItem.banner.priceNote}
+                                            >
+                                              {menuItem.banner.priceNote}
+                                            </span>
+                                          </div>
+                                        )}
+                                        {menuItem.banner.showBtn !== false && (
+                                          <div className="menu-banner-btn">
+                                            <Link href={menuItem.banner.btnLink || menuItem.link}>
+                                              {menuItem.banner.btnText || 'Shop now'}
+                                            </Link>
+                                          </div>
+                                        )}
+                                      </div>
+                                      {menuItem.banner.discountBadge && (
+                                        <div className="menu-banner-discount">
+                                          <h3>{menuItem.banner.discountBadge}</h3>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </li>
+                                )}
+                              </ul>
+                            </li>
+                          );
+                        }
 
-                      {/* Mega Menu 3: Printing Product */}
-                      <li className="position-static">
-                        <Link href="/products">
-                          Printing Product <i className="fi-rs-plus"></i>
-                        </Link>
-                        <ul className="mega-menu">
-                          <li className="sub-mega-menu sub-mega-menu-width-22">
-                            <Link className="menu-title" href="/products">Stationery</Link>
-                            <ul>
-                              <li><Link href="/products">Business Cards</Link></li>
-                              <li><Link href="/products">Letterheads</Link></li>
-                              <li><Link href="/products">Envelopes</Link></li>
-                              <li><Link href="/products">Invoices &amp; Receipts</Link></li>
-                              <li><Link href="/products">Notepads &amp; Bill Books</Link></li>
-                              <li className="see-more-item">
-                                <Link href="/products" className="see-more-link">
-                                  See More <i className="fi-rs-arrow-small-right"></i>
-                                </Link>
-                              </li>
-                            </ul>
+                        // Direct link (no mega menu)
+                        const isSpecial = menuItem.link.includes('offer') || menuItem.name.toLowerCase().includes('offer');
+                        return (
+                          <li key={menuItem.id} onMouseEnter={() => handleMegaMenuEnter('')}>
+                            <Link
+                              href={menuItem.link}
+                              className={isSpecial ? 'spcl' : ''}
+                              onClick={() => setActiveMegaMenu(null)}
+                            >
+                              {menuItem.name}
+                              {menuItem.badge && (
+                                <span className="badge bg-danger ms-1" style={{ fontSize: '10px' }}>
+                                  {menuItem.badge}
+                                </span>
+                              )}
+                            </Link>
                           </li>
-                          <li className="sub-mega-menu sub-mega-menu-width-22">
-                            <Link className="menu-title" href="/products">Marketing Material</Link>
-                            <ul>
-                              <li><Link href="/products">Flyers &amp; Leaflets</Link></li>
-                              <li><Link href="/products">Brochures &amp; Catalogs</Link></li>
-                              <li><Link href="/products">Roll-up Banners</Link></li>
-                              <li><Link href="/products">Posters &amp; Signage</Link></li>
-                              <li><Link href="/products">Table Tents</Link></li>
-                              <li className="see-more-item">
-                                <Link href="/products" className="see-more-link">
-                                  See More <i className="fi-rs-arrow-small-right"></i>
-                                </Link>
-                              </li>
-                            </ul>
-                          </li>
-                          <li className="sub-mega-menu sub-mega-menu-width-22">
-                            <Link className="menu-title" href="/products">Packaging</Link>
-                            <ul>
-                              <li><Link href="/products">Product Boxes</Link></li>
-                              <li><Link href="/products">Custom Stickers</Link></li>
-                              <li><Link href="/products">Paper Bags</Link></li>
-                              <li><Link href="/products">Hang Tags</Link></li>
-                              <li><Link href="/products">Shipping Tape</Link></li>
-                              <li className="see-more-item">
-                                <Link href="/products" className="see-more-link">
-                                  See More <i className="fi-rs-arrow-small-right"></i>
-                                </Link>
-                              </li>
-                            </ul>
-                          </li>
-                          <li className="sub-mega-menu sub-mega-menu-banner">
-                            <div className="menu-banner-wrap">
-                              <Link href="/products">
-                                <img src="/assets/imgs/banner/banner-menu.png" alt="Printing Deals" />
-                              </Link>
-                              <div className="menu-banner-content">
-                                <h4>Printing</h4>
-                                <h3>Custom Bulk Deals</h3>
-                                <div className="menu-banner-btn">
-                                  <Link href="/products">Order Now</Link>
-                                </div>
-                              </div>
-                            </div>
-                          </li>
-                        </ul>
-                      </li>
-
-                      {/* Mega Menu 4: Digital Cards */}
-                      <li className="position-static">
-                        <Link href="/products">
-                          Digital Cards <i className="fi-rs-plus"></i>
-                        </Link>
-                        <ul className="mega-menu">
-                          <li className="sub-mega-menu sub-mega-menu-width-22">
-                            <Link className="menu-title" href="/products">Smart NFC Cards</Link>
-                            <ul>
-                              <li><Link href="/products">Metallic NFC Business Cards</Link></li>
-                              <li><Link href="/products">Bamboo &amp; Wooden Cards</Link></li>
-                              <li><Link href="/products">Matte Black PVC Cards</Link></li>
-                              <li><Link href="/products">Frosted Translucent Cards</Link></li>
-                              <li><Link href="/products">Custom Epoxy NFC Tags</Link></li>
-                              <li className="see-more-item">
-                                <Link href="/products" className="see-more-link">
-                                  See More <i className="fi-rs-arrow-small-right"></i>
-                                </Link>
-                              </li>
-                            </ul>
-                          </li>
-                          <li className="sub-mega-menu sub-mega-menu-width-22">
-                            <Link className="menu-title" href="/products">Digital Profiles</Link>
-                            <ul>
-                              <li><Link href="/products">Dynamic QR Cards</Link></li>
-                              <li><Link href="/products">Enterprise Team Portals</Link></li>
-                              <li><Link href="/products">Contactless Tap &amp; Share</Link></li>
-                              <li><Link href="/products">Lead Capture Profiles</Link></li>
-                              <li><Link href="/products">Analytics &amp; Click Tracking</Link></li>
-                              <li className="see-more-item">
-                                <Link href="/products" className="see-more-link">
-                                  See More <i className="fi-rs-arrow-small-right"></i>
-                                </Link>
-                              </li>
-                            </ul>
-                          </li>
-                          <li className="sub-mega-menu sub-mega-menu-width-22">
-                            <Link className="menu-title" href="/products">Identity &amp; Access</Link>
-                            <ul>
-                              <li><Link href="/products">RFID Key Fobs</Link></li>
-                              <li><Link href="/products">Smart Event Badges</Link></li>
-                              <li><Link href="/products">Access Control Cards</Link></li>
-                              <li><Link href="/products">Membership VIP Cards</Link></li>
-                              <li><Link href="/products">Digital Loyalty Cards</Link></li>
-                              <li className="see-more-item">
-                                <Link href="/products" className="see-more-link">
-                                  See More <i className="fi-rs-arrow-small-right"></i>
-                                </Link>
-                              </li>
-                            </ul>
-                          </li>
-                          <li className="sub-mega-menu sub-mega-menu-banner">
-                            <div className="menu-banner-wrap">
-                              <Link href="/products">
-                                <img src="/assets/imgs/banner/banner-menu.png" alt="Digital Cards" />
-                              </Link>
-                              <div className="menu-banner-content">
-                                <h4>Digital Cards</h4>
-                                <h3>Next-Gen Networking</h3>
-                                <div className="menu-banner-btn">
-                                  <Link href="/products">Discover</Link>
-                                </div>
-                              </div>
-                            </div>
-                          </li>
-                        </ul>
-                      </li>
-
-                      {/* Special Offers link */}
-                      <li>
-                        <Link href="/offer" className="spcl">
-                          Special Offers
-                        </Link>
-                      </li>
-
+                        );
+                      })}
                     </ul>
                   </nav>
                 </div>
@@ -1317,201 +1457,87 @@ export const Header: React.FC = () => {
                     <span>Shop by Categories</span>
                     <span className="menu-expand"><i className="fi-rs-angle-small-down"></i></span>
                   </div>
-                  {openAccordion === 'categories' && (
-                    <ul className="dropdown-menu-list">
-                      {categories.map((cat, idx) => (
-                        <li key={idx}>
-                          <Link href={cat.link} onClick={() => setMobileMenuOpen(false)}>
-                            {cat.name}
+                  <div className={`mobile-accordion-collapse ${openAccordion === 'categories' ? 'is-open' : ''}`}>
+                    <div className="mobile-accordion-inner">
+                      <ul className="dropdown-menu-list">
+                        {categories.slice(0, 6).map((cat, idx) => (
+                          <li key={idx}>
+                            <Link href={cat.link} onClick={() => setMobileMenuOpen(false)}>
+                              {cat.name}
+                            </Link>
+                          </li>
+                        ))}
+                        <li className="view-all-item">
+                          <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="view-all-link">
+                            View All Categories <i className="fi-rs-arrow-small-right"></i>
                           </Link>
                         </li>
-                      ))}
-                    </ul>
-                  )}
-                </li>
-
-                {/* 3. Gift Products */}
-                <li className={"py-2 border-bottom menu-item-has-children " + (openAccordion === 'gifts' ? 'active' : '')}>
-                  <div
-                    className="d-flex align-items-center justify-content-between"
-                    onClick={() => toggleAccordion('gifts')}
-                    style={{ cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#253D4E' }}
-                  >
-                    <span>Gift Products</span>
-                    <span className="menu-expand"><i className="fi-rs-angle-small-down"></i></span>
+                      </ul>
+                    </div>
                   </div>
-                  {openAccordion === 'gifts' && (
-                    <ul className="dropdown-menu-list">
-                      <li><Link href="/products" onClick={() => setMobileMenuOpen(false)}>Executive Gift Boxes</Link></li>
-                      <li><Link href="/products" onClick={() => setMobileMenuOpen(false)}>Corporate Hampers</Link></li>
-                      <li><Link href="/products" onClick={() => setMobileMenuOpen(false)}>VIP Celebration Packs</Link></li>
-                    </ul>
-                  )}
                 </li>
 
-                {/* 4. Accessories */}
-                <li className={"py-2 border-bottom menu-item-has-children " + (openAccordion === 'accessories' ? 'active' : '')}>
-                  <div
-                    className="d-flex align-items-center justify-content-between"
-                    onClick={() => toggleAccordion('accessories')}
-                    style={{ cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#253D4E' }}
-                  >
-                    <span>Accessories</span>
-                    <span className="menu-expand"><i className="fi-rs-angle-small-down"></i></span>
-                  </div>
-                  {openAccordion === 'accessories' && (
-                    <ul className="dropdown-menu-list">
-                      <li><Link href="/products" onClick={() => setMobileMenuOpen(false)}>Bags &amp; Totes</Link></li>
-                      <li><Link href="/products" onClick={() => setMobileMenuOpen(false)}>Caps &amp; Badges</Link></li>
-                    </ul>
-                  )}
-                </li>
+                {/* Dynamic Main Menu items in Mobile Drawer */}
+                {mainMenuItems.filter(m => m.isActive !== false).slice(0, 6).map((menuItem) => {
+                  const hasSub = menuItem.hasMegaMenu && menuItem.columns && menuItem.columns.length > 0;
+                  const isAccordionOpen = openAccordion === menuItem.id;
 
-                {/* 5. Printing Product */}
-                <li className={"py-2 border-bottom menu-item-has-children " + (openAccordion === 'printing' ? 'active' : '')}>
-                  <div
-                    className="d-flex align-items-center justify-content-between"
-                    onClick={() => toggleAccordion('printing')}
-                    style={{ cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#253D4E' }}
-                  >
-                    <span>Printing Products</span>
-                    <span className="menu-expand"><i className="fi-rs-angle-small-down"></i></span>
-                  </div>
-                  {openAccordion === 'printing' && (
-                    <ul className="dropdown-menu-list">
-                      <li><Link href="/products" onClick={() => setMobileMenuOpen(false)}>Sticker &amp; Label Prints</Link></li>
-                      <li><Link href="/products" onClick={() => setMobileMenuOpen(false)}>Brochures &amp; Flyers</Link></li>
-                      <li><Link href="/products" onClick={() => setMobileMenuOpen(false)}>Package Boxes</Link></li>
-                    </ul>
-                  )}
-                </li>
+                  if (hasSub) {
+                    const allSubItems = menuItem.columns!.flatMap(col => col.items);
+                    return (
+                      <li
+                        key={menuItem.id}
+                        className={"py-2 border-bottom menu-item-has-children " + (isAccordionOpen ? 'active' : '')}
+                      >
+                        <div
+                          className="d-flex align-items-center justify-content-between"
+                          onClick={() => toggleAccordion(menuItem.id)}
+                          style={{ cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#253D4E' }}
+                        >
+                          <span>{menuItem.name}</span>
+                          <span className="menu-expand"><i className="fi-rs-angle-small-down"></i></span>
+                        </div>
+                        <div className={`mobile-accordion-collapse ${isAccordionOpen ? 'is-open' : ''}`}>
+                          <div className="mobile-accordion-inner">
+                            <ul className="dropdown-menu-list">
+                              {allSubItems.slice(0, 4).map((subItem) => (
+                                <li key={subItem.id}>
+                                  <Link href={subItem.link} onClick={() => setMobileMenuOpen(false)}>
+                                    {subItem.name}
+                                  </Link>
+                                </li>
+                              ))}
+                              <li className="view-all-item">
+                                <Link href={menuItem.link} onClick={() => setMobileMenuOpen(false)} className="view-all-link">
+                                  View All {menuItem.name} <i className="fi-rs-arrow-small-right"></i>
+                                </Link>
+                              </li>
+                            </ul>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  }
 
-                {/* 6. Digital Cards */}
-                <li className="py-2 border-bottom">
-                  <Link href="/products" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '14px', fontWeight: '600', color: '#253D4E' }}>
-                    Digital Cards
-                  </Link>
-                </li>
-
-                {/* 7. Special Offers */}
-                <li className="py-2 border-bottom">
-                  <Link href="/offer" onClick={() => setMobileMenuOpen(false)} className="d-flex align-items-center justify-content-between" style={{ fontSize: '14px', fontWeight: 'bold', color: '#e11d48' }}>
-                    <span>Special Offers</span>
-                    <span className="badge bg-danger">HOT</span>
-                  </Link>
-                </li>
-
-                {/* 8. User Account Links */}
-                <li className={"py-2 border-bottom menu-item-has-children " + (openAccordion === 'account' ? 'active' : '')}>
-                  <div
-                    className="d-flex align-items-center justify-content-between"
-                    onClick={() => toggleAccordion('account')}
-                    style={{ cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#253D4E' }}
-                  >
-                    <span>
-                      <i className="fi fi-rs-user mr-10 text-success"></i>
-                      {user ? `Account (${user.name.split(' ')[0]})` : 'My Account'}
-                    </span>
-                    <span className="menu-expand"><i className="fi-rs-angle-small-down"></i></span>
-                  </div>
-                  {openAccordion === 'account' && (
-                    <ul className="dropdown-menu-list">
-                      {user ? (
-                        isAdmin ? (
-                          <>
-                            <li>
-                              <a
-                                href="/dashboard"
-                                onClick={() => setMobileMenuOpen(false)}
-                                style={{ color: '#2563eb', fontWeight: '700' }}
-                              >
-                                <i className="fi fi-rs-apps mr-10"></i>Back to Dashboard
-                              </a>
-                            </li>
-                            <li>
-                              <a
-                                href="/login"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setMobileMenuOpen(false);
-                                  logout();
-                                }}
-                                style={{ color: '#ef4444', fontWeight: '600' }}
-                              >
-                                <i className="fi fi-rs-sign-out mr-10"></i>Sign out
-                              </a>
-                            </li>
-                          </>
-                        ) : (
-                          <>
-                            <li>
-                              <Link
-                                href="/profile#basic-info"
-                                onClick={() => {
-                                  setMobileMenuOpen(false);
-                                  if (typeof window !== 'undefined' && window.location.pathname === '/profile') {
-                                    window.location.hash = '#basic-info';
-                                  }
-                                }}
-                              >
-                                <i className="fi fi-rs-user mr-10"></i>My Profile
-                              </Link>
-                            </li>
-                            <li>
-                              <Link
-                                href="/profile#settings"
-                                onClick={() => {
-                                  setMobileMenuOpen(false);
-                                  if (typeof window !== 'undefined' && window.location.pathname === '/profile') {
-                                    window.location.hash = '#settings';
-                                  }
-                                }}
-                              >
-                                <i className="fi fi-rs-settings-sliders mr-10"></i>Settings
-                              </Link>
-                            </li>
-                            <li>
-                              <Link href="/history" onClick={() => setMobileMenuOpen(false)}>
-                                <i className="fi-rs-time-past mr-10"></i>Order History
-                              </Link>
-                            </li>
-                            <li>
-                              <Link href="/wishlist" onClick={() => setMobileMenuOpen(false)}>
-                                <i className="fi fi-rs-heart mr-10"></i>My Wishlist
-                              </Link>
-                            </li>
-                            <li>
-                              <a
-                                href="/"
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  setMobileMenuOpen(false);
-                                  logout();
-                                }}
-                                style={{ color: '#ef4444', fontWeight: '600' }}
-                              >
-                                <i className="fi fi-rs-sign-out mr-10"></i>Sign out
-                              </a>
-                            </li>
-                          </>
-                        )
-                      ) : (
-                        <>
-                          <li>
-                            <Link href="/login" onClick={() => setMobileMenuOpen(false)}>
-                              <i className="fi fi-rs-user mr-10"></i>Sign In
-                            </Link>
-                          </li>
-                          <li>
-                            <Link href="/register" onClick={() => setMobileMenuOpen(false)}>
-                              <i className="fi fi-rs-label mr-10"></i>Create Account
-                            </Link>
-                          </li>
-                        </>
-                      )}
-                    </ul>
-                  )}
-                </li>
+                  const isOffer = menuItem.link.includes('offer') || menuItem.name.toLowerCase().includes('offer');
+                  return (
+                    <li key={menuItem.id} className="py-2 border-bottom">
+                      <Link
+                        href={menuItem.link}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={isOffer ? "d-flex align-items-center justify-content-between" : ""}
+                        style={{
+                          fontSize: '14px',
+                          fontWeight: isOffer ? 'bold' : '600',
+                          color: isOffer ? '#e11d48' : '#253D4E'
+                        }}
+                      >
+                        <span>{menuItem.name}</span>
+                        {menuItem.badge && <span className="badge bg-danger">{menuItem.badge}</span>}
+                      </Link>
+                    </li>
+                  );
+                })}
 
               </ul>
             </nav>

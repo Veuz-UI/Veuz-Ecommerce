@@ -1,7 +1,9 @@
-﻿'use client';
+'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 import apiClient from '@/services/apiClient';
 
 interface UserItem {
@@ -34,7 +36,7 @@ interface UserCounts {
 }
 
 export default function UserManagementPage() {
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, isLoading: authLoading } = useAuth();
 
   // Tab State
   const [activeTab, setActiveTab] = useState<'admins' | 'customers'>('admins');
@@ -53,7 +55,7 @@ export default function UserManagementPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ACTIVE' | 'BLOCKED'>('ALL');
   const [roleFilter, setRoleFilter] = useState<'ALL' | 'SUPER_ADMIN' | 'ADMIN'>('ALL');
-  const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'danger' | 'info'; text: string } | null>(null);
+  const { showToast } = useToast();
 
   // Modal States
   const [resetModalUser, setResetModalUser] = useState<UserItem | null>(null);
@@ -72,7 +74,7 @@ export default function UserManagementPage() {
     name: '',
     email: '',
     password: '',
-    role: 'ADMIN' as 'ADMIN' | 'SUPER_ADMIN' | 'CUSTOMER',
+    role: 'ADMIN' as 'ADMIN' | 'SUPER_ADMIN',
     phone: '',
     gender: 'Male',
     dateOfBirth: '',
@@ -82,6 +84,7 @@ export default function UserManagementPage() {
 
   // Fetch Users
   const fetchUsers = useCallback(async () => {
+    if (!isSuperAdmin) return;
     setIsLoading(true);
     try {
       const res = await apiClient.get('/admin/users');
@@ -91,31 +94,26 @@ export default function UserManagementPage() {
       }
     } catch (err: any) {
       console.error('Error fetching users:', err);
-      showAlert('danger', err.message || 'Failed to load user records.');
+      showToast('danger', err.message || 'Failed to load user records.');
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isSuperAdmin, showToast]);
 
   useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
-
-  const showAlert = (type: 'success' | 'danger' | 'info', text: string) => {
-    setAlertMessage({ type, text });
-    setTimeout(() => {
-      setAlertMessage(null);
-    }, 4500);
-  };
+    if (isSuperAdmin) {
+      fetchUsers();
+    }
+  }, [isSuperAdmin, fetchUsers]);
 
   // Toggle Block / Suspend
   const handleToggleBlock = async (targetUser: UserItem) => {
     if (currentUser?.id === targetUser.id) {
-      showAlert('danger', 'You cannot block your own logged-in account.');
+      showToast('danger', 'You cannot block your own logged-in account.');
       return;
     }
     if ((targetUser.role === 'SUPER_ADMIN' || targetUser.role === 'ADMIN') && !isSuperAdmin) {
-      showAlert('danger', 'Only Super Administrators can modify administrator access status.');
+      showToast('danger', 'Only Super Administrators can modify administrator access status.');
       return;
     }
 
@@ -125,9 +123,14 @@ export default function UserManagementPage() {
       });
 
       if (res.success) {
-        showAlert('success', res.message || 'Status updated successfully.');
+        const nextState = !targetUser.isBlocked;
+        if (nextState) {
+          showToast('warning', res.message || `Account for ${targetUser.name} has been suspended/blocked.`, 'Alert Message');
+        } else {
+          showToast('success', res.message || `Account for ${targetUser.name} has been activated.`, 'Successfully Message');
+        }
         setUsers((prev) =>
-          prev.map((u) => (u.id === targetUser.id ? { ...u, isBlocked: !targetUser.isBlocked } : u))
+          prev.map((u) => (u.id === targetUser.id ? { ...u, isBlocked: nextState } : u))
         );
         setCounts((prev) => ({
           ...prev,
@@ -136,16 +139,16 @@ export default function UserManagementPage() {
         }));
       }
     } catch (err: any) {
-      showAlert('danger', err.message || 'Failed to update user status.');
+      showToast('danger', err.message || 'Failed to update user status.', 'Error Message');
     }
   };
 
-  // Handle Reset Password
+  // Handle Reset Password (Staff only)
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetModalUser) return;
     if (!newPassword || newPassword.length < 8) {
-      showAlert('danger', 'Password must be at least 8 characters long.');
+      showToast('danger', 'Password must be at least 8 characters long.', 'Error Message');
       return;
     }
 
@@ -156,12 +159,12 @@ export default function UserManagementPage() {
       });
 
       if (res.success) {
-        showAlert('success', `Password successfully updated for ${resetModalUser.name}!`);
+        showToast('success', `Password successfully updated for ${resetModalUser.name}!`, 'Successfully Message');
         setResetModalUser(null);
         setNewPassword('');
       }
     } catch (err: any) {
-      showAlert('danger', err.message || 'Failed to reset password.');
+      showToast('danger', err.message || 'Failed to reset password.', 'Error Message');
     } finally {
       setIsResetting(false);
     }
@@ -174,35 +177,34 @@ export default function UserManagementPage() {
     for (let i = 0; i < 12; i++) {
       pwd += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    // Guarantee letter and number
     pwd += 'A1!';
     setNewPassword(pwd);
   };
 
-  // Handle Delete User
+  // Handle Delete User (Staff only)
   const handleDeleteUserSubmit = async () => {
     if (!deleteModalUser) return;
     setIsDeleting(true);
     try {
       const res = await apiClient.delete(`/admin/users/${deleteModalUser.id}`);
       if (res.success) {
-        showAlert('success', res.message || 'Account successfully removed.');
+        showToast('danger', res.message || `Account for ${deleteModalUser.name} successfully deleted.`, 'Deleted Successfully');
         setUsers((prev) => prev.filter((u) => u.id !== deleteModalUser.id));
         setDeleteModalUser(null);
         fetchUsers();
       }
     } catch (err: any) {
-      showAlert('danger', err.message || 'Failed to delete user.');
+      showToast('danger', err.message || 'Failed to delete user.', 'Error Message');
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // Handle Create User Submit
+  // Handle Create User Submit (Staff only: ADMIN or SUPER_ADMIN)
   const handleCreateUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!createForm.name || !createForm.email || !createForm.password) {
-      showAlert('danger', 'Name, email, and password are required.');
+      showToast('danger', 'Name, email, and password are required.');
       return;
     }
 
@@ -210,7 +212,7 @@ export default function UserManagementPage() {
     try {
       const res = await apiClient.post('/admin/users', createForm);
       if (res.success) {
-        showAlert('success', res.message || 'Account created successfully!');
+        showToast('success', res.message || 'Administrator account created successfully!');
         setCreateModalOpen(false);
         setCreateForm({
           name: '',
@@ -224,15 +226,19 @@ export default function UserManagementPage() {
         fetchUsers();
       }
     } catch (err: any) {
-      showAlert('danger', err.message || 'Failed to create user account.');
+      showToast('danger', err.message || 'Failed to create user account.');
     } finally {
       setIsCreating(false);
     }
   };
 
-  // Filtered Users for Tab 1: Admins (SUPER_ADMIN and ADMIN)
+  // Filtered Users for Tab 1: Staff Admins (SUPER_ADMIN and ADMIN)
+  // Current logged in user is explicitly excluded
   const staffList = useMemo(() => {
     return users.filter((u) => {
+      // Exclude logged in user's own profile from the table
+      if (currentUser?.id && u.id === currentUser.id) return false;
+
       const isStaff = u.role === 'ADMIN' || u.role === 'SUPER_ADMIN';
       if (!isStaff) return false;
 
@@ -254,11 +260,15 @@ export default function UserManagementPage() {
 
       return true;
     });
-  }, [users, roleFilter, statusFilter, searchQuery]);
+  }, [users, currentUser?.id, roleFilter, statusFilter, searchQuery]);
 
   // Filtered Users for Tab 2: Customers
+  // Current logged in user is explicitly excluded
   const customerList = useMemo(() => {
     return users.filter((u) => {
+      // Exclude logged in user
+      if (currentUser?.id && u.id === currentUser.id) return false;
+
       const isCustomer = u.role === 'CUSTOMER';
       if (!isCustomer) return false;
 
@@ -277,156 +287,183 @@ export default function UserManagementPage() {
 
       return true;
     });
-  }, [users, statusFilter, searchQuery]);
+  }, [users, currentUser?.id, statusFilter, searchQuery]);
+
+  // If user is not superadmin, restrict access
+  if (!authLoading && !isSuperAdmin) {
+    return (
+      <div
+        className="card border-0 mb-4"
+        style={{
+          borderRadius: '12px',
+          border: '1px solid #e2e8f0',
+          backgroundColor: '#ffffff',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.04)',
+        }}
+      >
+        <div className="card-body p-5 text-center">
+          <div
+            className="d-inline-flex align-items-center justify-content-center mb-3"
+            style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '12px',
+              backgroundColor: '#fee2e2',
+              color: '#dc2626',
+              border: '1px solid #fecaca',
+            }}
+          >
+            <iconify-icon icon="solar:shield-warning-bold" class="fs-28"></iconify-icon>
+          </div>
+          <h3 className="fw-bold text-dark mb-2" style={{ fontSize: '20px', letterSpacing: '-0.3px' }}>
+            Access Restricted
+          </h3>
+          <p className="text-muted fs-14 mb-4" style={{ maxWidth: '440px', margin: '0 auto' }}>
+            User &amp; Staff Management is strictly restricted to Super Administrators. You do not have permission to view or manage platform accounts.
+          </p>
+          <Link
+            href="/dashboard"
+            className="btn btn-sm text-white fw-semibold px-4 py-2"
+            style={{ backgroundColor: '#0f172a', borderRadius: '8px' }}
+          >
+            Return to Dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
-      {/* Global Toast Alert */}
-      {alertMessage && (
-        <div
-          className={`alert alert-${alertMessage.type} alert-dismissible fade show d-flex align-items-center gap-2 shadow-sm mb-3`}
-          role="alert"
-          style={{ borderRadius: '10px' }}
-        >
-          <iconify-icon
-            icon={
-              alertMessage.type === 'success'
-                ? 'solar:check-circle-bold'
-                : alertMessage.type === 'danger'
-                ? 'solar:danger-circle-bold'
-                : 'solar:info-circle-bold'
-            }
-            class="fs-20 flex-shrink-0"
-          ></iconify-icon>
-          <div className="fs-13 fw-medium flex-grow-1">{alertMessage.text}</div>
-          <button
-            type="button"
-            className="btn-close"
-            onClick={() => setAlertMessage(null)}
-            aria-label="Close"
-          ></button>
-        </div>
-      )}
-
       {/* ========================================================
-          MAIN BACKGROUND WHITE CARD (Master Architecture)
+          MAIN BACKGROUND WHITE CARD (Matching Shop Settings)
          ======================================================== */}
       <div
         className="card border-0 mb-4"
         style={{
-          borderRadius: '10px',
+          borderRadius: '12px',
           backgroundColor: '#ffffff',
           border: '1px solid #e2e8f0',
-          boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.06), 0 1px 2px -1px rgba(0, 0, 0, 0.04)',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.04)',
         }}
       >
-        <div className="card-body p-3 p-md-4">
-          {/* 1. Header & Actions */}
-          <div className="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-2">
+        <div className="card-body p-4 p-md-4">
+          
+          {/* 1. Header & Actions Bar */}
+          <div className="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-3">
             <div>
-              <div className="d-flex align-items-center gap-2 text-muted fs-12 mb-1">
-                <span>Dashboard</span>
-                <iconify-icon icon="solar:alt-arrow-right-linear" class="fs-12"></iconify-icon>
-                <span className="text-primary fw-medium">User Management</span>
+              <div className="d-flex align-items-center text-muted fs-13" style={{ marginBottom: '24px', gap: '10px' }}>
+                <Link href="/dashboard" className="text-muted text-decoration-none">
+                  Dashboard
+                </Link>
+                <iconify-icon icon="solar:alt-arrow-right-linear" class="fs-13"></iconify-icon>
+                <span className="text-dark fw-bold">User &amp; Staff Management</span>
               </div>
-              <h3 className="fw-bold text-dark mb-1" style={{ fontSize: '20px', letterSpacing: '-0.3px' }}>
+              <h2
+                className="fw-bold text-dark"
+                style={{ fontSize: '23px', letterSpacing: '-0.4px', color: '#0f172a', marginBottom: '8px' }}
+              >
                 User &amp; Staff Management
-              </h3>
-              <p className="text-muted fs-13 mb-0">
-                Control platform administrators, super admins, permissions, and registered customer accounts.
+              </h2>
+              <p className="text-muted fs-14 mb-0" style={{ color: '#64748b' }}>
+                Manage team administrators, super administrators, platform permissions, and registered customer accounts.
               </p>
             </div>
 
-            <div className="d-flex align-items-center gap-2">
+            {/* Top Action Buttons: Refresh & Add Administrator (Only for Super Admin) */}
+            <div className="d-flex align-items-center gap-3">
               <button
                 type="button"
-                className="btn btn-sm d-flex align-items-center gap-1.5 fs-12 fw-semibold"
+                className="btn btn-sm d-flex align-items-center gap-2 fs-13 fw-semibold"
                 style={{
-                  borderRadius: '6px',
-                  padding: '7px 14px',
+                  borderRadius: '8px',
+                  padding: '9px 18px',
                   backgroundColor: '#ffffff',
                   border: '1px solid #d1d5db',
-                  color: '#334155',
-                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                  transition: 'all 0.15s ease-in-out',
+                  color: '#0f172a',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
+                  transition: 'all 0.2s ease',
                 }}
                 onClick={fetchUsers}
                 disabled={isLoading}
               >
-                <iconify-icon
-                  icon="solar:restart-bold"
-                  class={`fs-14 ${isLoading ? 'spin' : ''}`}
-                ></iconify-icon>
+                <iconify-icon icon="solar:restart-bold" class={`fs-16 ${isLoading ? 'spin' : ''}`}></iconify-icon>
                 <span>Refresh</span>
               </button>
 
+              {/* Add Administrator is strictly for SuperAdmin (Customers register directly via storefront) */}
               <button
                 type="button"
-                className="btn btn-sm d-flex align-items-center gap-1.5 fs-12 fw-semibold text-white"
+                className="btn btn-sm d-flex align-items-center gap-2 fs-13 fw-semibold text-white"
                 style={{
-                  borderRadius: '6px',
-                  padding: '7px 16px',
-                  backgroundColor: '#2563eb',
-                  border: '1px solid #1d4ed8',
-                  boxShadow: '0 1px 3px 0 rgba(37, 99, 235, 0.35), 0 1px 2px -1px rgba(37, 99, 235, 0.2)',
-                  transition: 'all 0.15s ease-in-out',
+                  borderRadius: '8px',
+                  padding: '10px 22px',
+                  backgroundColor: '#0f172a',
+                  border: '1px solid #0f172a',
+                  boxShadow: '0 2px 4px rgba(15, 23, 42, 0.25)',
+                  transition: 'all 0.2s ease',
                 }}
                 onClick={() => {
-                  setCreateForm((prev) => ({
-                    ...prev,
-                    role: activeTab === 'admins' ? 'ADMIN' : 'CUSTOMER',
-                  }));
+                  setCreateForm({
+                    name: '',
+                    email: '',
+                    password: '',
+                    role: 'ADMIN',
+                    phone: '',
+                    gender: 'Male',
+                    dateOfBirth: '',
+                  });
                   setCreateModalOpen(true);
                 }}
               >
-                <iconify-icon icon="solar:user-plus-bold" class="fs-15 text-white"></iconify-icon>
-                <span>{activeTab === 'admins' ? 'Add Administrator' : 'Add Customer'}</span>
+                <iconify-icon icon="solar:user-plus-bold" class="fs-17 text-white"></iconify-icon>
+                <span>+ Add Administrator</span>
               </button>
             </div>
           </div>
 
           {/* Divider */}
-          <div style={{ borderBottom: '1px solid #f1f5f9', margin: '16px 0 20px 0' }}></div>
+          <div style={{ borderBottom: '1px solid #f1f5f9', margin: '16px 0 22px 0' }}></div>
 
-          {/* 2. Metric KPI Cards (Inside Main Card) */}
+          {/* 2. Top Metric KPI Summary Cards (Using Standard System Styling - No Out-of-theme Colors) */}
           <div className="row g-3 mb-4">
-            {/* Total Users */}
+            {/* Total Accounts */}
             <div className="col-12 col-sm-6 col-xl-3">
               <div
                 className="card h-100 border"
                 style={{
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   borderColor: '#e2e8f0',
                   backgroundColor: '#ffffff',
-                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
                 }}
               >
-                <div className="card-body p-3">
+                <div className="card-body p-3.5">
                   <div className="d-flex align-items-center justify-content-between mb-2">
-                    <span className="text-muted fs-11 fw-bold text-uppercase" style={{ letterSpacing: '0.5px' }}>
+                    <span className="text-muted fs-12 fw-bold text-uppercase" style={{ letterSpacing: '0.6px', color: '#64748b' }}>
                       Total Accounts
                     </span>
                     <div
                       className="d-flex align-items-center justify-content-center"
                       style={{
-                        width: '38px',
-                        height: '38px',
+                        width: '40px',
+                        height: '40px',
                         borderRadius: '8px',
-                        backgroundColor: '#eff6ff',
-                        color: '#2563eb',
-                        border: '1px solid #dbeafe',
+                        backgroundColor: '#f1f5f9',
+                        color: '#0f172a',
+                        border: '1px solid #e2e8f0',
                       }}
                     >
-                      <iconify-icon icon="solar:users-group-two-rounded-bold" class="fs-18"></iconify-icon>
+                      <iconify-icon icon="solar:users-group-two-rounded-bold" class="fs-20"></iconify-icon>
                     </div>
                   </div>
                   <div className="d-flex align-items-baseline gap-2">
-                    <h3 className="fw-bold mb-0 text-dark" style={{ fontSize: '22px' }}>{counts.total}</h3>
+                    <h3 className="fw-bold mb-0 text-dark" style={{ fontSize: '24px' }}>{counts.total}</h3>
                     <span
-                      className="badge fs-11 fw-semibold d-inline-flex align-items-center gap-1"
-                      style={{ backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: '4px' }}
+                      className="badge fs-11 fw-semibold d-inline-flex align-items-center gap-1.5"
+                      style={{ backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: '4px', padding: '4px 8px' }}
                     >
-                      <span style={{ width: '5px', height: '5px', borderRadius: '50%', backgroundColor: '#16a34a' }}></span>
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#16a34a' }}></span>
                       {counts.active} Active
                     </span>
                   </div>
@@ -434,123 +471,123 @@ export default function UserManagementPage() {
               </div>
             </div>
 
-            {/* Super Admins */}
+            {/* Super Admins (Clean System Theme) */}
             <div className="col-12 col-sm-6 col-xl-3">
               <div
                 className="card h-100 border"
                 style={{
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   borderColor: '#e2e8f0',
                   backgroundColor: '#ffffff',
-                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
                 }}
               >
-                <div className="card-body p-3">
+                <div className="card-body p-3.5">
                   <div className="d-flex align-items-center justify-content-between mb-2">
-                    <span className="text-muted fs-11 fw-bold text-uppercase" style={{ letterSpacing: '0.5px' }}>
+                    <span className="text-muted fs-12 fw-bold text-uppercase" style={{ letterSpacing: '0.6px', color: '#64748b' }}>
                       Super Admins
                     </span>
                     <div
                       className="d-flex align-items-center justify-content-center"
                       style={{
-                        width: '38px',
-                        height: '38px',
+                        width: '40px',
+                        height: '40px',
                         borderRadius: '8px',
-                        backgroundColor: '#faf5ff',
-                        color: '#7e22ce',
-                        border: '1px solid #f3e8ff',
+                        backgroundColor: '#f1f5f9',
+                        color: '#0f172a',
+                        border: '1px solid #e2e8f0',
                       }}
                     >
-                      <iconify-icon icon="solar:crown-star-bold" class="fs-18"></iconify-icon>
+                      <iconify-icon icon="solar:crown-star-bold" class="fs-20"></iconify-icon>
                     </div>
                   </div>
                   <div className="d-flex align-items-baseline gap-2">
-                    <h3 className="fw-bold mb-0 text-dark" style={{ fontSize: '22px' }}>{counts.superAdmins}</h3>
-                    <span className="fs-12 text-muted fw-medium">Full Platform Root</span>
+                    <h3 className="fw-bold mb-0 text-dark" style={{ fontSize: '24px' }}>{counts.superAdmins}</h3>
+                    <span className="fs-12 text-muted fw-medium">Root Access</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Admins */}
+            {/* Administrators (Clean System Theme) */}
             <div className="col-12 col-sm-6 col-xl-3">
               <div
                 className="card h-100 border"
                 style={{
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   borderColor: '#e2e8f0',
                   backgroundColor: '#ffffff',
-                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
                 }}
               >
-                <div className="card-body p-3">
+                <div className="card-body p-3.5">
                   <div className="d-flex align-items-center justify-content-between mb-2">
-                    <span className="text-muted fs-11 fw-bold text-uppercase" style={{ letterSpacing: '0.5px' }}>
+                    <span className="text-muted fs-12 fw-bold text-uppercase" style={{ letterSpacing: '0.6px', color: '#64748b' }}>
                       Administrators
                     </span>
                     <div
                       className="d-flex align-items-center justify-content-center"
                       style={{
-                        width: '38px',
-                        height: '38px',
+                        width: '40px',
+                        height: '40px',
                         borderRadius: '8px',
-                        backgroundColor: '#f0fdfa',
-                        color: '#0d9488',
-                        border: '1px solid #ccfbf1',
+                        backgroundColor: '#f1f5f9',
+                        color: '#0f172a',
+                        border: '1px solid #e2e8f0',
                       }}
                     >
-                      <iconify-icon icon="solar:shield-check-bold" class="fs-18"></iconify-icon>
+                      <iconify-icon icon="solar:shield-check-bold" class="fs-20"></iconify-icon>
                     </div>
                   </div>
                   <div className="d-flex align-items-baseline gap-2">
-                    <h3 className="fw-bold mb-0 text-dark" style={{ fontSize: '22px' }}>{counts.admins}</h3>
-                    <span className="fs-12 text-muted fw-medium">Staff Access</span>
+                    <h3 className="fw-bold mb-0 text-dark" style={{ fontSize: '24px' }}>{counts.admins}</h3>
+                    <span className="fs-12 text-muted fw-medium">Staff Members</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Customers */}
+            {/* Customers (Clean System Theme) */}
             <div className="col-12 col-sm-6 col-xl-3">
               <div
                 className="card h-100 border"
                 style={{
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   borderColor: '#e2e8f0',
                   backgroundColor: '#ffffff',
-                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
                 }}
               >
-                <div className="card-body p-3">
+                <div className="card-body p-3.5">
                   <div className="d-flex align-items-center justify-content-between mb-2">
-                    <span className="text-muted fs-11 fw-bold text-uppercase" style={{ letterSpacing: '0.5px' }}>
+                    <span className="text-muted fs-12 fw-bold text-uppercase" style={{ letterSpacing: '0.6px', color: '#64748b' }}>
                       Registered Customers
                     </span>
                     <div
                       className="d-flex align-items-center justify-content-center"
                       style={{
-                        width: '38px',
-                        height: '38px',
+                        width: '40px',
+                        height: '40px',
                         borderRadius: '8px',
-                        backgroundColor: '#f0fdf4',
-                        color: '#16a34a',
-                        border: '1px solid #dcfce7',
+                        backgroundColor: '#f1f5f9',
+                        color: '#0f172a',
+                        border: '1px solid #e2e8f0',
                       }}
                     >
-                      <iconify-icon icon="solar:bag-smile-bold" class="fs-18"></iconify-icon>
+                      <iconify-icon icon="solar:bag-smile-bold" class="fs-20"></iconify-icon>
                     </div>
                   </div>
                   <div className="d-flex align-items-baseline gap-2">
-                    <h3 className="fw-bold mb-0 text-dark" style={{ fontSize: '22px' }}>{counts.customers}</h3>
+                    <h3 className="fw-bold mb-0 text-dark" style={{ fontSize: '24px' }}>{counts.customers}</h3>
                     {counts.blocked > 0 ? (
                       <span
                         className="badge fs-11 fw-semibold"
-                        style={{ backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '4px' }}
+                        style={{ backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: '4px', padding: '4px 8px' }}
                       >
                         {counts.blocked} Blocked
                       </span>
                     ) : (
-                      <span className="fs-12 text-muted fw-medium">Active Buyers</span>
+                      <span className="fs-12 text-muted fw-medium">Active Store Shoppers</span>
                     )}
                   </div>
                 </div>
@@ -558,498 +595,219 @@ export default function UserManagementPage() {
             </div>
           </div>
 
-          {/* 3. Table Container Card with Classic Segmented Control & Filter Header */}
-          <div
-            className="card border overflow-hidden mb-0"
-            style={{
-              borderRadius: '8px',
-              borderColor: '#e2e8f0',
-              backgroundColor: '#ffffff',
-              boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
-            }}
-          >
-            {/* Segmented Control Header */}
-            <div className="card-header bg-white border-bottom p-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
-              <div
-                className="d-inline-flex p-1"
+          {/* 3. Navigation Tabs (Black & White Theme Matching Shop Settings) */}
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 pb-3 mb-3 border-bottom">
+            <div className="d-flex align-items-center gap-2.5">
+              <button
+                type="button"
+                className={`btn d-flex align-items-center gap-2 fs-14 fw-semibold ${
+                  activeTab === 'admins' ? 'text-white shadow-sm' : 'text-secondary border'
+                }`}
                 style={{
-                  backgroundColor: '#f1f5f9',
-                  border: '1px solid #e2e8f0',
                   borderRadius: '8px',
+                  padding: '9px 20px',
+                  transition: 'all 0.2s ease',
+                  backgroundColor: activeTab === 'admins' ? '#0f172a' : '#ffffff',
+                  borderColor: activeTab === 'admins' ? '#0f172a' : '#e2e8f0',
+                  color: activeTab === 'admins' ? '#ffffff' : '#475569',
+                }}
+                onClick={() => {
+                  setActiveTab('admins');
+                  setRoleFilter('ALL');
+                  setStatusFilter('ALL');
                 }}
               >
-                <button
-                  type="button"
-                  className="btn btn-sm d-flex align-items-center gap-2 fs-13"
+                <iconify-icon icon="solar:shield-user-bold" class="fs-17"></iconify-icon>
+                <span>Administrators</span>
+                <span
+                  className="badge rounded-pill px-2"
                   style={{
-                    borderRadius: '6px',
-                    padding: '7px 18px',
-                    backgroundColor: activeTab === 'admins' ? '#ffffff' : 'transparent',
-                    color: activeTab === 'admins' ? '#0f172a' : '#64748b',
-                    fontWeight: activeTab === 'admins' ? 600 : 500,
-                    border: activeTab === 'admins' ? '1px solid rgba(0,0,0,0.08)' : '1px solid transparent',
-                    boxShadow: activeTab === 'admins' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                    transition: 'all 0.15s ease',
-                    letterSpacing: '-0.1px',
-                  }}
-                  onClick={() => {
-                    setActiveTab('admins');
-                    setStatusFilter('ALL');
-                    setRoleFilter('ALL');
+                    backgroundColor: activeTab === 'admins' ? 'rgba(255, 255, 255, 0.25)' : '#f1f5f9',
+                    color: activeTab === 'admins' ? '#ffffff' : '#475569',
+                    fontSize: '11px',
                   }}
                 >
-                  <span>Administrators</span>
-                  <span
-                    className="badge rounded-pill px-2 fs-11"
-                    style={{
-                      backgroundColor: activeTab === 'admins' ? '#eff6ff' : '#e2e8f0',
-                      color: activeTab === 'admins' ? '#1d4ed8' : '#64748b',
-                      fontWeight: 600,
-                      lineHeight: '1.6',
-                    }}
-                  >
-                    {counts.superAdmins + counts.admins}
-                  </span>
-                </button>
+                  {staffList.length}
+                </span>
+              </button>
 
-                <button
-                  type="button"
-                  className="btn btn-sm d-flex align-items-center gap-2 fs-13"
+              <button
+                type="button"
+                className={`btn d-flex align-items-center gap-2 fs-14 fw-semibold ${
+                  activeTab === 'customers' ? 'text-white shadow-sm' : 'text-secondary border'
+                }`}
+                style={{
+                  borderRadius: '8px',
+                  padding: '9px 20px',
+                  transition: 'all 0.2s ease',
+                  backgroundColor: activeTab === 'customers' ? '#0f172a' : '#ffffff',
+                  borderColor: activeTab === 'customers' ? '#0f172a' : '#e2e8f0',
+                  color: activeTab === 'customers' ? '#ffffff' : '#475569',
+                }}
+                onClick={() => {
+                  setActiveTab('customers');
+                  setStatusFilter('ALL');
+                }}
+              >
+                <iconify-icon icon="solar:users-group-rounded-bold" class="fs-17"></iconify-icon>
+                <span>Customers</span>
+                <span
+                  className="badge rounded-pill px-2"
                   style={{
-                    borderRadius: '6px',
-                    padding: '7px 18px',
-                    backgroundColor: activeTab === 'customers' ? '#ffffff' : 'transparent',
-                    color: activeTab === 'customers' ? '#0f172a' : '#64748b',
-                    fontWeight: activeTab === 'customers' ? 600 : 500,
-                    border: activeTab === 'customers' ? '1px solid rgba(0,0,0,0.08)' : '1px solid transparent',
-                    boxShadow: activeTab === 'customers' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                    transition: 'all 0.15s ease',
-                    letterSpacing: '-0.1px',
-                  }}
-                  onClick={() => {
-                    setActiveTab('customers');
-                    setStatusFilter('ALL');
+                    backgroundColor: activeTab === 'customers' ? 'rgba(255, 255, 255, 0.25)' : '#f1f5f9',
+                    color: activeTab === 'customers' ? '#ffffff' : '#475569',
+                    fontSize: '11px',
                   }}
                 >
-                  <span>Customers</span>
-                  <span
-                    className="badge rounded-pill px-2 fs-11"
-                    style={{
-                      backgroundColor: activeTab === 'customers' ? '#f0fdf4' : '#e2e8f0',
-                      color: activeTab === 'customers' ? '#15803d' : '#64748b',
-                      fontWeight: 600,
-                      lineHeight: '1.6',
-                    }}
-                  >
-                    {counts.customers}
-                  </span>
-                </button>
-              </div>
+                  {customerList.length}
+                </span>
+              </button>
+            </div>
 
-              <div className="fs-12 text-muted d-none d-md-block">
-                Showing <strong className="text-dark">{activeTab === 'admins' ? staffList.length : customerList.length}</strong>{' '}
-                {activeTab === 'admins' ? 'staff members' : 'registered customer accounts'}
+            <div className="fs-13 text-muted">
+              Showing <strong className="text-dark">{activeTab === 'admins' ? staffList.length : customerList.length}</strong> {activeTab === 'admins' ? 'team administrators' : 'registered customer accounts'}
+            </div>
+          </div>
+
+          {/* 4. Search & Filter Bar (Strict Single Line & Unified 40px Height Alignment) */}
+          <div
+            className="p-3 mb-4 rounded-3 border d-flex align-items-center gap-3 flex-wrap flex-md-nowrap"
+            style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
+          >
+            {/* Search Input */}
+            <div className="flex-grow-1" style={{ minWidth: '240px' }}>
+              <div className="input-group" style={{ height: '40px', borderRadius: '8px', overflow: 'hidden' }}>
+                <span
+                  className="input-group-text bg-white border-end-0 text-muted px-3"
+                  style={{ borderColor: '#d1d5db' }}
+                >
+                  <iconify-icon icon="solar:magnifer-linear" class="fs-16"></iconify-icon>
+                </span>
+                <input
+                  type="text"
+                  className="form-control border-start-0 fs-13"
+                  style={{ borderColor: '#d1d5db', height: '40px' }}
+                  placeholder={
+                    activeTab === 'admins'
+                      ? 'Search administrator by name, email, or mobile...'
+                      : 'Search customer by name, email, or mobile...'
+                  }
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                {searchQuery && (
+                  <button
+                    className="btn btn-white border-start-0 text-muted"
+                    style={{ borderColor: '#d1d5db' }}
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                  >
+                    <iconify-icon icon="solar:close-circle-bold" class="fs-16"></iconify-icon>
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Filter Bar */}
-            <div className="p-3 bg-light-subtle border-bottom d-flex flex-wrap align-items-center justify-content-between gap-3">
-              <div className="d-flex align-items-center gap-2 flex-grow-1" style={{ maxWidth: '420px' }}>
-                <div
-                  className="input-group"
-                  style={{
-                    borderRadius: '6px',
-                    boxShadow: '0 1px 2px 0 rgba(0,0,0,0.04)',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <span
-                    className="input-group-text bg-white text-muted"
-                    style={{ border: '1px solid #d1d5db', borderRight: 'none' }}
-                  >
-                    <iconify-icon icon="solar:magnifer-broken" class="fs-16"></iconify-icon>
-                  </span>
-                  <input
-                    type="text"
-                    className="form-control ps-0 fs-13"
-                    style={{ border: '1px solid #d1d5db', borderLeft: 'none' }}
-                    placeholder={
-                      activeTab === 'admins'
-                        ? 'Search administrator by name, email, or mobile...'
-                        : 'Search customer by name, email, or mobile...'
-                    }
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  {searchQuery && (
-                    <button
-                      className="btn btn-white text-muted"
-                      style={{ border: '1px solid #d1d5db', borderLeft: 'none' }}
-                      type="button"
-                      onClick={() => setSearchQuery('')}
-                    >
-                      <iconify-icon icon="solar:close-circle-broken" class="fs-16"></iconify-icon>
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="d-flex align-items-center gap-2 flex-wrap">
-                {/* Role Filter (Only for Admins Tab) */}
-                {activeTab === 'admins' && (
-                  <select
-                    className="form-select form-select-sm fs-13 fw-medium"
-                    style={{
-                      width: '160px',
-                      borderRadius: '6px',
-                      border: '1px solid #d1d5db',
-                      boxShadow: '0 1px 2px 0 rgba(0,0,0,0.04)',
-                      color: '#334155',
-                    }}
-                    value={roleFilter}
-                    onChange={(e) => setRoleFilter(e.target.value as any)}
-                  >
-                    <option value="ALL">All Staff Roles</option>
-                    <option value="SUPER_ADMIN">Super Admins Only</option>
-                    <option value="ADMIN">Admins Only</option>
-                  </select>
-                )}
-
-                {/* Status Filter */}
+            {/* Staff Role Filter (Only on Administrators Tab) */}
+            {activeTab === 'admins' && (
+              <div style={{ width: '180px', flexShrink: 0 }}>
                 <select
-                  className="form-select form-select-sm fs-13 fw-medium"
+                  className="form-select fs-13 fw-medium"
                   style={{
-                    width: '150px',
-                    borderRadius: '6px',
-                    border: '1px solid #d1d5db',
-                    boxShadow: '0 1px 2px 0 rgba(0,0,0,0.04)',
-                    color: '#334155',
+                    height: '40px',
+                    borderRadius: '8px',
+                    borderColor: '#d1d5db',
+                    color: '#0f172a',
+                    backgroundColor: '#ffffff',
                   }}
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value as any)}
                 >
-                  <option value="ALL">All Statuses</option>
-                  <option value="ACTIVE">Active Only</option>
-                  <option value="BLOCKED">Suspended Only</option>
+                  <option value="ALL">All Staff Roles</option>
+                  <option value="SUPER_ADMIN">Super Admins Only</option>
+                  <option value="ADMIN">Admins Only</option>
                 </select>
               </div>
+            )}
+
+            {/* Status Filter */}
+            <div style={{ width: '170px', flexShrink: 0 }}>
+              <select
+                className="form-select fs-13 fw-medium"
+                style={{
+                  height: '40px',
+                  borderRadius: '8px',
+                  borderColor: '#d1d5db',
+                  color: '#0f172a',
+                  backgroundColor: '#ffffff',
+                }}
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as any)}
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="ACTIVE">Active Only</option>
+                <option value="BLOCKED">Suspended Only</option>
+              </select>
             </div>
+          </div>
 
-            {/* 5. Table View */}
-            <div className="table-responsive">
-              {isLoading ? (
+          {/* 5. Table View: Matching Shop Settings Table Container */}
+          <div className="table-responsive rounded-3 border" style={{ borderColor: '#e2e8f0' }}>
+            {isLoading ? (
+              <div className="dashboard-loading-stable text-center py-5">
+                <div className="spinner-border text-dark" role="status"></div>
+                <p className="mt-2 fs-14 text-muted">Loading user database...</p>
+              </div>
+            ) : activeTab === 'admins' ? (
+              /* ========================================================
+                 TAB 1: ADMINISTRATORS TABLE (SUPER ADMIN & ADMIN ONLY)
+                 ======================================================== */
+              staffList.length === 0 ? (
                 <div className="text-center py-5">
-                  <div className="spinner-border text-primary mb-3" role="status">
-                    <span className="visually-hidden">Loading users...</span>
-                  </div>
-                  <p className="text-muted fs-13 mb-0">Loading user database...</p>
+                  <iconify-icon icon="solar:user-cross-broken" class="fs-40 text-muted mb-2"></iconify-icon>
+                  <h5 className="fs-15 text-dark fw-bold mb-1">No Administrators Found</h5>
+                  <p className="fs-13 text-muted mb-3">Try adjusting your search criteria or role filters.</p>
+                  <button
+                    type="button"
+                    className="btn btn-sm fs-13 px-4 py-2 fw-semibold text-white"
+                    style={{ backgroundColor: '#0f172a', borderRadius: '8px' }}
+                    onClick={() => {
+                      setSearchQuery('');
+                      setRoleFilter('ALL');
+                      setStatusFilter('ALL');
+                    }}
+                  >
+                    Clear Filters
+                  </button>
                 </div>
-              ) : activeTab === 'admins' ? (
-                /* ========================================================
-                   TAB 1: ADMINISTRATORS TABLE
-                   ======================================================== */
-                staffList.length === 0 ? (
-                  <div className="text-center py-5">
-                    <iconify-icon icon="solar:user-cross-broken" class="fs-48 text-muted mb-2"></iconify-icon>
-                    <h6 className="fw-semibold text-dark">No Administrators Found</h6>
-                    <p className="text-muted fs-13 mb-3">Try adjusting your search criteria or role filters.</p>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-primary"
-                      style={{ borderRadius: '6px' }}
-                      onClick={() => {
-                        setSearchQuery('');
-                        setRoleFilter('ALL');
-                        setStatusFilter('ALL');
-                      }}
-                    >
-                      Clear Filters
-                    </button>
-                  </div>
-                ) : (
-                  <table className="table table-hover align-middle mb-0">
-                    <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                      <tr className="fs-11 text-uppercase text-muted fw-bold">
-                        <th scope="col" className="ps-3 py-3" style={{ letterSpacing: '0.5px' }}>Administrator</th>
-                        <th scope="col" style={{ letterSpacing: '0.5px' }}>Role</th>
-                        <th scope="col" style={{ letterSpacing: '0.5px' }}>Contact</th>
-                        <th scope="col" style={{ letterSpacing: '0.5px' }}>Account Status</th>
-                        <th scope="col" style={{ letterSpacing: '0.5px' }}>Email Verified</th>
-                        <th scope="col" style={{ letterSpacing: '0.5px' }}>Joined Date</th>
-                        <th scope="col" className="text-end pe-3" style={{ letterSpacing: '0.5px' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="fs-13">
-                      {staffList.map((item) => {
-                        const isSelf = currentUser?.id === item.id;
-                        const canManage = isSuperAdmin || !['SUPER_ADMIN', 'ADMIN'].includes(item.role);
-
-                        return (
-                          <tr key={item.id} style={{ transition: 'background-color 0.15s ease' }}>
-                            {/* Administrator */}
-                            <td className="ps-3 py-3">
-                              <div className="d-flex align-items-center" style={{ gap: '14px' }}>
-                                <img
-                                  src={
-                                    item.avatar ||
-                                    `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(item.name)}`
-                                  }
-                                  alt={item.name}
-                                  className="rounded-circle border flex-shrink-0"
-                                  width="40"
-                                  height="40"
-                                  style={{ objectFit: 'cover', borderColor: '#e2e8f0', borderWidth: '2px' }}
-                                />
-                                <div>
-                                  <div className="fw-semibold text-dark d-flex align-items-center gap-2" style={{ fontSize: '13.5px', lineHeight: '1.35' }}>
-                                    <span>{item.name}</span>
-                                    {isSelf && (
-                                      <span
-                                        className="badge text-secondary"
-                                        style={{ fontSize: '10px', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '4px', fontWeight: 500 }}
-                                      >
-                                        You
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="text-muted mt-1" style={{ fontSize: '12px' }}>{item.email}</div>
-                                </div>
-                              </div>
-                            </td>
-
-                            {/* Role */}
-                            <td>
-                              {item.role === 'SUPER_ADMIN' ? (
-                                <span
-                                  className="badge d-inline-flex align-items-center gap-1"
-                                  style={{
-                                    backgroundColor: '#faf5ff',
-                                    color: '#7e22ce',
-                                    border: '1px solid #f3e8ff',
-                                    fontWeight: 700,
-                                    fontSize: '11px',
-                                    padding: '4px 8px',
-                                    borderRadius: '4px',
-                                  }}
-                                >
-                                  <iconify-icon icon="solar:crown-star-bold" class="fs-12"></iconify-icon>
-                                  SUPER ADMIN
-                                </span>
-                              ) : (
-                                <span
-                                  className="badge d-inline-flex align-items-center gap-1"
-                                  style={{
-                                    backgroundColor: '#eff6ff',
-                                    color: '#1d4ed8',
-                                    border: '1px solid #dbeafe',
-                                    fontWeight: 700,
-                                    fontSize: '11px',
-                                    padding: '4px 8px',
-                                    borderRadius: '4px',
-                                  }}
-                                >
-                                  <iconify-icon icon="solar:shield-check-bold" class="fs-12"></iconify-icon>
-                                  ADMINISTRATOR
-                                </span>
-                              )}
-                            </td>
-
-                            {/* Contact */}
-                            <td>
-                              {item.phone ? (
-                                <span className="text-dark fw-medium fs-13">{item.phone}</span>
-                              ) : (
-                                <span className="text-muted">â€”</span>
-                              )}
-                            </td>
-
-                            {/* Account Status */}
-                            <td>
-                              {item.isBlocked ? (
-                                <span
-                                  className="badge d-inline-flex align-items-center gap-1"
-                                  style={{
-                                    fontSize: '11.5px',
-                                    padding: '4px 8px',
-                                    borderRadius: '4px',
-                                    backgroundColor: '#fef2f2',
-                                    color: '#b91c1c',
-                                    border: '1px solid #fecaca',
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  <iconify-icon icon="solar:forbidden-circle-bold" class="fs-13"></iconify-icon>
-                                  Suspended
-                                </span>
-                              ) : (
-                                <span
-                                  className="badge d-inline-flex align-items-center gap-1.5"
-                                  style={{
-                                    fontSize: '11.5px',
-                                    padding: '4px 8px',
-                                    borderRadius: '4px',
-                                    backgroundColor: '#f0fdf4',
-                                    color: '#15803d',
-                                    border: '1px solid #bbf7d0',
-                                    fontWeight: 600,
-                                  }}
-                                >
-                                  <span
-                                    style={{
-                                      width: '6px',
-                                      height: '6px',
-                                      backgroundColor: '#16a34a',
-                                      borderRadius: '50%',
-                                    }}
-                                  ></span>
-                                  Active
-                                </span>
-                              )}
-                            </td>
-
-                            {/* Email Verified */}
-                            <td>
-                              {item.isEmailVerified ? (
-                                <span className="d-inline-flex align-items-center gap-1 fs-12 fw-semibold" style={{ color: '#15803d' }}>
-                                  <iconify-icon icon="solar:check-circle-bold" class="fs-15"></iconify-icon>
-                                  Verified
-                                </span>
-                              ) : (
-                                <span className="d-inline-flex align-items-center gap-1 fs-12 fw-semibold" style={{ color: '#b45309' }}>
-                                  <iconify-icon icon="solar:clock-circle-bold" class="fs-15"></iconify-icon>
-                                  Pending
-                                </span>
-                              )}
-                            </td>
-
-                            {/* Joined Date */}
-                            <td className="text-muted fs-12">
-                              {new Date(item.createdAt).toLocaleDateString('en-US', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                              })}
-                            </td>
-
-                            {/* Actions */}
-                            <td className="text-end pe-3">
-                              <div className="d-flex align-items-center justify-content-end" style={{ gap: '8px' }}>
-                                {/* Reset Password */}
-                                <button
-                                  type="button"
-                                  className="btn btn-sm d-inline-flex align-items-center justify-content-center p-0"
-                                  style={{
-                                    width: '34px',
-                                    height: '34px',
-                                    borderRadius: '7px',
-                                    backgroundColor: '#ffffff',
-                                    border: '1px solid #cbd5e1',
-                                    color: '#475569',
-                                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.07)',
-                                    transition: 'all 0.15s ease',
-                                  }}
-                                  title="Reset Password"
-                                  onClick={() => {
-                                    setResetModalUser(item);
-                                    setNewPassword('');
-                                  }}
-                                  disabled={item.role === 'SUPER_ADMIN' && !isSuperAdmin}
-                                >
-                                  <iconify-icon icon="solar:key-bold" class="fs-15"></iconify-icon>
-                                </button>
-
-                                {/* Block / Unblock Admin */}
-                                <button
-                                  type="button"
-                                  className="btn btn-sm d-inline-flex align-items-center justify-content-center p-0"
-                                  style={{
-                                    width: '34px',
-                                    height: '34px',
-                                    borderRadius: '7px',
-                                    backgroundColor: item.isBlocked ? '#f0fdf4' : '#fffbeb',
-                                    border: `1px solid ${item.isBlocked ? '#86efac' : '#fcd34d'}`,
-                                    color: item.isBlocked ? '#15803d' : '#92400e',
-                                    boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.07)',
-                                    transition: 'all 0.15s ease',
-                                  }}
-                                  title={item.isBlocked ? 'Activate Account' : 'Suspend Account'}
-                                  onClick={() => handleToggleBlock(item)}
-                                  disabled={isSelf || (item.role === 'SUPER_ADMIN' && !isSuperAdmin)}
-                                >
-                                  <iconify-icon
-                                    icon={item.isBlocked ? 'solar:check-circle-bold' : 'solar:forbidden-circle-bold'}
-                                    class="fs-15"
-                                  ></iconify-icon>
-                                </button>
-
-                                {/* Delete Admin */}
-                                <button
-                                  type="button"
-                                  className="btn btn-sm d-inline-flex align-items-center justify-content-center p-0"
-                                  style={{
-                                    width: '34px',
-                                    height: '34px',
-                                    borderRadius: '7px',
-                                    backgroundColor: '#fef2f2',
-                                    border: '1px solid #fca5a5',
-                                    color: '#dc2626',
-                                    boxShadow: '0 1px 3px 0 rgba(220, 38, 38, 0.12)',
-                                    transition: 'all 0.15s ease',
-                                  }}
-                                  title="Delete Account"
-                                  onClick={() => setDeleteModalUser(item)}
-                                  disabled={isSelf || (item.role === 'SUPER_ADMIN' && !isSuperAdmin)}
-                                >
-                                  <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-15"></iconify-icon>
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                )
               ) : (
-                /* ========================================================
-                   TAB 2: CUSTOMERS TABLE
-                   ======================================================== */
-                customerList.length === 0 ? (
-                  <div className="text-center py-5">
-                    <iconify-icon icon="solar:user-cross-broken" class="fs-48 text-muted mb-2"></iconify-icon>
-                    <h6 className="fw-semibold text-dark">No Customers Found</h6>
-                    <p className="text-muted fs-13 mb-3">Try adjusting your search query or status filter.</p>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-primary"
-                      style={{ borderRadius: '6px' }}
-                      onClick={() => {
-                        setSearchQuery('');
-                        setStatusFilter('ALL');
-                      }}
-                    >
-                      Clear Filters
-                    </button>
-                  </div>
-                ) : (
-                  <table className="table table-hover align-middle mb-0">
-                    <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                      <tr className="fs-11 text-uppercase text-muted fw-bold">
-                        <th scope="col" className="ps-3 py-3" style={{ letterSpacing: '0.5px' }}>Customer</th>
-                        <th scope="col" style={{ letterSpacing: '0.5px' }}>Phone</th>
-                        <th scope="col" style={{ letterSpacing: '0.5px' }}>Gender / DOB</th>
-                        <th scope="col" style={{ letterSpacing: '0.5px' }}>Account Status</th>
-                        <th scope="col" style={{ letterSpacing: '0.5px' }}>Email Verified</th>
-                        <th scope="col" style={{ letterSpacing: '0.5px' }}>Orders</th>
-                        <th scope="col" style={{ letterSpacing: '0.5px' }}>Registered</th>
-                        <th scope="col" className="text-end pe-3" style={{ letterSpacing: '0.5px' }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="fs-13">
-                      {customerList.map((item) => (
-                        <tr key={item.id} style={{ transition: 'background-color 0.15s ease' }}>
-                          {/* Customer Info */}
-                          <td className="ps-3 py-3">
+                <table className="table table-hover align-middle mb-0" style={{ borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold" style={{ width: '60px', letterSpacing: '0.6px' }}>#</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold" style={{ letterSpacing: '0.6px' }}>Administrator</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold" style={{ letterSpacing: '0.6px' }}>Role</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold" style={{ letterSpacing: '0.6px' }}>Contact</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold text-center" style={{ letterSpacing: '0.6px' }}>Status</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold text-center" style={{ letterSpacing: '0.6px' }}>Email Verified</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold" style={{ letterSpacing: '0.6px' }}>Joined Date</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold text-end" style={{ letterSpacing: '0.6px' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {staffList.map((item, idx) => {
+                      return (
+                        <tr
+                          key={item.id}
+                          style={{
+                            borderBottom: '1px solid #f1f5f9',
+                            transition: 'background-color 0.15s ease',
+                          }}
+                        >
+                          <td className="py-3.5 px-4 text-muted fs-13 fw-semibold">{idx + 1}</td>
+
+                          {/* Administrator Info */}
+                          <td className="py-3.5 px-4">
                             <div className="d-flex align-items-center" style={{ gap: '14px' }}>
                               <img
                                 src={
@@ -1063,36 +821,64 @@ export default function UserManagementPage() {
                                 style={{ objectFit: 'cover', borderColor: '#e2e8f0', borderWidth: '2px' }}
                               />
                               <div>
-                                <div className="fw-semibold text-dark" style={{ fontSize: '13.5px', lineHeight: '1.35' }}>{item.name}</div>
-                                <div className="text-muted mt-1" style={{ fontSize: '12px' }}>{item.email}</div>
+                                <div className="fw-bold text-dark" style={{ fontSize: '13.5px', lineHeight: '1.35' }}>
+                                  {item.name}
+                                </div>
+                                <div className="text-muted mt-0.5" style={{ fontSize: '12px' }}>{item.email}</div>
                               </div>
                             </div>
                           </td>
 
-                          {/* Phone */}
-                          <td>
+                          {/* Role Badge (Standard System Colors: Black for SuperAdmin, Slate for Admin) */}
+                          <td className="py-3.5 px-4">
+                            {item.role === 'SUPER_ADMIN' ? (
+                              <span
+                                className="badge d-inline-flex align-items-center gap-1.5"
+                                style={{
+                                  backgroundColor: '#0f172a',
+                                  color: '#ffffff',
+                                  border: '1px solid #0f172a',
+                                  fontWeight: 700,
+                                  fontSize: '11.5px',
+                                  padding: '5px 10px',
+                                  borderRadius: '6px',
+                                  letterSpacing: '0.3px',
+                                }}
+                              >
+                                <iconify-icon icon="solar:crown-star-bold" class="fs-13 text-white"></iconify-icon>
+                                SUPER ADMIN
+                              </span>
+                            ) : (
+                              <span
+                                className="badge d-inline-flex align-items-center gap-1.5"
+                                style={{
+                                  backgroundColor: '#f1f5f9',
+                                  color: '#0f172a',
+                                  border: '1px solid #cbd5e1',
+                                  fontWeight: 700,
+                                  fontSize: '11.5px',
+                                  padding: '5px 10px',
+                                  borderRadius: '6px',
+                                  letterSpacing: '0.3px',
+                                }}
+                              >
+                                <iconify-icon icon="solar:shield-check-bold" class="fs-13" style={{ color: '#0f172a' }}></iconify-icon>
+                                ADMINISTRATOR
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Contact */}
+                          <td className="py-3.5 px-4">
                             {item.phone ? (
-                              <span className="text-dark fw-medium fs-13">{item.phone}</span>
+                              <span className="text-dark fw-semibold fs-13 font-monospace">{item.phone}</span>
                             ) : (
-                              <span className="text-muted">â€”</span>
+                              <span className="text-muted">—</span>
                             )}
                           </td>
 
-                          {/* Gender / DOB */}
-                          <td className="text-muted fs-12">
-                            {item.gender || item.dateOfBirth ? (
-                              <div>
-                                {item.gender && <span className="fw-medium text-dark">{item.gender}</span>}
-                                {item.gender && item.dateOfBirth && <span> â€¢ </span>}
-                                {item.dateOfBirth && <span>{item.dateOfBirth}</span>}
-                              </div>
-                            ) : (
-                              <span>â€”</span>
-                            )}
-                          </td>
-
-                          {/* Status */}
-                          <td>
+                          {/* Account Status */}
+                          <td className="py-3.5 px-4 text-center">
                             {item.isBlocked ? (
                               <span
                                 className="badge d-inline-flex align-items-center gap-1"
@@ -1135,39 +921,23 @@ export default function UserManagementPage() {
                             )}
                           </td>
 
-                          {/* Email Status */}
-                          <td>
+                          {/* Email Verified */}
+                          <td className="py-3.5 px-4 text-center">
                             {item.isEmailVerified ? (
-                              <span className="d-inline-flex align-items-center gap-1 fs-12 fw-semibold" style={{ color: '#15803d' }}>
-                                <iconify-icon icon="solar:check-circle-bold" class="fs-15"></iconify-icon>
+                              <span className="badge d-inline-flex align-items-center gap-1 fs-12 fw-semibold" style={{ backgroundColor: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: '4px', padding: '4px 8px' }}>
+                                <iconify-icon icon="solar:check-circle-bold" class="fs-13"></iconify-icon>
                                 Verified
                               </span>
                             ) : (
-                              <span className="d-inline-flex align-items-center gap-1 fs-12 fw-semibold" style={{ color: '#b45309' }}>
-                                <iconify-icon icon="solar:clock-circle-bold" class="fs-15"></iconify-icon>
+                              <span className="badge d-inline-flex align-items-center gap-1 fs-12 fw-semibold" style={{ backgroundColor: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', borderRadius: '4px', padding: '4px 8px' }}>
+                                <iconify-icon icon="solar:clock-circle-bold" class="fs-13"></iconify-icon>
                                 Pending
                               </span>
                             )}
                           </td>
 
-                          {/* Orders */}
-                          <td>
-                            <span
-                              className="badge fw-semibold"
-                              style={{
-                                backgroundColor: '#f8fafc',
-                                color: '#334155',
-                                border: '1px solid #e2e8f0',
-                                borderRadius: '4px',
-                                padding: '4px 8px',
-                              }}
-                            >
-                              {item._count?.orders ?? 0} Orders
-                            </span>
-                          </td>
-
-                          {/* Registered */}
-                          <td className="text-muted fs-12">
+                          {/* Joined Date */}
+                          <td className="py-3.5 px-4 text-muted fs-12">
                             {new Date(item.createdAt).toLocaleDateString('en-US', {
                               day: 'numeric',
                               month: 'short',
@@ -1175,41 +945,21 @@ export default function UserManagementPage() {
                             })}
                           </td>
 
-                          {/* Actions */}
-                          <td className="text-end pe-3">
-                            <div className="d-flex align-items-center justify-content-end" style={{ gap: '8px' }}>
-                              {/* View Details */}
-                              <button
-                                type="button"
-                                className="btn btn-sm d-inline-flex align-items-center justify-content-center p-0"
-                                style={{
-                                  width: '34px',
-                                  height: '34px',
-                                  borderRadius: '7px',
-                                  backgroundColor: '#eff6ff',
-                                  border: '1px solid #bfdbfe',
-                                  color: '#1d4ed8',
-                                  boxShadow: '0 1px 3px 0 rgba(29, 78, 216, 0.1)',
-                                  transition: 'all 0.15s ease',
-                                }}
-                                title="View Customer Profile"
-                                onClick={() => setViewDetailsUser(item)}
-                              >
-                                <iconify-icon icon="solar:eye-bold" class="fs-15"></iconify-icon>
-                              </button>
-
+                          {/* Actions: Matching Shop Settings Button Aesthetics */}
+                          <td className="py-3.5 px-4 text-end">
+                            <div className="d-flex align-items-center justify-content-end gap-2">
                               {/* Reset Password */}
                               <button
                                 type="button"
-                                className="btn btn-sm d-inline-flex align-items-center justify-content-center p-0"
+                                className="btn btn-sm d-flex align-items-center justify-content-center"
                                 style={{
-                                  width: '34px',
-                                  height: '34px',
-                                  borderRadius: '7px',
+                                  borderRadius: '8px',
+                                  width: '36px',
+                                  height: '36px',
                                   backgroundColor: '#ffffff',
-                                  border: '1px solid #cbd5e1',
-                                  color: '#475569',
-                                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.07)',
+                                  border: '1px solid #d1d5db',
+                                  color: '#0f172a',
+                                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                                   transition: 'all 0.15s ease',
                                 }}
                                 title="Reset Password"
@@ -1218,66 +968,298 @@ export default function UserManagementPage() {
                                   setNewPassword('');
                                 }}
                               >
-                                <iconify-icon icon="solar:key-bold" class="fs-15"></iconify-icon>
+                                <iconify-icon icon="solar:key-bold" class="fs-16"></iconify-icon>
                               </button>
 
-                              {/* Block / Unblock */}
+                              {/* Block / Unblock Admin */}
                               <button
                                 type="button"
-                                className="btn btn-sm d-inline-flex align-items-center justify-content-center p-0"
+                                className="btn btn-sm d-flex align-items-center justify-content-center"
                                 style={{
-                                  width: '34px',
-                                  height: '34px',
-                                  borderRadius: '7px',
+                                  borderRadius: '8px',
+                                  width: '36px',
+                                  height: '36px',
                                   backgroundColor: item.isBlocked ? '#f0fdf4' : '#fffbeb',
-                                  border: `1px solid ${item.isBlocked ? '#86efac' : '#fcd34d'}`,
-                                  color: item.isBlocked ? '#15803d' : '#92400e',
-                                  boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.07)',
+                                  border: `1px solid ${item.isBlocked ? '#bbf7d0' : '#fde68a'}`,
+                                  color: item.isBlocked ? '#16a34a' : '#b45309',
+                                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                                   transition: 'all 0.15s ease',
                                 }}
-                                title={item.isBlocked ? 'Unblock Customer' : 'Suspend Customer'}
+                                title={item.isBlocked ? 'Activate Account' : 'Suspend Account'}
                                 onClick={() => handleToggleBlock(item)}
                               >
                                 <iconify-icon
                                   icon={item.isBlocked ? 'solar:check-circle-bold' : 'solar:forbidden-circle-bold'}
-                                  class="fs-15"
+                                  class="fs-17"
                                 ></iconify-icon>
                               </button>
 
-                              {/* Delete */}
+                              {/* Delete Admin */}
                               <button
                                 type="button"
-                                className="btn btn-sm d-inline-flex align-items-center justify-content-center p-0"
+                                className="btn btn-sm d-flex align-items-center justify-content-center"
                                 style={{
-                                  width: '34px',
-                                  height: '34px',
-                                  borderRadius: '7px',
-                                  backgroundColor: '#fef2f2',
-                                  border: '1px solid #fca5a5',
+                                  borderRadius: '8px',
+                                  width: '36px',
+                                  height: '36px',
+                                  backgroundColor: '#fee2e2',
+                                  border: '1px solid #fecaca',
                                   color: '#dc2626',
-                                  boxShadow: '0 1px 3px 0 rgba(220, 38, 38, 0.12)',
+                                  boxShadow: '0 1px 2px rgba(220, 38, 38, 0.1)',
                                   transition: 'all 0.15s ease',
                                 }}
-                                title="Delete Customer Account"
+                                title="Delete Account"
                                 onClick={() => setDeleteModalUser(item)}
                               >
-                                <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-15"></iconify-icon>
+                                <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-17"></iconify-icon>
                               </button>
                             </div>
                           </td>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )
-              )}
-            </div>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )
+            ) : (
+              /* ========================================================
+                 TAB 2: CUSTOMERS TABLE
+                 (ONLY VIEW & BLOCK ACTIONS - NO RESET PASSWORD, NO DELETE)
+                 ======================================================== */
+              customerList.length === 0 ? (
+                <div className="text-center py-5">
+                  <iconify-icon icon="solar:user-cross-broken" class="fs-40 text-muted mb-2"></iconify-icon>
+                  <h5 className="fs-15 text-dark fw-bold mb-1">No Customers Found</h5>
+                  <p className="fs-13 text-muted mb-3">Try adjusting your search query or status filter.</p>
+                  <button
+                    type="button"
+                    className="btn btn-sm fs-13 px-4 py-2 fw-semibold text-white"
+                    style={{ backgroundColor: '#0f172a', borderRadius: '8px' }}
+                    onClick={() => {
+                      setSearchQuery('');
+                      setStatusFilter('ALL');
+                    }}
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              ) : (
+                <table className="table table-hover align-middle mb-0" style={{ borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold" style={{ width: '60px', letterSpacing: '0.6px' }}>#</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold" style={{ letterSpacing: '0.6px' }}>Customer</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold" style={{ letterSpacing: '0.6px' }}>Mobile Number</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold" style={{ letterSpacing: '0.6px' }}>Gender / DOB</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold text-center" style={{ letterSpacing: '0.6px' }}>Status</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold text-center" style={{ letterSpacing: '0.6px' }}>Email Verified</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold text-center" style={{ letterSpacing: '0.6px' }}>Orders</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold" style={{ letterSpacing: '0.6px' }}>Registered</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold text-end" style={{ letterSpacing: '0.6px' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {customerList.map((item, idx) => (
+                      <tr
+                        key={item.id}
+                        style={{
+                          borderBottom: '1px solid #f1f5f9',
+                          transition: 'background-color 0.15s ease',
+                        }}
+                      >
+                        <td className="py-3.5 px-4 text-muted fs-13 fw-semibold">{idx + 1}</td>
+
+                        {/* Customer Info */}
+                        <td className="py-3.5 px-4">
+                          <div className="d-flex align-items-center" style={{ gap: '14px' }}>
+                            <img
+                              src={
+                                item.avatar ||
+                                `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(item.name)}`
+                              }
+                              alt={item.name}
+                              className="rounded-circle border flex-shrink-0"
+                              width="40"
+                              height="40"
+                              style={{ objectFit: 'cover', borderColor: '#e2e8f0', borderWidth: '2px' }}
+                            />
+                            <div>
+                              <div className="fw-bold text-dark" style={{ fontSize: '13.5px', lineHeight: '1.35' }}>
+                                {item.name}
+                              </div>
+                              <div className="text-muted mt-0.5" style={{ fontSize: '12px' }}>{item.email}</div>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* Mobile Number */}
+                        <td className="py-3.5 px-4">
+                          {item.phone ? (
+                            <span className="badge bg-light text-dark border font-monospace fs-12" style={{ padding: '6px 12px', borderRadius: '6px', backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}>
+                              {item.phone}
+                            </span>
+                          ) : (
+                            <span className="text-muted">—</span>
+                          )}
+                        </td>
+
+                        {/* Gender / DOB */}
+                        <td className="py-3.5 px-4 text-muted fs-12">
+                          {item.gender || item.dateOfBirth ? (
+                            <div>
+                              {item.gender && <span className="fw-medium text-dark">{item.gender}</span>}
+                              {item.gender && item.dateOfBirth && <span> • </span>}
+                              {item.dateOfBirth && <span>{item.dateOfBirth}</span>}
+                            </div>
+                          ) : (
+                            <span>—</span>
+                          )}
+                        </td>
+
+                        {/* Status */}
+                        <td className="py-3.5 px-4 text-center">
+                          {item.isBlocked ? (
+                            <span
+                              className="badge d-inline-flex align-items-center gap-1"
+                              style={{
+                                fontSize: '11.5px',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                backgroundColor: '#fef2f2',
+                                color: '#b91c1c',
+                                border: '1px solid #fecaca',
+                                fontWeight: 600,
+                              }}
+                            >
+                              <iconify-icon icon="solar:forbidden-circle-bold" class="fs-13"></iconify-icon>
+                              Suspended
+                            </span>
+                          ) : (
+                            <span
+                              className="badge d-inline-flex align-items-center gap-1.5"
+                              style={{
+                                fontSize: '11.5px',
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                backgroundColor: '#f0fdf4',
+                                color: '#15803d',
+                                border: '1px solid #bbf7d0',
+                                fontWeight: 600,
+                              }}
+                            >
+                              <span
+                                style={{
+                                  width: '6px',
+                                  height: '6px',
+                                  backgroundColor: '#16a34a',
+                                  borderRadius: '50%',
+                                }}
+                              ></span>
+                              Active
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Email Status */}
+                        <td className="py-3.5 px-4 text-center">
+                          {item.isEmailVerified ? (
+                            <span className="badge d-inline-flex align-items-center gap-1 fs-12 fw-semibold" style={{ backgroundColor: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: '4px', padding: '4px 8px' }}>
+                              <iconify-icon icon="solar:check-circle-bold" class="fs-13"></iconify-icon>
+                              Verified
+                            </span>
+                          ) : (
+                            <span className="badge d-inline-flex align-items-center gap-1 fs-12 fw-semibold" style={{ backgroundColor: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', borderRadius: '4px', padding: '4px 8px' }}>
+                              <iconify-icon icon="solar:clock-circle-bold" class="fs-13"></iconify-icon>
+                              Pending
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Orders */}
+                        <td className="py-3.5 px-4 text-center">
+                          <span
+                            className="badge fw-semibold"
+                            style={{
+                              backgroundColor: '#f1f5f9',
+                              color: '#334155',
+                              border: '1px solid #cbd5e1',
+                              borderRadius: '6px',
+                              padding: '5px 10px',
+                              fontSize: '12px',
+                            }}
+                          >
+                            {item._count?.orders ?? 0} Orders
+                          </span>
+                        </td>
+
+                        {/* Registered */}
+                        <td className="py-3.5 px-4 text-muted fs-12">
+                          {new Date(item.createdAt).toLocaleDateString('en-US', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </td>
+
+                        {/* Actions: Strictly VIEW and BLOCK/UNBLOCK ONLY (No Reset Password, No Delete) */}
+                        <td className="py-3.5 px-4 text-end">
+                          <div className="d-flex align-items-center justify-content-end gap-2">
+                            {/* View Profile */}
+                            <button
+                              type="button"
+                              className="btn btn-sm d-flex align-items-center justify-content-center"
+                              style={{
+                                borderRadius: '8px',
+                                width: '36px',
+                                height: '36px',
+                                backgroundColor: '#f1f5f9',
+                                color: '#0f172a',
+                                border: '1px solid #e2e8f0',
+                                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                                transition: 'all 0.15s ease',
+                              }}
+                              title="View Customer Profile"
+                              onClick={() => setViewDetailsUser(item)}
+                            >
+                              <iconify-icon icon="solar:eye-bold" class="fs-17"></iconify-icon>
+                            </button>
+
+                            {/* Block / Unblock Toggle */}
+                            <button
+                              type="button"
+                              className="btn btn-sm d-flex align-items-center justify-content-center"
+                              style={{
+                                borderRadius: '8px',
+                                width: '36px',
+                                height: '36px',
+                                backgroundColor: item.isBlocked ? '#f0fdf4' : '#fee2e2',
+                                border: `1px solid ${item.isBlocked ? '#bbf7d0' : '#fecaca'}`,
+                                color: item.isBlocked ? '#16a34a' : '#dc2626',
+                                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                                transition: 'all 0.15s ease',
+                              }}
+                              title={item.isBlocked ? 'Activate / Unblock Customer' : 'Suspend / Block Customer'}
+                              onClick={() => handleToggleBlock(item)}
+                            >
+                              <iconify-icon
+                                icon={item.isBlocked ? 'solar:check-circle-bold' : 'solar:forbidden-circle-bold'}
+                                class="fs-17"
+                              ></iconify-icon>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )
+            )}
           </div>
         </div>
       </div>
 
       {/* ========================================================
-          MODAL 1: RESET PASSWORD MODAL
+          MODAL 1: RESET PASSWORD MODAL (Staff Admins Only)
          ======================================================== */}
       {resetModalUser && (
         <div
@@ -1288,22 +1270,22 @@ export default function UserManagementPage() {
           <div className="modal-dialog modal-dialog-centered">
             <div
               className="modal-content border-0 shadow-lg"
-              style={{ borderRadius: '10px', overflow: 'hidden' }}
+              style={{ borderRadius: '12px', overflow: 'hidden' }}
             >
               <div className="modal-header border-bottom px-4 py-3 bg-white">
-                <div className="d-flex align-items-center gap-2">
+                <div className="d-flex align-items-center gap-2.5">
                   <div
                     className="d-flex align-items-center justify-content-center"
                     style={{
-                      width: '36px',
-                      height: '36px',
+                      width: '40px',
+                      height: '40px',
                       borderRadius: '8px',
-                      backgroundColor: '#eff6ff',
-                      color: '#2563eb',
-                      border: '1px solid #dbeafe',
+                      backgroundColor: '#f1f5f9',
+                      color: '#0f172a',
+                      border: '1px solid #e2e8f0',
                     }}
                   >
-                    <iconify-icon icon="solar:key-broken" class="fs-18"></iconify-icon>
+                    <iconify-icon icon="solar:key-bold" class="fs-20"></iconify-icon>
                   </div>
                   <div>
                     <h5 className="modal-title fs-15 fw-bold mb-0 text-dark">Reset Password</h5>
@@ -1323,7 +1305,7 @@ export default function UserManagementPage() {
               <form onSubmit={handleResetPasswordSubmit}>
                 <div className="modal-body px-4 py-3">
                   <div
-                    className="p-3 mb-3 d-flex align-items-center gap-2.5 border"
+                    className="p-3 mb-3 d-flex align-items-center gap-3 border"
                     style={{ backgroundColor: '#f8fafc', borderRadius: '8px', borderColor: '#e2e8f0' }}
                   >
                     <img
@@ -1335,12 +1317,12 @@ export default function UserManagementPage() {
                       }
                       alt={resetModalUser.name}
                       className="rounded-circle border"
-                      width="38"
-                      height="38"
+                      width="42"
+                      height="42"
                       style={{ objectFit: 'cover', borderColor: '#e2e8f0' }}
                     />
                     <div>
-                      <div className="fw-bold text-dark fs-13">{resetModalUser.name}</div>
+                      <div className="fw-bold text-dark fs-14">{resetModalUser.name}</div>
                       <div className="text-muted fs-12">{resetModalUser.email}</div>
                     </div>
                   </div>
@@ -1351,11 +1333,11 @@ export default function UserManagementPage() {
                     </label>
                     <div
                       className="input-group"
-                      style={{ borderRadius: '6px', overflow: 'hidden' }}
+                      style={{ borderRadius: '8px', overflow: 'hidden' }}
                     >
                       <input
                         type={showPassword ? 'text' : 'password'}
-                        className="form-control fs-13"
+                        className="form-control fs-13 py-2"
                         style={{ border: '1px solid #d1d5db', borderRight: 'none' }}
                         placeholder="Enter minimum 8 characters with letter & number"
                         value={newPassword}
@@ -1384,22 +1366,22 @@ export default function UserManagementPage() {
                         className="btn btn-link btn-sm p-0 fs-12 text-primary fw-semibold text-decoration-none"
                         onClick={generateStrongPassword}
                       >
-                        âš¡ Generate Strong Password
+                        ⚡ Generate Strong Password
                       </button>
                     </div>
                   </div>
                 </div>
 
-                <div className="modal-footer border-top px-4 py-2.5 bg-light-subtle d-flex align-items-center justify-content-end gap-2">
+                <div className="modal-footer border-top px-4 py-3 bg-light-subtle d-flex align-items-center justify-content-end gap-2">
                   <button
                     type="button"
-                    className="btn btn-sm fs-13 fw-semibold text-secondary"
+                    className="btn btn-sm fs-13 fw-semibold text-dark"
                     style={{
-                      borderRadius: '6px',
+                      borderRadius: '8px',
                       backgroundColor: '#ffffff',
                       border: '1px solid #d1d5db',
-                      padding: '6px 14px',
-                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                      padding: '9px 18px',
+                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                     }}
                     onClick={() => setResetModalUser(null)}
                     disabled={isResetting}
@@ -1408,13 +1390,13 @@ export default function UserManagementPage() {
                   </button>
                   <button
                     type="submit"
-                    className="btn btn-sm btn-primary fs-13 fw-semibold d-flex align-items-center gap-1.5 text-white"
+                    className="btn btn-sm fs-13 fw-semibold d-flex align-items-center gap-2 text-white"
                     style={{
-                      borderRadius: '6px',
-                      backgroundColor: '#2563eb',
-                      border: '1px solid #1d4ed8',
-                      padding: '6px 16px',
-                      boxShadow: '0 1px 3px 0 rgba(37, 99, 235, 0.35)',
+                      borderRadius: '8px',
+                      backgroundColor: '#0f172a',
+                      border: '1px solid #0f172a',
+                      padding: '9px 20px',
+                      boxShadow: '0 2px 4px rgba(15, 23, 42, 0.25)',
                     }}
                     disabled={isResetting}
                   >
@@ -1429,8 +1411,8 @@ export default function UserManagementPage() {
       )}
 
       {/* ========================================================
-          MODAL 2: CONFIRM DELETE MODAL
-          ======================================================== */}
+          MODAL 2: CONFIRM DELETE MODAL (Staff Admins Only)
+         ======================================================== */}
       {deleteModalUser && (
         <div
           className="modal fade show d-block"
@@ -1440,10 +1422,10 @@ export default function UserManagementPage() {
           <div className="modal-dialog modal-dialog-centered">
             <div
               className="modal-content border-0 shadow-lg"
-              style={{ borderRadius: '10px', overflow: 'hidden' }}
+              style={{ borderRadius: '12px', overflow: 'hidden' }}
             >
               <div className="modal-header border-bottom px-4 py-3 bg-danger-subtle text-danger">
-                <div className="d-flex align-items-center gap-2">
+                <div className="d-flex align-items-center gap-2.5">
                   <iconify-icon icon="solar:danger-triangle-bold" class="fs-22"></iconify-icon>
                   <h5 className="modal-title fs-15 fw-bold mb-0">Confirm Account Deletion</h5>
                 </div>
@@ -1462,7 +1444,7 @@ export default function UserManagementPage() {
                 </p>
                 <div
                   className="alert alert-warning d-flex align-items-start gap-2 p-2.5 fs-12 mb-0 border"
-                  style={{ borderRadius: '6px', borderColor: '#fef08a' }}
+                  style={{ borderRadius: '8px', borderColor: '#fef08a' }}
                 >
                   <iconify-icon icon="solar:info-circle-broken" class="fs-18 flex-shrink-0 mt-0.5"></iconify-icon>
                   <div>
@@ -1472,37 +1454,37 @@ export default function UserManagementPage() {
                 </div>
               </div>
 
-              <div className="modal-footer border-top px-4 py-2.5 bg-light-subtle d-flex align-items-center justify-content-end gap-2">
+              <div className="modal-footer border-top px-4 py-3 bg-light-subtle d-flex align-items-center justify-content-end gap-2">
                 <button
                   type="button"
-                  className="btn btn-sm fs-13 fw-semibold text-secondary"
+                  className="btn btn-sm fs-13 fw-semibold text-dark"
                   style={{
-                    borderRadius: '6px',
+                    borderRadius: '8px',
                     backgroundColor: '#ffffff',
                     border: '1px solid #d1d5db',
-                    padding: '6px 14px',
-                    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                    padding: '9px 18px',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                   }}
                   onClick={() => setDeleteModalUser(null)}
                   disabled={isDeleting}
                 >
-                  Cancel
+                  No, Cancel
                 </button>
                 <button
                   type="button"
-                  className="btn btn-sm btn-danger fs-13 fw-semibold d-flex align-items-center gap-1.5 text-white"
+                  className="btn btn-sm fs-13 fw-semibold d-flex align-items-center gap-2 text-white"
                   style={{
-                    borderRadius: '6px',
+                    borderRadius: '8px',
                     backgroundColor: '#dc2626',
                     border: '1px solid #b91c1c',
-                    padding: '6px 16px',
-                    boxShadow: '0 1px 3px 0 rgba(220, 38, 38, 0.35)',
+                    padding: '9px 20px',
+                    boxShadow: '0 2px 4px rgba(220, 38, 38, 0.25)',
                   }}
                   onClick={handleDeleteUserSubmit}
                   disabled={isDeleting}
                 >
                   {isDeleting && <span className="spinner-border spinner-border-sm"></span>}
-                  <span>Delete Permanently</span>
+                  <span>Yes, Delete Account</span>
                 </button>
               </div>
             </div>
@@ -1512,7 +1494,7 @@ export default function UserManagementPage() {
 
       {/* ========================================================
           MODAL 3: VIEW CUSTOMER DETAILS MODAL
-          ======================================================== */}
+         ======================================================== */}
       {viewDetailsUser && (
         <div
           className="modal fade show d-block"
@@ -1522,22 +1504,22 @@ export default function UserManagementPage() {
           <div className="modal-dialog modal-dialog-centered modal-lg">
             <div
               className="modal-content border-0 shadow-lg"
-              style={{ borderRadius: '10px', overflow: 'hidden' }}
+              style={{ borderRadius: '12px', overflow: 'hidden' }}
             >
               <div className="modal-header border-bottom px-4 py-3 bg-white">
-                <div className="d-flex align-items-center gap-2">
+                <div className="d-flex align-items-center gap-2.5">
                   <div
                     className="d-flex align-items-center justify-content-center"
                     style={{
-                      width: '36px',
-                      height: '36px',
+                      width: '40px',
+                      height: '40px',
                       borderRadius: '8px',
-                      backgroundColor: '#eff6ff',
-                      color: '#2563eb',
-                      border: '1px solid #dbeafe',
+                      backgroundColor: '#f1f5f9',
+                      color: '#0f172a',
+                      border: '1px solid #e2e8f0',
                     }}
                   >
-                    <iconify-icon icon="solar:user-id-broken" class="fs-18"></iconify-icon>
+                    <iconify-icon icon="solar:user-id-bold" class="fs-20"></iconify-icon>
                   </div>
                   <div>
                     <h5 className="modal-title fs-15 fw-bold mb-0 text-dark">Customer Profile Overview</h5>
@@ -1552,10 +1534,10 @@ export default function UserManagementPage() {
               </div>
 
               <div className="modal-body p-4">
-                {/* Header card */}
+                {/* Header Profile Card */}
                 <div
                   className="p-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3 border"
-                  style={{ backgroundColor: '#f8fafc', borderRadius: '8px', borderColor: '#e2e8f0' }}
+                  style={{ backgroundColor: '#f8fafc', borderRadius: '10px', borderColor: '#e2e8f0' }}
                 >
                   <div className="d-flex align-items-center gap-3">
                     <img
@@ -1567,23 +1549,24 @@ export default function UserManagementPage() {
                       }
                       alt={viewDetailsUser.name}
                       className="rounded-circle border"
-                      width="52"
-                      height="52"
-                      style={{ objectFit: 'cover', borderColor: '#e2e8f0' }}
+                      width="54"
+                      height="54"
+                      style={{ objectFit: 'cover', borderColor: '#e2e8f0', borderWidth: '2px' }}
                     />
                     <div>
-                      <h5 className="fw-bold text-dark mb-0.5">{viewDetailsUser.name}</h5>
+                      <h5 className="fw-bold text-dark mb-0.5" style={{ fontSize: '16px' }}>{viewDetailsUser.name}</h5>
                       <div className="text-muted fs-13 mb-1.5">{viewDetailsUser.email}</div>
                       <div className="d-flex align-items-center gap-2">
                         <span
                           className="badge"
                           style={{
-                            backgroundColor: '#eff6ff',
-                            color: '#1d4ed8',
-                            border: '1px solid #dbeafe',
-                            borderRadius: '4px',
+                            backgroundColor: '#f1f5f9',
+                            color: '#0f172a',
+                            border: '1px solid #cbd5e1',
+                            borderRadius: '6px',
                             fontSize: '11px',
                             fontWeight: 700,
+                            padding: '4px 8px',
                           }}
                         >
                           {viewDetailsUser.role}
@@ -1595,9 +1578,10 @@ export default function UserManagementPage() {
                               backgroundColor: '#fef2f2',
                               color: '#b91c1c',
                               border: '1px solid #fecaca',
-                              borderRadius: '4px',
+                              borderRadius: '6px',
                               fontSize: '11px',
                               fontWeight: 600,
+                              padding: '4px 8px',
                             }}
                           >
                             Suspended
@@ -1609,9 +1593,10 @@ export default function UserManagementPage() {
                               backgroundColor: '#f0fdf4',
                               color: '#15803d',
                               border: '1px solid #bbf7d0',
-                              borderRadius: '4px',
+                              borderRadius: '6px',
                               fontSize: '11px',
                               fontWeight: 600,
+                              padding: '4px 8px',
                             }}
                           >
                             Active
@@ -1624,9 +1609,10 @@ export default function UserManagementPage() {
                               backgroundColor: '#f0fdf4',
                               color: '#15803d',
                               border: '1px solid #bbf7d0',
-                              borderRadius: '4px',
+                              borderRadius: '6px',
                               fontSize: '11px',
                               fontWeight: 600,
+                              padding: '4px 8px',
                             }}
                           >
                             Email Verified
@@ -1638,9 +1624,10 @@ export default function UserManagementPage() {
                               backgroundColor: '#fffbeb',
                               color: '#b45309',
                               border: '1px solid #fde68a',
-                              borderRadius: '4px',
+                              borderRadius: '6px',
                               fontSize: '11px',
                               fontWeight: 600,
+                              padding: '4px 8px',
                             }}
                           >
                             Email Unverified
@@ -1665,26 +1652,26 @@ export default function UserManagementPage() {
                 <div className="row g-3">
                   <div className="col-12 col-md-6">
                     <div
-                      className="border p-3 h-100"
-                      style={{ borderRadius: '8px', borderColor: '#e2e8f0', backgroundColor: '#ffffff' }}
+                      className="border p-3.5 h-100"
+                      style={{ borderRadius: '10px', borderColor: '#e2e8f0', backgroundColor: '#ffffff' }}
                     >
                       <h6 className="fw-bold text-dark fs-13 border-bottom pb-2 mb-3">
                         Personal &amp; Contact Info
                       </h6>
                       <ul className="list-unstyled mb-0 fs-13">
-                        <li className="d-flex justify-content-between py-1.5 border-bottom border-light">
-                          <span className="text-muted">Primary Phone:</span>
-                          <span className="fw-medium text-dark">{viewDetailsUser.phone || 'Not provided'}</span>
+                        <li className="d-flex justify-content-between py-2 border-bottom border-light">
+                          <span className="text-muted">Mobile / Phone:</span>
+                          <span className="fw-semibold text-dark font-monospace">{viewDetailsUser.phone || 'Not provided'}</span>
                         </li>
-                        <li className="d-flex justify-content-between py-1.5 border-bottom border-light">
+                        <li className="d-flex justify-content-between py-2 border-bottom border-light">
                           <span className="text-muted">Alternate Phone:</span>
-                          <span className="fw-medium text-dark">{viewDetailsUser.alternatePhone || 'Not provided'}</span>
+                          <span className="fw-semibold text-dark font-monospace">{viewDetailsUser.alternatePhone || 'Not provided'}</span>
                         </li>
-                        <li className="d-flex justify-content-between py-1.5 border-bottom border-light">
+                        <li className="d-flex justify-content-between py-2 border-bottom border-light">
                           <span className="text-muted">Gender:</span>
                           <span className="fw-medium text-dark">{viewDetailsUser.gender || 'Not specified'}</span>
                         </li>
-                        <li className="d-flex justify-content-between py-1.5">
+                        <li className="d-flex justify-content-between py-2">
                           <span className="text-muted">Date of Birth:</span>
                           <span className="fw-medium text-dark">{viewDetailsUser.dateOfBirth || 'Not specified'}</span>
                         </li>
@@ -1694,33 +1681,33 @@ export default function UserManagementPage() {
 
                   <div className="col-12 col-md-6">
                     <div
-                      className="border p-3 h-100"
-                      style={{ borderRadius: '8px', borderColor: '#e2e8f0', backgroundColor: '#ffffff' }}
+                      className="border p-3.5 h-100"
+                      style={{ borderRadius: '10px', borderColor: '#e2e8f0', backgroundColor: '#ffffff' }}
                     >
                       <h6 className="fw-bold text-dark fs-13 border-bottom pb-2 mb-3">
                         Address Setup
                       </h6>
                       {viewDetailsUser.address && typeof viewDetailsUser.address === 'object' ? (
                         <ul className="list-unstyled mb-0 fs-13">
-                          <li className="d-flex justify-content-between py-1.5 border-bottom border-light">
+                          <li className="d-flex justify-content-between py-2 border-bottom border-light">
                             <span className="text-muted">Street:</span>
                             <span className="fw-medium text-dark">
-                              {(viewDetailsUser.address as any).street || 'â€”'}
+                              {(viewDetailsUser.address as any).street || '—'}
                             </span>
                           </li>
-                          <li className="d-flex justify-content-between py-1.5 border-bottom border-light">
+                          <li className="d-flex justify-content-between py-2 border-bottom border-light">
                             <span className="text-muted">City / Region:</span>
                             <span className="fw-medium text-dark">
-                              {(viewDetailsUser.address as any).city || 'â€”'}
+                              {(viewDetailsUser.address as any).city || '—'}
                             </span>
                           </li>
-                          <li className="d-flex justify-content-between py-1.5 border-bottom border-light">
+                          <li className="d-flex justify-content-between py-2 border-bottom border-light">
                             <span className="text-muted">Postal Code:</span>
                             <span className="fw-medium text-dark">
-                              {(viewDetailsUser.address as any).postalCode || 'â€”'}
+                              {(viewDetailsUser.address as any).postalCode || '—'}
                             </span>
                           </li>
-                          <li className="d-flex justify-content-between py-1.5">
+                          <li className="d-flex justify-content-between py-2">
                             <span className="text-muted">Country:</span>
                             <span className="fw-medium text-dark">
                               {(viewDetailsUser.address as any).country || 'Saudi Arabia'}
@@ -1735,19 +1722,19 @@ export default function UserManagementPage() {
                 </div>
               </div>
 
-              <div className="modal-footer border-top px-4 py-2.5 bg-light-subtle d-flex justify-content-between">
+              {/* Modal Footer: Matching Shop Settings Actions */}
+              <div className="modal-footer border-top px-4 py-3 bg-light-subtle d-flex justify-content-between">
                 <div>
                   <button
                     type="button"
-                    className="btn btn-sm d-inline-flex align-items-center gap-1.5"
+                    className="btn btn-sm d-inline-flex align-items-center gap-2 fs-13 fw-semibold"
                     style={{
-                      borderRadius: '6px',
-                      backgroundColor: viewDetailsUser.isBlocked ? '#f0fdf4' : '#fffbeb',
-                      border: `1px solid ${viewDetailsUser.isBlocked ? '#bbf7d0' : '#fde68a'}`,
-                      color: viewDetailsUser.isBlocked ? '#15803d' : '#b45309',
-                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                      padding: '6px 14px',
-                      fontWeight: 600,
+                      borderRadius: '8px',
+                      backgroundColor: viewDetailsUser.isBlocked ? '#f0fdf4' : '#fee2e2',
+                      border: `1px solid ${viewDetailsUser.isBlocked ? '#bbf7d0' : '#fecaca'}`,
+                      color: viewDetailsUser.isBlocked ? '#16a34a' : '#dc2626',
+                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                      padding: '8px 16px',
                     }}
                     onClick={() => {
                       handleToggleBlock(viewDetailsUser);
@@ -1762,21 +1749,20 @@ export default function UserManagementPage() {
                           ? 'solar:check-circle-bold'
                           : 'solar:forbidden-circle-bold'
                       }
-                      class="fs-15"
+                      class="fs-16"
                     ></iconify-icon>
-                    <span>{viewDetailsUser.isBlocked ? 'Unblock Customer' : 'Suspend Customer'}</span>
+                    <span>{viewDetailsUser.isBlocked ? 'Unblock / Activate Customer' : 'Suspend / Block Customer'}</span>
                   </button>
                 </div>
                 <button
                   type="button"
-                  className="btn btn-sm text-secondary"
+                  className="btn btn-sm fs-13 fw-semibold text-dark"
                   style={{
-                    borderRadius: '6px',
+                    borderRadius: '8px',
                     backgroundColor: '#ffffff',
                     border: '1px solid #d1d5db',
-                    padding: '6px 16px',
-                    boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                    fontWeight: 600,
+                    padding: '8px 20px',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                   }}
                   onClick={() => setViewDetailsUser(null)}
                 >
@@ -1789,8 +1775,9 @@ export default function UserManagementPage() {
       )}
 
       {/* ========================================================
-          MODAL 4: CREATE USER / ADMIN MODAL
-          ======================================================== */}
+          MODAL 4: CREATE ADMINISTRATOR MODAL (SuperAdmin Only)
+          (Only ADMIN and SUPER_ADMIN roles - No Customer role)
+         ======================================================== */}
       {createModalOpen && (
         <div
           className="modal fade show d-block"
@@ -1800,29 +1787,29 @@ export default function UserManagementPage() {
           <div className="modal-dialog modal-dialog-centered">
             <div
               className="modal-content border-0 shadow-lg"
-              style={{ borderRadius: '10px', overflow: 'hidden' }}
+              style={{ borderRadius: '12px', overflow: 'hidden' }}
             >
               <div className="modal-header border-bottom px-4 py-3 bg-white">
-                <div className="d-flex align-items-center gap-2">
+                <div className="d-flex align-items-center gap-2.5">
                   <div
                     className="d-flex align-items-center justify-content-center"
                     style={{
-                      width: '36px',
-                      height: '36px',
+                      width: '40px',
+                      height: '40px',
                       borderRadius: '8px',
-                      backgroundColor: '#eff6ff',
-                      color: '#2563eb',
-                      border: '1px solid #dbeafe',
+                      backgroundColor: '#f1f5f9',
+                      color: '#0f172a',
+                      border: '1px solid #e2e8f0',
                     }}
                   >
-                    <iconify-icon icon="solar:user-plus-bold" class="fs-18"></iconify-icon>
+                    <iconify-icon icon="solar:user-plus-bold" class="fs-20"></iconify-icon>
                   </div>
                   <div>
                     <h5 className="modal-title fs-15 fw-bold mb-0 text-dark">
-                      {createForm.role === 'CUSTOMER' ? 'Add New Customer' : 'Add New Administrator'}
+                      Add New Administrator
                     </h5>
                     <small className="text-muted fs-12">
-                      Create an account directly with full access credentials
+                      Create an administrative staff account with management privileges
                     </small>
                   </div>
                 </div>
@@ -1836,15 +1823,15 @@ export default function UserManagementPage() {
 
               <form onSubmit={handleCreateUserSubmit}>
                 <div className="modal-body px-4 py-3">
-                  {/* Role Type Selector */}
+                  {/* Role Type Selector (Only Admin & SuperAdmin) */}
                   <div className="mb-3">
-                    <label className="form-label fs-13 fw-semibold text-dark">Account Role</label>
+                    <label className="form-label fs-13 fw-semibold text-dark">Administrator Role</label>
                     <select
-                      className="form-select fs-13"
+                      className="form-select fs-13 py-2"
                       style={{
-                        borderRadius: '6px',
+                        borderRadius: '8px',
                         border: '1px solid #d1d5db',
-                        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
+                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                       }}
                       value={createForm.role}
                       onChange={(e) =>
@@ -1855,8 +1842,7 @@ export default function UserManagementPage() {
                       }
                     >
                       <option value="ADMIN">Administrator (Staff)</option>
-                      {isSuperAdmin && <option value="SUPER_ADMIN">Super Administrator (Root)</option>}
-                      <option value="CUSTOMER">Customer (Storefront Shopper)</option>
+                      <option value="SUPER_ADMIN">Super Administrator (Root)</option>
                     </select>
                   </div>
 
@@ -1867,11 +1853,11 @@ export default function UserManagementPage() {
                     </label>
                     <input
                       type="text"
-                      className="form-control fs-13"
+                      className="form-control fs-13 py-2"
                       style={{
-                        borderRadius: '6px',
+                        borderRadius: '8px',
                         border: '1px solid #d1d5db',
-                        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
+                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                       }}
                       placeholder="e.g. John Doe"
                       value={createForm.name}
@@ -1887,11 +1873,11 @@ export default function UserManagementPage() {
                     </label>
                     <input
                       type="email"
-                      className="form-control fs-13"
+                      className="form-control fs-13 py-2"
                       style={{
-                        borderRadius: '6px',
+                        borderRadius: '8px',
                         border: '1px solid #d1d5db',
-                        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
+                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                       }}
                       placeholder="e.g. admin@veuz.sa"
                       value={createForm.email}
@@ -1907,11 +1893,11 @@ export default function UserManagementPage() {
                     </label>
                     <input
                       type="password"
-                      className="form-control fs-13"
+                      className="form-control fs-13 py-2"
                       style={{
-                        borderRadius: '6px',
+                        borderRadius: '8px',
                         border: '1px solid #d1d5db',
-                        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
+                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                       }}
                       placeholder="Minimum 8 characters with letter & number"
                       value={createForm.password}
@@ -1921,21 +1907,43 @@ export default function UserManagementPage() {
                     />
                   </div>
 
-                  {/* Phone */}
+                  {/* Mobile Number (NUMBERS ONLY VALIDATION) */}
                   <div className="mb-3">
-                    <label className="form-label fs-13 fw-semibold text-dark">Mobile / Phone</label>
-                    <input
-                      type="tel"
-                      className="form-control fs-13"
-                      style={{
-                        borderRadius: '6px',
-                        border: '1px solid #d1d5db',
-                        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
-                      }}
-                      placeholder="e.g. +966 50 123 4567"
-                      value={createForm.phone}
-                      onChange={(e) => setCreateForm({ ...createForm, phone: e.target.value })}
-                    />
+                    <label className="form-label fs-13 fw-semibold text-dark">
+                      Mobile / Phone Number <span className="text-muted fw-normal fs-12">(Numbers only)</span>
+                    </label>
+                    <div className="input-group" style={{ borderRadius: '8px', overflow: 'hidden' }}>
+                      <span className="input-group-text bg-light text-muted border-end-0 px-3" style={{ borderColor: '#d1d5db' }}>
+                        <iconify-icon icon="solar:phone-calling-bold" class="fs-16"></iconify-icon>
+                      </span>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        pattern="[0-9]*"
+                        className="form-control fs-13 py-2 border-start-0"
+                        style={{
+                          borderColor: '#d1d5db',
+                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                        }}
+                        placeholder="e.g. 966501234567"
+                        value={createForm.phone}
+                        onKeyDown={(e) => {
+                          // Allow numbers, backspace, delete, arrows, tab, enter
+                          if (
+                            !/[0-9]/.test(e.key) &&
+                            !['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Tab', 'Enter'].includes(e.key) &&
+                            !e.ctrlKey &&
+                            !e.metaKey
+                          ) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onChange={(e) => {
+                          const numeric = e.target.value.replace(/\D/g, '');
+                          setCreateForm((prev) => ({ ...prev, phone: numeric }));
+                        }}
+                      />
+                    </div>
                   </div>
 
                   {/* Gender & DOB */}
@@ -1943,11 +1951,11 @@ export default function UserManagementPage() {
                     <div className="col-6">
                       <label className="form-label fs-13 fw-semibold text-dark">Gender</label>
                       <select
-                        className="form-select fs-13"
+                        className="form-select fs-13 py-2"
                         style={{
-                          borderRadius: '6px',
+                          borderRadius: '8px',
                           border: '1px solid #d1d5db',
-                          boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
+                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                         }}
                         value={createForm.gender}
                         onChange={(e) => setCreateForm({ ...createForm, gender: e.target.value })}
@@ -1962,11 +1970,11 @@ export default function UserManagementPage() {
                       <label className="form-label fs-13 fw-semibold text-dark">Date of Birth</label>
                       <input
                         type="date"
-                        className="form-control fs-13"
+                        className="form-control fs-13 py-2"
                         style={{
-                          borderRadius: '6px',
+                          borderRadius: '8px',
                           border: '1px solid #d1d5db',
-                          boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.04)',
+                          boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                         }}
                         value={createForm.dateOfBirth}
                         onChange={(e) =>
@@ -1977,16 +1985,16 @@ export default function UserManagementPage() {
                   </div>
                 </div>
 
-                <div className="modal-footer border-top px-4 py-2.5 bg-light-subtle d-flex align-items-center justify-content-end gap-2">
+                <div className="modal-footer border-top px-4 py-3 bg-light-subtle d-flex align-items-center justify-content-end gap-2">
                   <button
                     type="button"
-                    className="btn btn-sm fs-13 fw-semibold text-secondary"
+                    className="btn btn-sm fs-13 fw-semibold text-dark"
                     style={{
-                      borderRadius: '6px',
+                      borderRadius: '8px',
                       backgroundColor: '#ffffff',
                       border: '1px solid #d1d5db',
-                      padding: '6px 14px',
-                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                      padding: '9px 18px',
+                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
                     }}
                     onClick={() => setCreateModalOpen(false)}
                     disabled={isCreating}
@@ -1995,18 +2003,18 @@ export default function UserManagementPage() {
                   </button>
                   <button
                     type="submit"
-                    className="btn btn-sm btn-primary fs-13 fw-semibold d-flex align-items-center gap-1.5 text-white"
+                    className="btn btn-sm fs-13 fw-semibold d-flex align-items-center gap-2 text-white"
                     style={{
-                      borderRadius: '6px',
-                      backgroundColor: '#2563eb',
-                      border: '1px solid #1d4ed8',
-                      padding: '6px 16px',
-                      boxShadow: '0 1px 3px 0 rgba(37, 99, 235, 0.35)',
+                      borderRadius: '8px',
+                      backgroundColor: '#0f172a',
+                      border: '1px solid #0f172a',
+                      padding: '9px 20px',
+                      boxShadow: '0 2px 4px rgba(15, 23, 42, 0.25)',
                     }}
                     disabled={isCreating}
                   >
                     {isCreating && <span className="spinner-border spinner-border-sm"></span>}
-                    <span>Create Account</span>
+                    <span>Create Administrator</span>
                   </button>
                 </div>
               </form>

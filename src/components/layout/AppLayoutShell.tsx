@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { AuthProvider } from '@/context/AuthContext';
+import { ToastProvider } from '@/context/ToastContext';
 import { StorefrontStyles } from '@/components/layout/StorefrontStyles';
 
 interface AppLayoutShellProps {
@@ -59,24 +60,26 @@ export const AppLayoutShell: React.FC<AppLayoutShellProps> = ({ children }) => {
 
   return (
     <AuthProvider>
-      {isDashboardRoute ? (
-        // Clean isolated render for Dashboard - zero storefront headers, footers, or styles
-        <>{children}</>
-      ) : isAuthRoute ? (
-        // Auth pages (login, register, forgot-password) with storefront styles but without full header/footer
-        <>
-          <StorefrontStyles />
-          {children}
-        </>
-      ) : (
-        // Complete Storefront Website Layout
-        <>
-          <StorefrontStyles />
-          <Header />
-          {children}
-          <Footer />
-        </>
-      )}
+      <ToastProvider>
+        {isDashboardRoute ? (
+          // Clean isolated render for Dashboard - zero storefront headers, footers, or styles
+          <>{children}</>
+        ) : isAuthRoute ? (
+          // Auth pages (login, register, forgot-password) with storefront styles but without full header/footer
+          <>
+            <StorefrontStyles />
+            {children}
+          </>
+        ) : (
+          // Complete Storefront Website Layout
+          <>
+            <StorefrontStyles />
+            <Header />
+            {children}
+            <Footer />
+          </>
+        )}
+      </ToastProvider>
     </AuthProvider>
   );
 };

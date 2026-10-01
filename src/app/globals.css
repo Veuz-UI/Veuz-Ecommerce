@@ -600,29 +600,60 @@ body {
   position: relative;
 }
 
-.mobile-menu .menu-expand {
-  position: absolute;
-  right: 0;
-  top: 10px;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 10;
-  transition: transform 0.2s ease;
+.mobile-header-wrapper-style {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, visibility 0.35s ease !important;
+  transform: translateX(-100%) !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
 }
 
-.mobile-menu li.active > .menu-expand {
-  transform: rotate(180deg);
+.mobile-header-wrapper-style.sidebar-visible {
+  transform: translateX(0) !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.mobile-menu .menu-expand {
+  width: 28px !important;
+  height: 28px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.2s ease !important;
+  color: #64748b !important;
+  font-size: 16px !important;
+}
+
+.mobile-menu li.active .menu-expand {
+  transform: rotate(180deg) !important;
+  color: #3BB77E !important;
+}
+
+/* Smooth Accordion Expansion (No sudden jumping) */
+.mobile-accordion-collapse {
+  display: grid !important;
+  grid-template-rows: 0fr !important;
+  transition: grid-template-rows 0.32s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.28s ease !important;
+  opacity: 0 !important;
+  overflow: hidden !important;
+}
+
+.mobile-accordion-collapse.is-open {
+  grid-template-rows: 1fr !important;
+  opacity: 1 !important;
+}
+
+.mobile-accordion-inner {
+  min-height: 0 !important;
+  overflow: hidden !important;
 }
 
 .mobile-menu .dropdown-menu-list {
-  list-style: none;
-  padding: 8px 0 4px 15px;
-  margin: 0;
-  border-left: 2px solid #e2e8f0;
+  list-style: none !important;
+  padding: 8px 0 8px 15px !important;
+  margin: 0 !important;
+  border-left: 2px solid #e2e8f0 !important;
 }
 
 .mobile-menu .dropdown-menu-list li {
@@ -631,16 +662,66 @@ body {
 }
 
 .mobile-menu .dropdown-menu-list li a {
-  font-size: 13px !important;
+  font-size: 13.5px !important;
   font-weight: 500 !important;
   color: #475569 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  transition: color 0.18s ease, transform 0.18s ease !important;
 }
 
 .mobile-menu .dropdown-menu-list li a:hover {
   color: #3BB77E !important;
+  transform: translateX(3px) !important;
 }
 
-/* Mega Menu Layout, Uniform Banner Size (Wider 350px) & See More Link */
+.mobile-menu .view-all-item {
+  margin-top: 6px !important;
+  padding-top: 8px !important;
+  border-top: 1px dashed #e2e8f0 !important;
+}
+
+.mobile-menu a.view-all-link {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #3BB77E !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  transition: all 0.2s ease !important;
+}
+
+.mobile-menu a.view-all-link:hover {
+  color: #253D4E !important;
+  transform: translateX(4px) !important;
+}
+
+.mobile-menu a.view-all-link i {
+  font-size: 12px !important;
+  transition: transform 0.2s ease !important;
+}
+
+.mobile-menu a.view-all-link:hover i {
+  transform: translateX(2px) !important;
+}
+
+/* Mega Menu Layout, Full Width Container & Smooth Transition */
+.main-menu nav > ul > li.position-static {
+  position: static !important;
+}
+
+.main-menu nav > ul > li > a {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  transition: color 0.2s ease !important;
+}
+
+.main-menu nav > ul > li:hover > a,
+.main-menu nav > ul > li.hover-active > a {
+  color: #199D18 !important;
+}
+
 .main-menu nav > ul > li ul.mega-menu {
   display: flex !important;
   justify-content: space-between !important;
@@ -648,6 +729,60 @@ body {
   padding: 25px 30px !important;
   min-height: 290px !important;
   width: 100% !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 100% !important;
+  position: absolute !important;
+  background-color: #ffffff !important;
+  border-radius: 0 0 10px 10px !important;
+  border: 1px solid #ececec !important;
+  border-top: none !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08) !important;
+  z-index: 1050 !important;
+
+  /* Smooth transition (no sudden jumps) */
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  margin-top: 0 !important;
+  transform: translateY(8px) !important;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+/* Invisible bridge pseudo-element: spans from the menu upwards through the header bar,
+   preventing mouseleave events when moving the cursor from header links down to menu items */
+.main-menu nav > ul > li ul.mega-menu::before {
+  content: "" !important;
+  position: absolute !important;
+  top: -20px !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: 22px !important;
+  background: transparent !important;
+  display: block !important;
+  pointer-events: auto !important;
+}
+
+/* Open states: supports both CSS hover and React grace-period classes */
+.main-menu nav > ul > li:hover ul.mega-menu,
+.main-menu nav > ul > li.hover-active ul.mega-menu,
+.main-menu nav > ul > li ul.mega-menu.is-open {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  margin-top: 0 !important;
+  transform: translateY(0) !important;
+}
+
+.main-menu nav > ul > li ul.mega-menu li ul li a {
+  transition: color 0.18s ease, transform 0.18s ease !important;
+}
+
+.main-menu nav > ul > li ul.mega-menu li ul li a:hover {
+  color: #199D18 !important;
+  transform: translateX(4px) !important;
 }
 
 .main-menu nav > ul > li ul.mega-menu li.sub-mega-menu {
@@ -683,6 +818,7 @@ body {
   object-fit: cover !important;
   display: block !important;
 }
+
 
 .main-menu nav > ul > li ul.mega-menu li.see-more-item {
   margin-top: 6px !important;
@@ -768,6 +904,59 @@ body {
 .second-banner-container {
   border-radius: 0;
   position: relative;
+}
+
+/* Custom Spacing & Flex Gap Utilities (Bootstrap Extension) */
+.gap-1\.5, .gap-1-5 { gap: 6px !important; }
+.gap-2\.5, .gap-2-5 { gap: 10px !important; }
+.gap-3\.5, .gap-3-5 { gap: 14px !important; }
+.gap-4\.5, .gap-4-5 { gap: 18px !important; }
+.mb-1\.5, .mb-1-5 { margin-bottom: 8px !important; }
+.mb-2\.5, .mb-2-5 { margin-bottom: 12px !important; }
+.mb-3\.5, .mb-3-5 { margin-bottom: 16px !important; }
+
+/* Breadcrumb nav spacing */
+.breadcrumb-bar {
+  margin-bottom: 14px !important;
+}
+
+/* Ensure iconify-icon web component renders consistently with proper layout spacing */
+iconify-icon {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  vertical-align: middle !important;
+  flex-shrink: 0;
+}
+
+/* Storefront Mega Menu Promo Banner Text Truncation */
+.menu-banner-wrap .menu-banner-content h4 {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 240px !important;
+  display: block !important;
+}
+
+.menu-banner-wrap .menu-banner-content h3 {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  word-break: break-word !important;
+  max-width: 240px !important;
+}
+
+.menu-banner-wrap .menu-banner-content .menu-banner-price,
+.menu-banner-wrap .menu-banner-content .menu-banner-price span.new-price {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  word-break: break-word !important;
+  max-width: 240px !important;
 }
 
 
@@ -4293,3 +4482,204 @@ div:has(> .ref-lang-dropdown) .ref-lang-dropdown,
   border-color: #94a3b8 !important;
 }
 
+/* Custom Country Dropdown Selector (opens on click, shows 5 items, scrolls balance) */
+.profile-country-trigger {
+  width: 100% !important;
+  height: 46px !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  padding: 0 16px !important;
+  font-size: 14px !important;
+  color: #0f172a !important;
+  background: #ffffff !important;
+  outline: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  user-select: none !important;
+  text-align: left !important;
+}
+
+.profile-country-trigger:hover,
+.profile-country-trigger.is-open {
+  border-color: #2563eb !important;
+}
+
+.profile-country-trigger.is-open {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+}
+
+.profile-country-menu {
+  position: absolute !important;
+  top: calc(100% + 5px) !important;
+  left: 0 !important;
+  right: 0 !important;
+  background: #ffffff !important;
+  border: 1px solid #cbd5e1 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.14), 0 8px 10px -6px rgba(15, 23, 42, 0.08) !important;
+  max-height: 190px !important; /* Exactly 5 rows visible (5 * 38px) */
+  overflow-y: auto !important;
+  z-index: 1050 !important;
+  padding: 4px 0 !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #cbd5e1 transparent !important;
+}
+
+.profile-country-menu::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+.profile-country-menu::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+  border-radius: 4px !important;
+}
+
+.profile-country-menu::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}
+
+.profile-country-item {
+  width: 100% !important;
+  height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  padding: 0 14px !important;
+  font-size: 13.5px !important;
+  color: #1e293b !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  text-align: left !important;
+  transition: background-color 0.15s ease, color 0.15s ease !important;
+}
+
+.profile-country-item:hover {
+  background-color: #f1f5f9 !important;
+}
+
+.profile-country-item.is-selected {
+  background-color: #eff6ff !important;
+  color: #2563eb !important;
+  font-weight: 600 !important;
+}
+
+/* ==========================================================================
+   DASHBOARD SMOOTH PAGE TRANSITIONS & ANTI-JUMP / ANTI-SHAKE RULES
+   ========================================================================== */
+
+/* 1. Prevent Horizontal Jitter / Layout Shift between tall and short pages */
+html {
+  scrollbar-gutter: stable;
+  overflow-y: scroll !important;
+}
+
+/* 2. Prevent Bootstrap Modal from injecting dynamic 17px padding-right to <body> */
+body,
+body.modal-open {
+  padding-right: 0 !important;
+  margin-right: 0 !important;
+  overflow-x: hidden !important;
+}
+
+/* 3. Smooth Butter-Like Page Content Fade-In */
+.page-content {
+  min-height: calc(100vh - 120px);
+  animation: dashboardFadeIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes dashboardFadeIn {
+  0% {
+    opacity: 0.92;
+    transform: translateY(3px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 4. Stable height for loading states to prevent sudden vertical page snaps */
+.dashboard-loading-stable {
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s ease;
+}
+
+/* 5. Modal dialog smooth entrance without backdrop vibration */
+.modal.fade.show {
+  overflow-y: auto !important;
+  overscroll-behavior: contain;
+}
+.modal.fade .modal-dialog {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.22s ease !important;
+}
+
+/* ==========================================================================
+   WEBSITE HEADER: SHOP BY CATEGORIES (MAX 6 ITEMS + SLEEK SCROLLER)
+   ========================================================================== */
+.shop-categories-scroll-list {
+  max-height: 252px !important; /* Exactly 6 items (6 * 42px) */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #cbd5e1 transparent !important;
+}
+
+.shop-categories-scroll-list::-webkit-scrollbar {
+  width: 5px !important;
+}
+
+.shop-categories-scroll-list::-webkit-scrollbar-track {
+  background: #f8fafc !important;
+}
+
+.shop-categories-scroll-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+  border-radius: 4px !important;
+}
+
+.shop-categories-scroll-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}
+
+/* ==========================================================================
+   WEBSITE HEADER: SEARCH BY CATEGORIES (LEFT-ALIGNED + MAX 6 SCROLLER)
+   ========================================================================== */
+.search-style-2 form .search-cat {
+  justify-content: flex-start !important;
+  text-align: left !important;
+  padding-left: 18px !important;
+}
+
+.search-categories-scroll-list {
+  max-height: 232px !important; /* Exactly 6 items before scrolling */
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #cbd5e1 transparent !important;
+}
+
+.search-categories-scroll-list::-webkit-scrollbar {
+  width: 5px !important;
+}
+
+.search-categories-scroll-list::-webkit-scrollbar-track {
+  background: #f8fafc !important;
+}
+
+.search-categories-scroll-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1 !important;
+  border-radius: 4px !important;
+}
+
+.search-categories-scroll-list::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8 !important;
+}

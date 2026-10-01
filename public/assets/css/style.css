@@ -8765,12 +8765,26 @@ span.fi-rs-apps {
   padding: 35px 25px 35px 35px;
   opacity: 0;
   visibility: hidden;
-  margin-top: 20px;
+  margin-top: 0;
+  transform: translateY(10px);
   border-radius: 0 0 10px 10px;
   z-index: 999;
   border: 1px solid #ececec;
   -webkit-box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.05);
   box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.05);
+  -webkit-transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.main-menu>nav>ul>li ul.mega-menu::before {
+  content: "";
+  position: absolute;
+  top: -24px;
+  left: 0;
+  right: 0;
+  height: 26px;
+  background: transparent;
+  display: block;
 }
 
 .main-menu>nav>ul>li ul.mega-menu li {
@@ -8892,12 +8906,13 @@ span.fi-rs-apps {
   margin-top: 12px;
 }
 
-.main-menu>nav>ul>li:hover ul.mega-menu {
+.main-menu>nav>ul>li:hover ul.mega-menu,
+.main-menu>nav>ul>li.hover-active ul.mega-menu,
+.main-menu>nav>ul>li ul.mega-menu.is-open {
   opacity: 1;
   visibility: visible;
   margin-top: 0;
-  -webkit-transition: all .2s ease 0s;
-  transition: all .2s ease 0s;
+  transform: translateY(0);
 }
 
 .main-menu.hover-boder>nav>ul>li>a {

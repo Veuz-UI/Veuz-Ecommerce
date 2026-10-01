@@ -172,9 +172,9 @@ export default function DashboardLayout({
       clearTimeout(readyTimer);
       clearTimeout(removeTimer);
     };
-  }, [isLoading, user, isAdmin, router, pathname]);
+  }, [isLoading, user, isAdmin, router]);
 
-  // Guarantee that entering the dashboard or switching dashboard subpages always starts at the top
+  // Smoothly ensure page starts at the top without shaking or jumping
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -184,26 +184,8 @@ export default function DashboardLayout({
       }
     } catch (e) {}
 
-    const scrollToTop = () => {
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-      document.documentElement.scrollTop = 0;
-      document.body.scrollTop = 0;
-      const pc = document.querySelector('.page-content');
-      if (pc) pc.scrollTop = 0;
-      const wr = document.querySelector('.wrapper');
-      if (wr) wr.scrollTop = 0;
-    };
-
-    scrollToTop();
-    const rId = requestAnimationFrame(scrollToTop);
-    const t1 = setTimeout(scrollToTop, 50);
-    const t2 = setTimeout(scrollToTop, 150);
-
-    return () => {
-      cancelAnimationFrame(rId);
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
+    // Single smooth top reset without multiple jarring timeouts
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, [pathname]);
 
   // Fullscreen Handler
@@ -278,34 +260,119 @@ export default function DashboardLayout({
           to { opacity: 1; }
         }
 
-        /* Always enforce Light Mode Side Menu */
+        /* ========================================================
+           SYSTEM-MATCHED SIDEBAR & DASHBOARD HEADER AESTHETICS
+           ======================================================== */
+
+        /* 1. Header (Topbar) System Colors */
+        header.topbar,
+        .topbar {
+          background-color: #ffffff !important;
+          border-bottom: 1px solid #e2e8f0 !important;
+          box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03) !important;
+        }
+
+        .topbar .button-toggle-menu {
+          color: #0f172a !important;
+          border-radius: 8px !important;
+        }
+
+        .topbar .button-toggle-menu:hover {
+          background-color: #f1f5f9 !important;
+        }
+
+        .topbar .app-search input {
+          background-color: #f8fafc !important;
+          border: 1px solid #e2e8f0 !important;
+          border-radius: 8px !important;
+          color: #0f172a !important;
+          font-size: 13px !important;
+        }
+
+        .topbar .app-search input:focus {
+          border-color: #0f172a !important;
+          box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.08) !important;
+        }
+
+        .topbar .search-widget-icon {
+          color: #94a3b8 !important;
+        }
+
+        .topbar .topbar-button {
+          color: #475569 !important;
+        }
+
+        .topbar .topbar-button:hover {
+          color: #0f172a !important;
+          background-color: #f1f5f9 !important;
+          border-radius: 8px !important;
+        }
+
+        /* 2. Side Menu (Main Nav) System Colors & Background */
         .main-nav {
           background-color: #ffffff !important;
           border-right: 1px solid #e2e8f0 !important;
+          box-shadow: 1px 0 3px rgba(0, 0, 0, 0.02) !important;
         }
 
         .main-nav .menu-title {
-          color: #64748b !important;
+          color: #94a3b8 !important;
+          font-size: 11px !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.6px !important;
+          text-transform: uppercase !important;
+          padding: 16px 20px 8px 20px !important;
+        }
+
+        .main-nav .navbar-nav {
+          padding: 0 10px !important;
+        }
+
+        .main-nav .navbar-nav .nav-item {
+          margin-bottom: 4px !important;
         }
 
         .main-nav .navbar-nav .nav-link {
-          color: #334155 !important;
+          color: #475569 !important;
           font-weight: 500 !important;
-        }
-
-        .main-nav .navbar-nav .nav-link:hover,
-        .main-nav .navbar-nav .nav-link.active {
-          color: #2563eb !important;
-          background-color: rgba(37, 99, 235, 0.08) !important;
+          font-size: 13.5px !important;
+          border-radius: 8px !important;
+          padding: 9.5px 14px !important;
+          display: flex !important;
+          align-items: center !important;
+          gap: 12px !important;
+          transition: background-color 0.15s ease, color 0.15s ease !important;
         }
 
         .main-nav .navbar-nav .nav-link .nav-icon {
           color: #64748b !important;
+          font-size: 19px !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          transition: color 0.15s ease !important;
         }
 
-        .main-nav .navbar-nav .nav-link:hover .nav-icon,
+        /* Hover: subtle system slate background */
+        .main-nav .navbar-nav .nav-link:hover {
+          color: #0f172a !important;
+          background-color: #f1f5f9 !important;
+        }
+
+        .main-nav .navbar-nav .nav-link:hover .nav-icon {
+          color: #0f172a !important;
+        }
+
+        /* Active: Solid System Black with Crisp White Text (Matches Shop Settings & Quick Links) */
+        .main-nav .navbar-nav .nav-link.active {
+          color: #ffffff !important;
+          background-color: #0f172a !important;
+          font-weight: 600 !important;
+          box-shadow: 0 2px 4px rgba(15, 23, 42, 0.18) !important;
+        }
+
         .main-nav .navbar-nav .nav-link.active .nav-icon {
-          color: #2563eb !important;
+          color: #ffffff !important;
         }
 
         /* Sidebar: Completely kill horizontal scroll and provide sleek light scrollbar */
@@ -353,42 +420,56 @@ export default function DashboardLayout({
           max-width: 100% !important;
         }
 
-        /* Sidebar Logo behavior: show single full logo when expanded, show clean icon when condensed */
+        /* 3. Sidebar Logo Alignment & Sizing (Left aligned with menu text when expanded) */
         .main-nav .logo-box {
           display: flex !important;
           align-items: center !important;
-          justify-content: center !important;
+          justify-content: flex-start !important;
           height: 70px !important;
-          padding: 0 16px !important;
-          text-align: center !important;
+          padding: 0 24px !important;
+          text-align: left !important;
+          border-bottom: 1px solid #f1f5f9 !important;
         }
 
         .main-nav .logo-box a {
           display: flex !important;
           align-items: center !important;
-          justify-content: center !important;
-          width: 100% !important;
+          justify-content: flex-start !important;
+          width: auto !important;
           text-decoration: none !important;
         }
 
+        /* Refined, balanced logo size (not overly big) left-aligned to start where menu text begins */
         .main-nav .logo-box .logo-img-lg,
         .main-nav .logo-box .logo-lg {
           display: inline-block !important;
-          height: 38px !important;
+          height: 30px !important;
           width: auto !important;
-          max-width: 180px !important;
+          max-width: 140px !important;
           object-fit: contain !important;
+          object-position: left center !important;
         }
 
         .main-nav .logo-box .logo-icon-sm,
         .main-nav .logo-box .logo-sm {
           display: none !important;
-          width: 34px !important;
-          height: 34px !important;
+          width: 32px !important;
+          height: 32px !important;
           object-fit: contain !important;
         }
 
-        /* Condensed & Collapsed states: hide full logo, show small icon */
+        /* When Condensed / Mini Sidebar: center the icon */
+        html[data-menu-size=condensed] .main-nav .logo-box,
+        html[data-menu-size=sm-hover] .main-nav:not(:hover) .logo-box {
+          justify-content: center !important;
+          padding: 0 !important;
+        }
+
+        html[data-menu-size=condensed] .main-nav .logo-box a,
+        html[data-menu-size=sm-hover] .main-nav:not(:hover) .logo-box a {
+          justify-content: center !important;
+        }
+
         html[data-menu-size=condensed] .main-nav .logo-box .logo-img-lg,
         html[data-menu-size=condensed] .main-nav .logo-box .logo-lg,
         html[data-menu-size=sm-hover] .main-nav:not(:hover) .logo-box .logo-img-lg,
@@ -403,7 +484,16 @@ export default function DashboardLayout({
           display: inline-block !important;
         }
 
-        /* Hovering in sm-hover mode: show full logo */
+        /* Hovering in sm-hover mode: show full left-aligned logo */
+        html[data-menu-size=sm-hover] .main-nav:hover .logo-box {
+          justify-content: flex-start !important;
+          padding: 0 24px !important;
+        }
+
+        html[data-menu-size=sm-hover] .main-nav:hover .logo-box a {
+          justify-content: flex-start !important;
+        }
+
         html[data-menu-size=sm-hover] .main-nav:hover .logo-box .logo-img-lg,
         html[data-menu-size=sm-hover] .main-nav:hover .logo-box .logo-lg {
           display: inline-block !important;
@@ -560,11 +650,21 @@ export default function DashboardLayout({
                 <div className="topbar-item d-none d-sm-flex me-1">
                   <a
                     href="/"
-                    className="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1"
+                    className="btn btn-sm d-inline-flex align-items-center gap-1.5"
                     title="View Storefront"
-                    style={{ borderRadius: '6px', fontWeight: '600' }}
+                    style={{
+                      borderRadius: '8px',
+                      fontWeight: 600,
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #d1d5db',
+                      color: '#0f172a',
+                      padding: '6px 14px',
+                      fontSize: '13px',
+                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                      transition: 'all 0.15s ease',
+                    }}
                   >
-                    <iconify-icon icon="solar:shop-2-broken" class="fs-18 align-middle"></iconify-icon>
+                    <iconify-icon icon="solar:shop-2-broken" class="fs-17 align-middle text-dark"></iconify-icon>
                     <span>Storefront</span>
                   </a>
                 </div>
@@ -761,11 +861,14 @@ export default function DashboardLayout({
                         </div>
                         <div style={{ marginTop: '6px' }}>
                           <span
-                            className="badge bg-primary-subtle text-primary"
+                            className="badge"
                             style={{
+                              backgroundColor: user?.role === 'SUPER_ADMIN' ? '#0f172a' : '#f1f5f9',
+                              color: user?.role === 'SUPER_ADMIN' ? '#ffffff' : '#0f172a',
+                              border: user?.role === 'SUPER_ADMIN' ? '1px solid #0f172a' : '1px solid #cbd5e1',
                               fontSize: '10px',
                               fontWeight: 700,
-                              padding: '2.5px 7px',
+                              padding: '3px 8px',
                               borderRadius: '4px',
                               letterSpacing: '0.4px',
                               textTransform: 'uppercase',
@@ -926,26 +1029,30 @@ export default function DashboardLayout({
                 </Link>
               </li>
 
-              {/* 2. Calendar */}
+
+
+
+              {/* 3. User Management (SUPER_ADMIN only) */}
+              {user?.role === 'SUPER_ADMIN' && (
+                <li className="nav-item">
+                  <Link className={`nav-link ${pathname?.startsWith('/dashboard/users') ? 'active' : ''}`} href="/dashboard/users">
+                    <span className="nav-icon">
+                      <iconify-icon icon="solar:users-group-two-rounded-broken"></iconify-icon>
+                    </span>
+                    <span className="nav-text"> User Management </span>
+                  </Link>
+                </li>
+              )}
+
+              {/* 4. Shop Settings */}
               <li className="nav-item">
-                <Link className={`nav-link ${pathname === '/dashboard/calendar' ? 'active' : ''}`} href="/dashboard/calendar">
+                <Link className={`nav-link ${pathname?.startsWith('/dashboard/shop-settings') ? 'active' : ''}`} href="/dashboard/shop-settings">
                   <span className="nav-icon">
-                    <iconify-icon icon="solar:calendar-broken"></iconify-icon>
+                    <iconify-icon icon="solar:settings-minimalistic-broken"></iconify-icon>
                   </span>
-                  <span className="nav-text"> Calendar </span>
+                  <span className="nav-text"> Shop Settings </span>
                 </Link>
               </li>
-
-              {/* 3. User Management */}
-              <li className="nav-item">
-                <Link className={`nav-link ${pathname?.startsWith('/dashboard/users') ? 'active' : ''}`} href="/dashboard/users">
-                  <span className="nav-icon">
-                    <iconify-icon icon="solar:users-group-two-rounded-broken"></iconify-icon>
-                  </span>
-                  <span className="nav-text"> User Management </span>
-                </Link>
-              </li>
-
             </ul>
           </div>
 
@@ -1112,10 +1219,8 @@ export default function DashboardLayout({
           <footer className="footer">
             <div className="container-fluid">
               <div className="row">
-                <div className="col-12 text-center">
-                  {new Date().getFullYear()} &copy; Veuz Safety &amp; PPE Dashboard. Crafted with{' '}
-                  <iconify-icon icon="solar:hearts-bold-duotone" class="fs-18 align-middle text-danger"></iconify-icon>{' '}
-                  for Industrial Safety E-Commerce.
+                <div className="col-12 text-center text-muted fs-13">
+                  {new Date().getFullYear()} &copy; Veuz Safety &amp; PPE Dashboard.
                 </div>
               </div>
             </div>

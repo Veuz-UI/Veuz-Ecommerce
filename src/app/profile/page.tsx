@@ -5,6 +5,57 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth, User } from '@/context/AuthContext';
 
+const COUNTRIES = [
+  { name: 'Saudi Arabia', flag: '🇸🇦' },
+  { name: 'United Arab Emirates', flag: '🇦🇪' },
+  { name: 'Qatar', flag: '🇶🇦' },
+  { name: 'Kuwait', flag: '🇰🇼' },
+  { name: 'Bahrain', flag: '🇧🇭' },
+  { name: 'Oman', flag: '🇴🇲' },
+  { name: 'Jordan', flag: '🇯🇴' },
+  { name: 'Egypt', flag: '🇪🇬' },
+  { name: 'Iraq', flag: '🇮🇶' },
+  { name: 'Lebanon', flag: '🇱🇧' },
+  { name: 'Yemen', flag: '🇾🇪' },
+  { name: 'United Kingdom', flag: '🇬🇧' },
+  { name: 'Germany', flag: '🇩🇪' },
+  { name: 'France', flag: '🇫🇷' },
+  { name: 'Spain', flag: '🇪🇸' },
+  { name: 'Italy', flag: '🇮🇹' },
+  { name: 'Netherlands', flag: '🇳🇱' },
+  { name: 'Sweden', flag: '🇸🇪' },
+  { name: 'Norway', flag: '🇳🇴' },
+  { name: 'Switzerland', flag: '🇨🇭' },
+  { name: 'Belgium', flag: '🇧🇪' },
+  { name: 'Portugal', flag: '🇵🇹' },
+  { name: 'Poland', flag: '🇵🇱' },
+  { name: 'United States', flag: '🇺🇸' },
+  { name: 'Canada', flag: '🇨🇦' },
+  { name: 'Mexico', flag: '🇲🇽' },
+  { name: 'Brazil', flag: '🇧🇷' },
+  { name: 'Argentina', flag: '🇦🇷' },
+  { name: 'Colombia', flag: '🇨🇴' },
+  { name: 'India', flag: '🇮🇳' },
+  { name: 'Pakistan', flag: '🇵🇰' },
+  { name: 'Bangladesh', flag: '🇧🇩' },
+  { name: 'China', flag: '🇨🇳' },
+  { name: 'Japan', flag: '🇯🇵' },
+  { name: 'South Korea', flag: '🇰🇷' },
+  { name: 'Singapore', flag: '🇸🇬' },
+  { name: 'Malaysia', flag: '🇲🇾' },
+  { name: 'Indonesia', flag: '🇮🇩' },
+  { name: 'Philippines', flag: '🇵🇭' },
+  { name: 'Thailand', flag: '🇹🇭' },
+  { name: 'Turkey', flag: '🇹🇷' },
+  { name: 'South Africa', flag: '🇿🇦' },
+  { name: 'Nigeria', flag: '🇳🇬' },
+  { name: 'Kenya', flag: '🇰🇪' },
+  { name: 'Morocco', flag: '🇲🇦' },
+  { name: 'Ethiopia', flag: '🇪🇹' },
+  { name: 'Australia', flag: '🇦🇺' },
+  { name: 'New Zealand', flag: '🇳🇿' },
+];
+
 export default function ProfilePage() {
   const router = useRouter();
   const { user, logout, isAdmin, isLoading, updateUserProfile, changeUserPassword, deleteUserAccount, verifyUserEmail } = useAuth();
@@ -102,12 +153,16 @@ export default function ProfilePage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Address Setup State
-  const [country, setCountry] = useState('Saudi Arabia');
+  const [country, setCountry] = useState('');
+  const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
+  const countryDropdownRef = useRef<HTMLDivElement>(null);
   const [city, setCity] = useState('');
   const [streetAddress, setStreetAddress] = useState('');
   const [zipCode, setZipCode] = useState('');
   const [buildingNo, setBuildingNo] = useState('');
   const [isDefaultAddress, setIsDefaultAddress] = useState(true);
+  const [isGeolocating, setIsGeolocating] = useState(false);
+  const [geoError, setGeoError] = useState<string | null>(null);
 
   // Account Settings State
   const [language, setLanguage] = useState('English (US)');
@@ -132,6 +187,17 @@ export default function ProfilePage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Close country dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target as Node)) {
+        setCountryDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Populate form with current user details
   useEffect(() => {
     if (user) {
@@ -146,7 +212,7 @@ export default function ProfilePage() {
       setAvatarPreview(user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name || 'User')}`);
 
       if (user.address) {
-        setCountry(user.address.country || 'Saudi Arabia');
+        setCountry(user.address.country || '');
         setCity(user.address.city || '');
         setStreetAddress(user.address.streetAddress || '');
         setZipCode(user.address.zipCode || '');
@@ -188,6 +254,92 @@ export default function ProfilePage() {
     setTimeout(() => {
       setToastMsg(null);
     }, 4500);
+  };
+
+  // Auto-detect country from IP when address tab opens (if no saved address)
+  useEffect(() => {
+    if (activeTab !== 'address-setup') return;
+    if (user?.address?.country) return; // already have saved address
+    if (country) return; // already set
+
+    const detectCountryFromIP = async () => {
+      try {
+        const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.country_name) {
+          setCountry(data.country_name);
+        }
+        if (data.city && !city) {
+          setCity(data.city);
+        }
+      } catch {
+        // Silently fail — user can still manually set or use GPS button
+      }
+    };
+
+    detectCountryFromIP();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
+  // Use GPS + Nominatim reverse geocoding
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setGeoError('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setIsGeolocating(true);
+    setGeoError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
+            { headers: { 'Accept-Language': 'en' } }
+          );
+          if (!res.ok) throw new Error('Geocoding failed');
+          const data = await res.json();
+          const addr = data.address || {};
+
+          // Country
+          if (addr.country) setCountry(addr.country);
+
+          // City: try multiple fields Nominatim can return
+          const detectedCity =
+            addr.city || addr.town || addr.village || addr.county || addr.state_district || addr.state || '';
+          if (detectedCity) setCity(detectedCity);
+
+          // Street Address
+          const streetParts = [
+            addr.road || addr.pedestrian || addr.footway || '',
+            addr.house_number || '',
+            addr.suburb || addr.neighbourhood || '',
+          ].filter(Boolean);
+          if (streetParts.length > 0) setStreetAddress(streetParts.join(', '));
+
+          // ZIP
+          if (addr.postcode) setZipCode(addr.postcode);
+
+          showToast('Location detected and address filled successfully!');
+        } catch {
+          setGeoError('Could not fetch address details. Please fill in manually.');
+        } finally {
+          setIsGeolocating(false);
+        }
+      },
+      (err) => {
+        setIsGeolocating(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setGeoError('Location access denied. Please allow location permission in your browser.');
+        } else {
+          setGeoError('Unable to retrieve your location. Please enter address manually.');
+        }
+      },
+      { timeout: 10000, maximumAge: 60000 }
+    );
   };
 
   // Profile Photo Upload & Delete
@@ -988,32 +1140,160 @@ export default function ProfilePage() {
           {activeTab === 'address-setup' && !isAdminRole && !isSuperAdminRole && (
             <div>
               <div className="mb-4">
-                <h5 style={{ fontWeight: '700', color: '#0f172a', marginBottom: '4px' }}>Shipping Address Setup</h5>
-                <p style={{ color: '#64748b', fontSize: '13.5px' }}>
-                  Provide your primary delivery destination for fast checkout and package tracking.
-                </p>
+                <div className="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-1">
+                  <div>
+                    <h5 style={{ fontWeight: '700', color: '#0f172a', marginBottom: '4px' }}>Shipping Address Setup</h5>
+                    <p style={{ color: '#64748b', fontSize: '13.5px', margin: 0 }}>
+                      Provide your primary delivery destination for fast checkout and package tracking.
+                    </p>
+                  </div>
+
+                  {/* Use Current Location Button */}
+                  <button
+                    type="button"
+                    onClick={handleUseCurrentLocation}
+                    disabled={isGeolocating}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '9px 16px',
+                      borderRadius: '9px',
+                      border: '1.5px solid #2563eb',
+                      backgroundColor: isGeolocating ? '#eff6ff' : '#ffffff',
+                      color: '#2563eb',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: isGeolocating ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.15s ease',
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {isGeolocating ? (
+                      <>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            width: '14px',
+                            height: '14px',
+                            border: '2px solid #bfdbfe',
+                            borderTopColor: '#2563eb',
+                            borderRadius: '50%',
+                            animation: 'profileSpin 0.7s linear infinite',
+                          }}
+                        />
+                        Detecting location...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fi fi-rs-marker" style={{ fontSize: '15px' }}></i>
+                        Use Current Location
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Geo Error */}
+                {geoError && (
+                  <div
+                    style={{
+                      marginTop: '10px',
+                      padding: '10px 14px',
+                      backgroundColor: '#fef2f2',
+                      border: '1px solid #fecaca',
+                      borderRadius: '8px',
+                      color: '#b91c1c',
+                      fontSize: '13px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                  >
+                    <i className="fi fi-rs-exclamation" style={{ flexShrink: 0 }}></i>
+                    {geoError}
+                    <button
+                      type="button"
+                      onClick={() => setGeoError(null)}
+                      style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#b91c1c', cursor: 'pointer', fontSize: '14px', padding: 0 }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
               </div>
 
               <form onSubmit={handleSaveAddress}>
                 <div className="row g-4">
                   {/* Country */}
-                  <div className="col-md-6">
+                  <div className="col-md-6" ref={countryDropdownRef} style={{ position: 'relative' }}>
                     <label className="profile-input-label">Country / Region</label>
-                    <select
-                      className="profile-input-field"
-                      value={country}
-                      onChange={(e) => setCountry(e.target.value)}
+                    <button
+                      type="button"
+                      onClick={() => setCountryDropdownOpen((prev) => !prev)}
+                      className={`profile-country-trigger ${countryDropdownOpen ? 'is-open' : ''}`}
                     >
-                      <option value="Saudi Arabia">Saudi Arabia (المملكة العربية السعودية)</option>
-                      <option value="United Arab Emirates">United Arab Emirates (الإمارات)</option>
-                      <option value="Bahrain">Bahrain (البحرين)</option>
-                      <option value="Qatar">Qatar (قطر)</option>
-                      <option value="Kuwait">Kuwait (الكويت)</option>
-                      <option value="Oman">Oman (عمان)</option>
-                      <option value="Spain">Spain</option>
-                      <option value="United States">United States</option>
-                      <option value="United Kingdom">United Kingdom</option>
-                    </select>
+                      <span style={{ color: country ? '#0f172a' : '#94a3b8', fontWeight: country ? 500 : 400 }}>
+                        {(() => {
+                          const selected = COUNTRIES.find((c) => c.name.toLowerCase() === (country || '').toLowerCase());
+                          return selected ? `${selected.flag}  ${selected.name}` : country || '— Select Country —';
+                        })()}
+                      </span>
+                      <svg
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#64748b"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          transform: countryDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s ease',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+
+                    {/* Dropdown Menu: shows 5 items, rest in scroller */}
+                    {countryDropdownOpen && (
+                      <div className="profile-country-menu">
+                        {COUNTRIES.map((c) => {
+                          const isSelected = country.toLowerCase() === c.name.toLowerCase();
+                          return (
+                            <button
+                              key={c.name}
+                              type="button"
+                              onClick={() => {
+                                setCountry(c.name);
+                                setCountryDropdownOpen(false);
+                              }}
+                              className={`profile-country-item ${isSelected ? 'is-selected' : ''}`}
+                            >
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '16px' }}>{c.flag}</span>
+                                <span>{c.name}</span>
+                              </span>
+                              {isSelected && (
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {country && (
+                      <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <span style={{ color: '#16a34a', fontWeight: 600 }}>✓</span>
+                        Selected: <strong style={{ color: '#0f172a' }}>{country}</strong>
+                      </div>
+                    )}
                   </div>
 
                   {/* City */}
