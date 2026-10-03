@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Mail, CheckCircle, ArrowRight, Sparkles } from 'lucide-react';
+import { triggerGlobalToast } from '@/context/ToastContext';
 
 export const NewsletterBanner: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -11,6 +12,7 @@ export const NewsletterBanner: React.FC = () => {
     e.preventDefault();
     if (email.trim()) {
       setSubscribed(true);
+      triggerGlobalToast('success', 'Thank you for subscribing to our industrial safety updates!', 'Successfully Message');
       setTimeout(() => {
         setEmail('');
         setSubscribed(false);

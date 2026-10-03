@@ -5,6 +5,15 @@ import Link from 'next/link';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import apiClient from '@/services/apiClient';
+import {
+  sanitizeNumeric,
+  handleNumericKeyDown,
+  validateMobileNumber,
+  validateFullName,
+  validateEmailAddress,
+  validatePasswordStrength,
+} from '@/utils/securityValidation';
+import { ClientPortal } from '@/components/common/ClientPortal';
 
 interface UserItem {
   id: number;
@@ -125,9 +134,9 @@ export default function UserManagementPage() {
       if (res.success) {
         const nextState = !targetUser.isBlocked;
         if (nextState) {
-          showToast('warning', res.message || `Account for ${targetUser.name} has been suspended/blocked.`, 'Alert Message');
+          showToast('warning', res.message || `Account for ${targetUser.name} has been suspended/blocked.`, 'Account Suspended');
         } else {
-          showToast('success', res.message || `Account for ${targetUser.name} has been activated.`, 'Successfully Message');
+          showToast('success', res.message || `Account for ${targetUser.name} has been activated.`, 'Account Activated');
         }
         setUsers((prev) =>
           prev.map((u) => (u.id === targetUser.id ? { ...u, isBlocked: nextState } : u))
@@ -147,8 +156,10 @@ export default function UserManagementPage() {
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetModalUser) return;
-    if (!newPassword || newPassword.length < 8) {
-      showToast('danger', 'Password must be at least 8 characters long.', 'Error Message');
+    
+    const passStrength = validatePasswordStrength(newPassword);
+    if (!passStrength.valid) {
+      showToast('danger', passStrength.error || 'Password must be between 8 and 16 characters and contain uppercase, lowercase, number, and special character.', 'Error Message');
       return;
     }
 
@@ -159,7 +170,7 @@ export default function UserManagementPage() {
       });
 
       if (res.success) {
-        showToast('success', `Password successfully updated for ${resetModalUser.name}!`, 'Successfully Message');
+        showToast('success', `Password successfully updated for ${resetModalUser.name}!`, 'Saved Successfully');
         setResetModalUser(null);
         setNewPassword('');
       }
@@ -170,11 +181,11 @@ export default function UserManagementPage() {
     }
   };
 
-  // Generate strong random password
+  // Generate strong random password (12 characters, fits in 8-16 chars range)
   const generateStrongPassword = () => {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%^&*';
     let pwd = '';
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 9; i++) {
       pwd += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     pwd += 'A1!';
@@ -203,14 +214,43 @@ export default function UserManagementPage() {
   // Handle Create User Submit (Staff only: ADMIN or SUPER_ADMIN)
   const handleCreateUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!createForm.name || !createForm.email || !createForm.password) {
-      showToast('danger', 'Name, email, and password are required.');
+
+    // 1. Name Validation
+    const nameVal = validateFullName(createForm.name, 'Full name', true);
+    if (!nameVal.valid) {
+      showToast('danger', nameVal.error!);
+      return;
+    }
+
+    // 2. Email Validation
+    const emailVal = validateEmailAddress(createForm.email);
+    if (!emailVal.valid) {
+      showToast('danger', emailVal.error!);
+      return;
+    }
+
+    // 3. Password Strength Validation (Min 8, upper, lower, number, special symbol)
+    const passVal = validatePasswordStrength(createForm.password);
+    if (!passVal.valid) {
+      showToast('danger', passVal.error || 'Password must contain uppercase, lowercase, number, and special character.');
+      return;
+    }
+
+    // 4. Phone Validation (Numbers Only, 7-15 digits if entered)
+    const phoneVal = validateMobileNumber(createForm.phone, false);
+    if (!phoneVal.valid) {
+      showToast('danger', phoneVal.error!);
       return;
     }
 
     setIsCreating(true);
     try {
-      const res = await apiClient.post('/admin/users', createForm);
+      const res = await apiClient.post('/admin/users', {
+        ...createForm,
+        name: createForm.name.trim(),
+        email: createForm.email.trim(),
+        phone: createForm.phone ? sanitizeNumeric(createForm.phone) : null,
+      });
       if (res.success) {
         showToast('success', res.message || 'Administrator account created successfully!');
         setCreateModalOpen(false);
@@ -224,6 +264,8 @@ export default function UserManagementPage() {
           dateOfBirth: '',
         });
         fetchUsers();
+      } else {
+        showToast('danger', res.message || 'Failed to create user account.');
       }
     } catch (err: any) {
       showToast('danger', err.message || 'Failed to create user account.');
@@ -1262,11 +1304,12 @@ export default function UserManagementPage() {
           MODAL 1: RESET PASSWORD MODAL (Staff Admins Only)
          ======================================================== */}
       {resetModalUser && (
-        <div
-          className="modal fade show d-block"
-          style={{ backgroundColor: 'rgba(15, 23, 42, 0.65)', zIndex: 1060 }}
-          tabIndex={-1}
-        >
+        <ClientPortal>
+          <div
+            className="modal fade show d-block"
+            style={{ backgroundColor: 'rgba(15, 23, 42, 0.75)', zIndex: 99999 }}
+            tabIndex={-1}
+          >
           <div className="modal-dialog modal-dialog-centered">
             <div
               className="modal-content border-0 shadow-lg"
@@ -1339,11 +1382,12 @@ export default function UserManagementPage() {
                         type={showPassword ? 'text' : 'password'}
                         className="form-control fs-13 py-2"
                         style={{ border: '1px solid #d1d5db', borderRight: 'none' }}
-                        placeholder="Enter minimum 8 characters with letter & number"
+                        placeholder="8-16 chars with uppercase, lowercase, number & special symbol"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
                         required
                         minLength={8}
+                        maxLength={16}
                       />
                       <button
                         type="button"
@@ -1359,7 +1403,7 @@ export default function UserManagementPage() {
                     </div>
                     <div className="d-flex justify-content-between align-items-center mt-2">
                       <small className="text-muted fs-11">
-                        Must be at least 8 chars, 1 letter and 1 digit.
+                        Must be 8-16 chars: uppercase (A-Z), lowercase (a-z), digit (0-9), and special symbol.
                       </small>
                       <button
                         type="button"
@@ -1408,17 +1452,19 @@ export default function UserManagementPage() {
             </div>
           </div>
         </div>
+        </ClientPortal>
       )}
 
       {/* ========================================================
           MODAL 2: CONFIRM DELETE MODAL (Staff Admins Only)
          ======================================================== */}
       {deleteModalUser && (
-        <div
-          className="modal fade show d-block"
-          style={{ backgroundColor: 'rgba(15, 23, 42, 0.65)', zIndex: 1060 }}
-          tabIndex={-1}
-        >
+        <ClientPortal>
+          <div
+            className="modal fade show d-block"
+            style={{ backgroundColor: 'rgba(15, 23, 42, 0.75)', zIndex: 99999 }}
+            tabIndex={-1}
+          >
           <div className="modal-dialog modal-dialog-centered">
             <div
               className="modal-content border-0 shadow-lg"
@@ -1490,17 +1536,19 @@ export default function UserManagementPage() {
             </div>
           </div>
         </div>
+        </ClientPortal>
       )}
 
       {/* ========================================================
           MODAL 3: VIEW CUSTOMER DETAILS MODAL
          ======================================================== */}
       {viewDetailsUser && (
-        <div
-          className="modal fade show d-block"
-          style={{ backgroundColor: 'rgba(15, 23, 42, 0.65)', zIndex: 1060 }}
-          tabIndex={-1}
-        >
+        <ClientPortal>
+          <div
+            className="modal fade show d-block"
+            style={{ backgroundColor: 'rgba(15, 23, 42, 0.75)', zIndex: 99999 }}
+            tabIndex={-1}
+          >
           <div className="modal-dialog modal-dialog-centered modal-lg">
             <div
               className="modal-content border-0 shadow-lg"
@@ -1772,6 +1820,7 @@ export default function UserManagementPage() {
             </div>
           </div>
         </div>
+        </ClientPortal>
       )}
 
       {/* ========================================================
@@ -1779,11 +1828,12 @@ export default function UserManagementPage() {
           (Only ADMIN and SUPER_ADMIN roles - No Customer role)
          ======================================================== */}
       {createModalOpen && (
-        <div
-          className="modal fade show d-block"
-          style={{ backgroundColor: 'rgba(15, 23, 42, 0.65)', zIndex: 1060 }}
-          tabIndex={-1}
-        >
+        <ClientPortal>
+          <div
+            className="modal fade show d-block"
+            style={{ backgroundColor: 'rgba(15, 23, 42, 0.75)', zIndex: 99999 }}
+            tabIndex={-1}
+          >
           <div className="modal-dialog modal-dialog-centered">
             <div
               className="modal-content border-0 shadow-lg"
@@ -1899,12 +1949,16 @@ export default function UserManagementPage() {
                         border: '1px solid #d1d5db',
                         boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                       }}
-                      placeholder="Minimum 8 characters with letter & number"
+                      placeholder="8-16 chars with uppercase, lowercase, number & symbol"
                       value={createForm.password}
                       onChange={(e) => setCreateForm({ ...createForm, password: e.target.value })}
                       required
                       minLength={8}
+                      maxLength={16}
                     />
+                    <div className="form-text fs-11 text-muted mt-1">
+                      Must be 8 to 16 characters, uppercase (A-Z), lowercase (a-z), digit (0-9), and special symbol (!@#$...).
+                    </div>
                   </div>
 
                   {/* Mobile Number (NUMBERS ONLY VALIDATION) */}
@@ -2021,6 +2075,7 @@ export default function UserManagementPage() {
             </div>
           </div>
         </div>
+        </ClientPortal>
       )}
     </>
   );

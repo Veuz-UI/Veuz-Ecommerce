@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { fetchShopSettings, saveShopSettings } from '@/services/shopSettingsService';
 import { MainMenuItem, SubMenuColumn, SubMenuColumnItem, MenuBanner } from '@/data/defaultShopSettings';
 import { useToast } from '@/context/ToastContext';
+import { validateImageFile, compressImage } from '@/utils/imageSecurity';
 
 export default function MenuEditPage() {
   const params = useParams();
@@ -128,46 +129,50 @@ export default function MenuEditPage() {
     loadData();
   }, [menuId, isNew]);
 
-  // Image Upload Handler
+  // Image Upload Handler with Strict Validation & Canvas Compression
   const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      showToast('danger', 'Please upload a valid image file (PNG, JPG, WEBP).');
+    // 1. Strict Validation (File Type, Extension, Max 5MB Size)
+    const validation = validateImageFile(file, 5 * 1024 * 1024);
+    if (!validation.valid) {
+      showToast('danger', validation.error || 'Invalid image file.');
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setBanner((prev) => ({ ...prev, image: reader.result as string }));
-      }
-    };
-    reader.readAsDataURL(file);
-
     setIsUploading(true);
     try {
+      // 2. Client-side Canvas Compression (Max 1600px width/height, 0.85 quality WebP)
+      const compressedFile = await compressImage(file, {
+        maxWidth: 1600,
+        maxHeight: 1600,
+        quality: 0.85,
+        mimeType: 'image/webp',
+      });
+
+      // Show immediate local preview
+      const previewUrl = URL.createObjectURL(compressedFile);
+      setBanner((prev) => ({ ...prev, image: previewUrl }));
+
+      // 3. Upload to secure backend API
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', compressedFile);
 
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.url) {
-          setBanner((prev) => ({ ...prev, image: data.url }));
-          showToast('success', 'Banner image uploaded successfully!');
-        }
+      const data = await res.json();
+      if (res.ok && data.success && data.url) {
+        setBanner((prev) => ({ ...prev, image: data.url }));
+        showToast('success', 'Banner image uploaded successfully!');
       } else {
-        // Fallback already uses base64 data preview
-        showToast('info', 'Image saved as preview.');
+        showToast('warning', data.message || 'Image preview set locally.');
       }
-    } catch (err) {
-      showToast('info', 'Preview set from uploaded file.');
+    } catch (err: any) {
+      showToast('warning', 'Banner preview applied.');
     } finally {
       setIsUploading(false);
     }

@@ -105,7 +105,7 @@ export default function DashboardHomePage() {
             </Link>
           )}
 
-          <Link
+          <a
             href="/"
             className="btn btn-sm d-inline-flex align-items-center gap-2 fw-semibold"
             style={{
@@ -121,9 +121,9 @@ export default function DashboardHomePage() {
           >
             <iconify-icon icon="solar:shop-2-broken" class="fs-16 text-muted"></iconify-icon>
             <span>View Storefront</span>
-          </Link>
+          </a>
 
-          <Link
+          <a
             href="/profile"
             className="btn btn-sm d-inline-flex align-items-center gap-2 fw-semibold"
             style={{
@@ -139,7 +139,7 @@ export default function DashboardHomePage() {
           >
             <iconify-icon icon="solar:user-broken" class="fs-16 text-muted"></iconify-icon>
             <span>My Profile</span>
-          </Link>
+          </a>
         </div>
       </div>
     </div>

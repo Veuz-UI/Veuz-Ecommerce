@@ -4,18 +4,36 @@ import { z } from 'zod';
 import { prisma } from '../config/prisma.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
 
-// Schemas
+// Schemas with Strict Security Validation
 const createUserSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').max(60),
-  email: z.string().email('Invalid email address').max(100),
+  name: z
+    .string()
+    .trim()
+    .min(2, 'Name must be at least 2 characters')
+    .max(60, 'Name cannot exceed 60 characters')
+    .regex(/^[a-zA-Z\u00C0-\u024F\u0600-\u06FF\s'-]+$/, 'Name can only contain letters, spaces, and hyphens'),
+  email: z.string().trim().email('Invalid email address').max(100),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
-    .max(100)
-    .regex(/^(?=.*[A-Za-z])(?=.*\d)/, 'Password must contain at least one letter and one number'),
+    .max(16, 'Password cannot exceed 16 characters')
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`])/,
+      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+    ),
   role: z.enum(['CUSTOMER', 'ADMIN', 'SUPER_ADMIN']).default('CUSTOMER'),
-  phone: z.string().optional().nullable(),
-  alternatePhone: z.string().optional().nullable(),
+  phone: z
+    .string()
+    .regex(/^\d{7,15}$/, 'Phone number must contain 7 to 15 digits (numbers only)')
+    .optional()
+    .nullable()
+    .or(z.literal('')),
+  alternatePhone: z
+    .string()
+    .regex(/^\d{7,15}$/, 'Alternate phone number must contain 7 to 15 digits (numbers only)')
+    .optional()
+    .nullable()
+    .or(z.literal('')),
   dateOfBirth: z.string().optional().nullable(),
   gender: z.string().optional().nullable(),
 });
@@ -24,8 +42,11 @@ const resetPasswordSchema = z.object({
   newPassword: z
     .string()
     .min(8, 'Password must be at least 8 characters')
-    .max(100)
-    .regex(/^(?=.*[A-Za-z])(?=.*\d)/, 'Password must contain at least one letter and one number'),
+    .max(16, 'Password cannot exceed 16 characters')
+    .regex(
+      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`])/,
+      'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'
+    ),
 });
 
 // ========================================================
@@ -111,7 +132,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response): Promis
     });
   } catch (error: any) {
     console.error('getUsers error:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch users: ' + error.message });
+    res.status(500).json({ success: false, message: 'Failed to fetch users. Please refresh or try again later.' });
   }
 };
 
@@ -178,7 +199,7 @@ export const toggleBlockUser = async (req: AuthenticatedRequest, res: Response):
     });
   } catch (error: any) {
     console.error('toggleBlockUser error:', error);
-    res.status(500).json({ success: false, message: 'Failed to update user status: ' + error.message });
+    res.status(500).json({ success: false, message: 'Failed to update user account status. Please try again.' });
   }
 };
 
@@ -237,7 +258,7 @@ export const resetUserPassword = async (req: AuthenticatedRequest, res: Response
       return;
     }
     console.error('resetUserPassword error:', error);
-    res.status(500).json({ success: false, message: 'Failed to reset password: ' + error.message });
+    res.status(500).json({ success: false, message: 'Failed to reset password. Please try again.' });
   }
 };
 
@@ -313,7 +334,7 @@ export const deleteUser = async (req: AuthenticatedRequest, res: Response): Prom
     });
   } catch (error: any) {
     console.error('deleteUser error:', error);
-    res.status(500).json({ success: false, message: 'Failed to delete user: ' + error.message });
+    res.status(500).json({ success: false, message: 'Failed to delete user account. Please try again.' });
   }
 };
 
@@ -393,6 +414,6 @@ export const createUser = async (req: AuthenticatedRequest, res: Response): Prom
       return;
     }
     console.error('createUser error:', error);
-    res.status(500).json({ success: false, message: 'Failed to create user: ' + error.message });
+    res.status(500).json({ success: false, message: 'Failed to create user account. Please check the details and try again.' });
   }
 };

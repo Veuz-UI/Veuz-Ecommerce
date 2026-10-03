@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Product, FEATURED_PRODUCTS } from '@/data/mockData';
+import { triggerGlobalToast } from '@/context/ToastContext';
 
 export interface CartItem {
   product: Product;
@@ -52,10 +53,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       return [...prev, { product, quantity }];
     });
     setIsCartOpen(true);
+    triggerGlobalToast('success', `${product.name} added to your shopping cart!`, 'Successfully Message');
   };
 
   const removeFromCart = (productId: number) => {
     setCart((prev) => prev.filter((item) => item.product.id !== productId));
+    triggerGlobalToast('danger', 'Item removed from your shopping cart.', 'Cart Updated');
   };
 
   const updateQuantity = (productId: number, quantity: number) => {
@@ -71,11 +74,16 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleWishlist = (productId: number) => {
-    setWishlist((prev) =>
-      prev.includes(productId)
-        ? prev.filter((id) => id !== productId)
-        : [...prev, productId]
-      );
+    setWishlist((prev) => {
+      const exists = prev.includes(productId);
+      if (exists) {
+        triggerGlobalToast('warning', 'Item removed from your wishlist.', 'Wishlist');
+        return prev.filter((id) => id !== productId);
+      } else {
+        triggerGlobalToast('info', 'Item added to your wishlist!', 'Wishlist');
+        return [...prev, productId];
+      }
+    });
   };
 
   const isInWishlist = (productId: number) => wishlist.includes(productId);

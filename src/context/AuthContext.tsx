@@ -43,7 +43,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // Load user session on initial mount
+  // Load user session on initial mount and synchronize across tabs
   useEffect(() => {
     const savedToken = typeof window !== 'undefined' ? localStorage.getItem('veuz_token') : null;
     const savedUser = typeof window !== 'undefined' ? localStorage.getItem('veuz_user') : null;
@@ -57,7 +57,103 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
     setIsLoading(false);
+
+    if (typeof window === 'undefined') return;
+
+    // Cross-Tab Synchronization Handlers
+    const handleLogoutBroadcast = () => {
+      setToken(null);
+      setUser(null);
+      try {
+        localStorage.removeItem('veuz_token');
+        localStorage.removeItem('veuz_user');
+        sessionStorage.clear();
+        document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+      } catch (e) {}
+
+      const pathname = window.location.pathname;
+      if (pathname.startsWith('/dashboard')) {
+        window.location.replace('/login');
+      } else if (pathname === '/profile') {
+        window.location.replace('/');
+      }
+    };
+
+    const handleLoginBroadcast = (newUser: User, newToken: string) => {
+      setUser(newUser);
+      setToken(newToken);
+      const pathname = window.location.pathname;
+      const isAdminUser = newUser.role === 'ADMIN' || newUser.role === 'SUPER_ADMIN';
+
+      if (pathname === '/login' || pathname === '/register') {
+        if (isAdminUser) {
+          window.location.replace('/dashboard');
+        } else {
+          window.location.replace('/');
+        }
+      } else if (pathname.startsWith('/dashboard') && !isAdminUser) {
+        // If customer logged in in another tab, kick current tab off the dashboard
+        window.location.replace('/');
+      } else if (pathname.startsWith('/dashboard') && isAdminUser) {
+        // Refresh dashboard data for newly active admin account
+        window.location.reload();
+      }
+    };
+
+    // 1. Storage Event Listener (triggers across other tabs when localStorage changes)
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'veuz_auth_sync' && e.newValue) {
+        try {
+          const payload = JSON.parse(e.newValue);
+          if (payload.action === 'logout') {
+            handleLogoutBroadcast();
+          } else if (payload.action === 'login' && payload.user && payload.token) {
+            handleLoginBroadcast(payload.user, payload.token);
+          }
+        } catch (err) {}
+      } else if (e.key === 'veuz_token' && !e.newValue) {
+        handleLogoutBroadcast();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    // 2. BroadcastChannel (instant zero-delay synchronization across same-origin tabs)
+    let channel: BroadcastChannel | null = null;
+    try {
+      if ('BroadcastChannel' in window) {
+        channel = new BroadcastChannel('veuz_auth_channel');
+        channel.onmessage = (event) => {
+          if (event.data?.action === 'logout') {
+            handleLogoutBroadcast();
+          } else if (event.data?.action === 'login' && event.data.user && event.data.token) {
+            handleLoginBroadcast(event.data.user, event.data.token);
+          }
+        };
+      }
+    } catch (e) {}
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      if (channel) {
+        try {
+          channel.close();
+        } catch (e) {}
+      }
+    };
   }, []);
+
+  const broadcastAuthLogin = (newUser: User, newToken: string) => {
+    try {
+      localStorage.setItem('veuz_auth_sync', JSON.stringify({ action: 'login', timestamp: Date.now(), user: newUser, token: newToken }));
+    } catch (e) {}
+    try {
+      if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+        const channel = new BroadcastChannel('veuz_auth_channel');
+        channel.postMessage({ action: 'login', user: newUser, token: newToken });
+        channel.close();
+      }
+    } catch (e) {}
+  };
 
   const login = async (email: string, password: string) => {
     try {
@@ -67,6 +163,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.user);
       localStorage.setItem('veuz_token', data.token);
       localStorage.setItem('veuz_user', JSON.stringify(data.user));
+      broadcastAuthLogin(data.user, data.token);
 
       return { success: true, user: data.user };
     } catch (error: any) {
@@ -90,6 +187,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(superAdmin);
         localStorage.setItem('veuz_token', 'super-admin-token');
         localStorage.setItem('veuz_user', JSON.stringify(superAdmin));
+        broadcastAuthLogin(superAdmin, 'super-admin-token');
         return { success: true, user: superAdmin };
       } else if (email.toLowerCase().includes('admin')) {
         const demoAdmin: User = {
@@ -108,6 +206,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(demoAdmin);
         localStorage.setItem('veuz_token', 'demo-admin-token');
         localStorage.setItem('veuz_user', JSON.stringify(demoAdmin));
+        broadcastAuthLogin(demoAdmin, 'demo-admin-token');
         return { success: true, user: demoAdmin };
       } else {
         const demoCustomer: User = {
@@ -126,6 +225,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(demoCustomer);
         localStorage.setItem('veuz_token', 'demo-customer-token');
         localStorage.setItem('veuz_user', JSON.stringify(demoCustomer));
+        broadcastAuthLogin(demoCustomer, 'demo-customer-token');
         return { success: true, user: demoCustomer };
       }
     }
@@ -139,6 +239,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(data.user);
       localStorage.setItem('veuz_token', data.token);
       localStorage.setItem('veuz_user', JSON.stringify(data.user));
+      broadcastAuthLogin(data.user, data.token);
 
       return { success: true, user: data.user };
     } catch (error: any) {
@@ -157,6 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(demoCustomer);
       localStorage.setItem('veuz_token', 'demo-customer-token');
       localStorage.setItem('veuz_user', JSON.stringify(demoCustomer));
+      broadcastAuthLogin(demoCustomer, 'demo-customer-token');
       return { success: true, user: demoCustomer };
     }
   };
@@ -239,6 +341,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
         document.documentElement.scrollTop = 0;
         document.body.scrollTop = 0;
+      } catch (e) {}
+
+      // Broadcast logout immediately to all other tabs and windows
+      try {
+        localStorage.setItem('veuz_auth_sync', JSON.stringify({ action: 'logout', timestamp: Date.now() }));
+      } catch (e) {}
+      try {
+        if ('BroadcastChannel' in window) {
+          const channel = new BroadcastChannel('veuz_auth_channel');
+          channel.postMessage({ action: 'logout' });
+          channel.close();
+        }
       } catch (e) {}
 
       localStorage.removeItem('veuz_token');

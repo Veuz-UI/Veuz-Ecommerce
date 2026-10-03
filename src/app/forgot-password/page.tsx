@@ -3,26 +3,32 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import authService from '@/services/authService';
+import { useToast } from '@/context/ToastContext';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { showToast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !email.includes('@')) {
+      showToast('warning', 'Please enter a valid email address.', 'Alert Message');
+      return;
+    }
+
     setLoading(true);
-    setErrorMsg(null);
 
     try {
       await authService.forgotPassword(email);
       setLoading(false);
       setSubmitted(true);
+      showToast('success', 'Password reset instructions have been sent to your email.', 'Successfully Message');
     } catch (err) {
       setLoading(false);
-      // Friendly safe response
       setSubmitted(true);
+      showToast('success', 'Password reset instructions have been sent to your email.', 'Successfully Message');
     }
   };
 

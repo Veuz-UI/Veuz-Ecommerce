@@ -503,6 +503,29 @@ export default function DashboardLayout({
         html[data-menu-size=sm-hover] .main-nav:hover .logo-box .logo-sm {
           display: none !important;
         }
+
+        /* 5. Dashboard Modals Fullscreen Backdrop (Over Topbar & Sidebar) */
+        .modal.show,
+        .modal.fade.show,
+        .modal.d-block {
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          width: 100vw !important;
+          height: 100vh !important;
+          z-index: 1070 !important;
+          background-color: rgba(15, 23, 42, 0.72) !important;
+          backdrop-filter: blur(2px) !important;
+          -webkit-backdrop-filter: blur(2px) !important;
+          overflow-x: hidden !important;
+          overflow-y: auto !important;
+        }
+
+        .modal-dialog {
+          z-index: 1075 !important;
+        }
       `}} />
 
       {!isLoading && !user ? (
@@ -1044,13 +1067,33 @@ export default function DashboardLayout({
                 </li>
               )}
 
-              {/* 4. Shop Settings */}
+              {/* 4. Products Management */}
+              <li className="nav-item">
+                <Link className={`nav-link ${pathname?.startsWith('/dashboard/all-products') ? 'active' : ''}`} href="/dashboard/all-products">
+                  <span className="nav-icon">
+                    <iconify-icon icon="solar:box-minimalistic-broken"></iconify-icon>
+                  </span>
+                  <span className="nav-text"> All Products </span>
+                </Link>
+              </li>
+
+              {/* 5. Shop Settings */}
               <li className="nav-item">
                 <Link className={`nav-link ${pathname?.startsWith('/dashboard/shop-settings') ? 'active' : ''}`} href="/dashboard/shop-settings">
                   <span className="nav-icon">
                     <iconify-icon icon="solar:settings-minimalistic-broken"></iconify-icon>
                   </span>
                   <span className="nav-text"> Shop Settings </span>
+                </Link>
+              </li>
+
+              {/* 6. Banner Settings */}
+              <li className="nav-item">
+                <Link className={`nav-link ${pathname?.startsWith('/dashboard/banner-settings') ? 'active' : ''}`} href="/dashboard/banner-settings">
+                  <span className="nav-icon">
+                    <iconify-icon icon="solar:gallery-wide-broken"></iconify-icon>
+                  </span>
+                  <span className="nav-text"> Banner Settings </span>
                 </Link>
               </li>
             </ul>

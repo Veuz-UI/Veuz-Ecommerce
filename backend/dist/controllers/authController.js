@@ -5,46 +5,62 @@ import { z } from 'zod';
 import { prisma } from '../config/prisma.js';
 const JWT_SECRET = process.env.JWT_SECRET || 'veuz_super_secure_jwt_secret_key_2026';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
-// Validation Schemas
+// Validation Schemas with Strong Security
 const registerSchema = z.object({
-    name: z.string().min(2, 'Name must be at least 2 characters').max(60),
-    email: z.string().email('Invalid email address').max(100),
-    mobile: z.string().optional(),
+    name: z
+        .string()
+        .trim()
+        .min(2, 'Name must be at least 2 characters')
+        .max(60, 'Name cannot exceed 60 characters')
+        .regex(/^[a-zA-Z\u00C0-\u024F\u0600-\u06FF\s'-]+$/, 'Name can only contain letters, spaces, and hyphens'),
+    email: z.string().trim().email('Invalid email address').max(100),
+    mobile: z
+        .string()
+        .regex(/^\d{7,15}$/, 'Mobile number must contain 7 to 15 digits (numbers only)')
+        .optional()
+        .or(z.literal('')),
     password: z
         .string()
         .min(8, 'Password must be at least 8 characters')
-        .max(100)
-        .regex(/^(?=.*[A-Za-z])(?=.*\d)/, 'Password must contain at least one letter and one number'),
+        .max(16, 'Password cannot exceed 16 characters')
+        .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`])/, 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
     confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
     message: "Passwords don't match",
     path: ['confirmPassword'],
 });
 const loginSchema = z.object({
-    email: z.string().email('Invalid email address'),
+    email: z.string().trim().email('Invalid email address'),
     password: z.string().min(1, 'Password is required'),
 });
 const inviteAdminSchema = z.object({
-    email: z.string().email('Invalid email address'),
+    email: z.string().trim().email('Invalid email address'),
     role: z.enum(['ADMIN', 'SUPER_ADMIN']).default('ADMIN'),
 });
 const acceptInviteSchema = z.object({
     token: z.string().min(10, 'Invalid invite token'),
-    name: z.string().min(2).max(60),
+    name: z
+        .string()
+        .trim()
+        .min(2, 'Name must be at least 2 characters')
+        .max(60, 'Name cannot exceed 60 characters')
+        .regex(/^[a-zA-Z\u00C0-\u024F\u0600-\u06FF\s'-]+$/, 'Name can only contain letters, spaces, and hyphens'),
     password: z
         .string()
-        .min(8)
-        .regex(/^(?=.*[A-Za-z])(?=.*\d)/, 'Password must contain at least one letter and one number'),
+        .min(8, 'Password must be at least 8 characters')
+        .max(16, 'Password cannot exceed 16 characters')
+        .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`])/, 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
 });
 const forgotPasswordSchema = z.object({
-    email: z.string().email('Invalid email address'),
+    email: z.string().trim().email('Invalid email address'),
 });
 const resetPasswordSchema = z.object({
     token: z.string().min(10, 'Invalid reset token'),
     password: z
         .string()
-        .min(8)
-        .regex(/^(?=.*[A-Za-z])(?=.*\d)/, 'Password must contain at least one letter and one number'),
+        .min(8, 'Password must be at least 8 characters')
+        .max(16, 'Password cannot exceed 16 characters')
+        .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`])/, 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
 });
 // Helper: Generate JWT
 const signToken = (user) => {
@@ -534,12 +550,30 @@ export const updateProfile = async (req, res) => {
             return;
         }
         const updateData = {};
-        if (name !== undefined)
-            updateData.name = name.trim();
-        if (phone !== undefined)
-            updateData.phone = phone ? phone.trim() : null;
-        if (alternatePhone !== undefined)
-            updateData.alternatePhone = alternatePhone ? alternatePhone.trim() : null;
+        if (name !== undefined) {
+            const cleanName = name.trim();
+            if (cleanName.length < 2 || cleanName.length > 60 || !/^[a-zA-Z\u00C0-\u024F\u0600-\u06FF\s'-]+$/.test(cleanName)) {
+                res.status(400).json({ success: false, message: 'Name must be 2 to 60 characters and contain only letters and spaces.' });
+                return;
+            }
+            updateData.name = cleanName;
+        }
+        if (phone !== undefined) {
+            const cleanPhone = phone ? phone.trim() : null;
+            if (cleanPhone && !/^\d{7,15}$/.test(cleanPhone)) {
+                res.status(400).json({ success: false, message: 'Phone number must contain 7 to 15 digits (numbers only).' });
+                return;
+            }
+            updateData.phone = cleanPhone;
+        }
+        if (alternatePhone !== undefined) {
+            const cleanAltPhone = alternatePhone ? alternatePhone.trim() : null;
+            if (cleanAltPhone && !/^\d{7,15}$/.test(cleanAltPhone)) {
+                res.status(400).json({ success: false, message: 'Alternate phone must contain 7 to 15 digits (numbers only).' });
+                return;
+            }
+            updateData.alternatePhone = cleanAltPhone;
+        }
         if (dateOfBirth !== undefined)
             updateData.dateOfBirth = dateOfBirth ? dateOfBirth.trim() : null;
         if (gender !== undefined)
@@ -600,7 +634,7 @@ export const updateProfile = async (req, res) => {
     }
     catch (error) {
         console.error('Update Profile Error:', error);
-        res.status(500).json({ success: false, message: error.message || 'Internal server error.' });
+        res.status(500).json({ success: false, message: 'Failed to update profile. Please try again.' });
     }
 };
 // ========================================================
@@ -621,8 +655,12 @@ export const changePassword = async (req, res) => {
             res.status(400).json({ success: false, message: 'New password and confirm password do not match' });
             return;
         }
-        if (newPassword.length < 8) {
-            res.status(400).json({ success: false, message: 'New password must be at least 8 characters long' });
+        const strongPassRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`])/;
+        if (newPassword.length < 8 || newPassword.length > 16 || !strongPassRegex.test(newPassword)) {
+            res.status(400).json({
+                success: false,
+                message: 'New password must be between 8 and 16 characters and contain at least one uppercase letter, one lowercase letter, one number, and one special character.',
+            });
             return;
         }
         const user = await prisma.user.findUnique({

@@ -4,10 +4,12 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { login, user, isLoading } = useAuth();
+  const { showToast } = useToast();
 
   const [email, setEmail] = useState('');
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -16,7 +18,17 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // If user is already authenticated (or authenticates in another window), redirect immediately
+  useEffect(() => {
+    if (!isLoading && user) {
+      if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/');
+      }
+    }
+  }, [user, isLoading, router]);
 
   // Restore remembered credentials on initial mount and scroll to top
   useEffect(() => {
@@ -55,16 +67,16 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg(null);
     setEmailTouched(true);
 
     const isEmailValid = validateEmail(email);
     if (!isEmailValid) {
+      showToast('warning', 'Please enter a valid email address.', 'Alert Message');
       return;
     }
 
     if (!password || password.trim() === '') {
-      setErrorMsg('Please enter your password.');
+      showToast('danger', 'Please enter your password.', 'Error Message');
       return;
     }
 
@@ -85,6 +97,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (res.success && res.user) {
+      showToast('success', `Welcome back, ${res.user.name || 'User'}!`, 'Successfully Message');
       if (typeof window !== 'undefined') {
         try {
           if ('scrollRestoration' in window.history) {
@@ -102,7 +115,7 @@ export default function LoginPage() {
         router.push('/', { scroll: true });
       }
     } else {
-      setErrorMsg(res.message || 'Invalid email or password.');
+      showToast('danger', res.message || 'Invalid email or password.', 'Error Message');
     }
   };
 
@@ -155,25 +168,6 @@ export default function LoginPage() {
           }}>
             Enter your credentials to access your account
           </p>
-
-          {/* Error Message */}
-          {errorMsg && (
-            <div style={{
-              backgroundColor: '#fef2f2',
-              border: '1px solid #fecaca',
-              color: '#b91c1c',
-              fontSize: '13px',
-              padding: '10px 14px',
-              borderRadius: '8px',
-              marginBottom: '18px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <i className="fi fi-rs-exclamation" style={{ fontSize: '15px' }}></i>
-              <span>{errorMsg}</span>
-            </div>
-          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} noValidate>

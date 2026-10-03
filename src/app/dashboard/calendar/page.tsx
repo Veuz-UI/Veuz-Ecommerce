@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useToast } from '@/context/ToastContext';
 
 interface CalendarEvent {
   id: string;
@@ -14,6 +15,8 @@ interface CalendarEvent {
 }
 
 export default function CalendarPage() {
+  const { showToast } = useToast();
+
   // Guarantee calendar page starts at the top
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -187,6 +190,7 @@ export default function CalendarPage() {
 
     setEvents([...events, newEvent]);
     setShowEventModal(false);
+    showToast('success', `Schedule event "${newEventTitle}" added successfully!`, 'Successfully Message');
     setNewEventTitle('');
     setNewEventDate('');
     setNewEventDesc('');
@@ -594,8 +598,10 @@ export default function CalendarPage() {
                   type="button"
                   className="btn btn-outline-danger btn-sm"
                   onClick={() => {
+                    const title = selectedEvent.title;
                     setEvents(events.filter((e) => e.id !== selectedEvent.id));
                     setSelectedEvent(null);
+                    showToast('danger', `Schedule event "${title}" deleted.`, 'Deleted Successfully');
                   }}
                 >
                   Delete Event

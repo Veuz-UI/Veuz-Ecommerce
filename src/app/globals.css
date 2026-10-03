@@ -1004,11 +1004,198 @@ iconify-icon {
 }
 
 
+/* Top Categories Modern Slider & Cards */
+.browse-categories-slider-wrapper {
+  width: 100%;
+  position: relative;
+}
+
+.browse-cat-track-container {
+  display: flex;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  gap: 16px;
+  padding: 6px 4px 16px 4px;
+}
+
+.browse-cat-track-container::-webkit-scrollbar {
+  display: none;
+}
+
+.browse-cat-card-wrapper {
+  flex: 0 0 calc((100% - 96px) / 7);
+  min-width: calc((100% - 96px) / 7);
+  scroll-snap-align: start;
+  display: flex;
+}
+
+@media (max-width: 1200px) {
+  .browse-cat-card-wrapper {
+    flex: 0 0 calc((100% - 64px) / 5);
+    min-width: calc((100% - 64px) / 5);
+  }
+}
+
+@media (max-width: 992px) {
+  .browse-cat-card-wrapper {
+    flex: 0 0 calc((100% - 48px) / 4);
+    min-width: calc((100% - 48px) / 4);
+  }
+}
+
+@media (max-width: 768px) {
+  .browse-cat-card-wrapper {
+    flex: 0 0 calc((100% - 32px) / 3);
+    min-width: calc((100% - 32px) / 3);
+  }
+}
+
+@media (max-width: 540px) {
+  .browse-cat-card-wrapper {
+    flex: 0 0 calc((100% - 16px) / 2);
+    min-width: calc((100% - 16px) / 2);
+  }
+}
+
+.browse-cat-card {
+  width: 100% !important;
+  height: 185px !important;
+  min-height: 185px !important;
+  max-height: 185px !important;
+  background: #ffffff !important;
+  border: 1.5px solid #e2e8f0 !important;
+  border-radius: 14px !important;
+  padding: 12px 10px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+  transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1) !important;
+  text-decoration: none !important;
+  box-sizing: border-box !important;
+  position: relative !important;
+}
+
+.browse-cat-card:hover {
+  transform: translateY(-4px) !important;
+  border-color: #16a34a !important;
+  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.14) !important;
+}
+
+.browse-cat-img-box {
+  width: 100% !important;
+  height: 105px !important;
+  min-height: 105px !important;
+  max-height: 105px !important;
+  background: #f8fafc !important;
+  border-radius: 10px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: hidden !important;
+  padding: 8px !important;
+  box-sizing: border-box !important;
+  transition: background-color 0.25s ease !important;
+}
+
+.browse-cat-card:hover .browse-cat-img-box {
+  background: #f0fdf4 !important;
+}
+
+.browse-cat-img {
+  max-height: 85px !important;
+  max-width: 85px !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  transition: transform 0.3s ease !important;
+}
+
+.browse-cat-card:hover .browse-cat-img {
+  transform: scale(1.08) !important;
+}
+
+.browse-cat-title-box {
+  width: 100% !important;
+  height: 38px !important;
+  min-height: 38px !important;
+  max-height: 38px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  text-align: center !important;
+  padding: 0 2px !important;
+}
+
+.browse-cat-title {
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  color: #0f172a !important;
+  line-height: 1.25 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  transition: color 0.2s ease !important;
+}
+
+.browse-cat-card:hover .browse-cat-title {
+  color: #16a34a !important;
+}
+
+/* Browse Section Sidebar Filter Pills */
+.browse-filter-pill:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Category Slider Navigation Arrows */
+.btn-category-slider-arrow {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  min-height: 38px !important;
+  border-radius: 50% !important;
+  border: 1.5px solid #e2e8f0 !important;
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
+  transition: all 0.2s ease !important;
+  padding: 0 !important;
+}
+
+.btn-category-slider-arrow:hover {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.2) !important;
+  transform: scale(1.05) !important;
+}
+
+.btn-category-slider-arrow i {
+  font-size: 13px !important;
+  line-height: 1 !important;
+}
+
 /* Top Categories 7-Item Slider Uniform Size, Image Level & Text Level */
+.top-categories-slider-wrapper {
+  padding: 10px 4px !important;
+  margin: -10px -4px !important;
+  position: relative;
+}
+
 .top-cat-slide-item {
   flex: 0 0 14.2857% !important;
   max-width: 14.2857% !important;
-  padding: 0 6px !important;
+  padding: 8px 6px !important;
   box-sizing: border-box !important;
   display: flex !important;
 }
@@ -1021,8 +1208,8 @@ iconify-icon {
   margin: 0 !important;
   padding: 16px 8px 14px 8px !important;
   background: #ffffff !important;
-  border: 1px solid #E2E2E2 !important;
-  border-radius: 0px !important;
+  border: 1.5px solid #E2E2E2 !important;
+  border-radius: 10px !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
   display: flex !important;
   flex-direction: column !important;
@@ -1030,12 +1217,15 @@ iconify-icon {
   justify-content: space-between !important;
   box-sizing: border-box !important;
   transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease !important;
+  position: relative !important;
+  z-index: 1 !important;
 }
 
 .top-cat-slide-item .card-2:hover {
   transform: translateY(-4px) !important;
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08) !important;
-  border-color: #3BB77E !important;
+  box-shadow: 0 10px 22px rgba(46, 125, 50, 0.16) !important;
+  border-color: #2e7d32 !important;
+  z-index: 5 !important;
 }
 
 /* Image container fixed height & centered for exact same visual level */
@@ -1811,16 +2001,17 @@ iconify-icon {
 /* 2. Top Categories Slider */
 .top-cat-slide-item .card-2 {
   border-radius: 10px !important;
-  border: 1px solid #e5e7eb !important;
+  border: 1.5px solid #e5e7eb !important;
   height: 180px !important;
   background: #ffffff !important;
-  transition: all 0.25s ease !important;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease !important;
+  position: relative !important;
 }
 
 .top-cat-slide-item .card-2:hover {
   border-color: #2e7d32 !important;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06) !important;
-  transform: translateY(-3px) !important;
+  box-shadow: 0 10px 22px rgba(46, 125, 50, 0.16) !important;
+  transform: translateY(-4px) !important;
 }
 
 /* 3. Promotional 3-Card Banners (Height made bigger like before) */
@@ -4585,25 +4776,82 @@ body.modal-open {
   overflow-x: hidden !important;
 }
 
-/* 3. Smooth Butter-Like Page Content Fade-In */
+/* 3. Smooth Butter-Like Page Content Fade-In (No transform to prevent trapping fixed modals) */
 .page-content {
   min-height: calc(100vh - 120px);
-  animation: dashboardFadeIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  will-change: opacity, transform;
+  animation: dashboardFadeIn 0.2s ease-out forwards;
+  will-change: opacity;
 }
 
 @keyframes dashboardFadeIn {
   0% {
-    opacity: 0.92;
-    transform: translateY(3px);
+    opacity: 0.95;
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
-/* 4. Stable height for loading states to prevent sudden vertical page snaps */
+/* When any modal is active, lower topbar & main-nav and elevate container so backdrop is 100% on top */
+body:has(.modal.show) .topbar,
+body:has(.modal.show) .main-nav,
+body:has(.modal.d-block) .topbar,
+body:has(.modal.d-block) .main-nav,
+body.modal-open .topbar,
+body.modal-open .main-nav {
+  z-index: 900 !important;
+}
+
+.wrapper:has(.modal.show),
+.wrapper:has(.modal.d-block),
+.page-content:has(.modal.show),
+.page-content:has(.modal.d-block) {
+  z-index: 99998 !important;
+  animation: none !important;
+  will-change: auto !important;
+}
+
+/* 4. Fullscreen Dashboard Modal & Backdrop Overlay - Completely Covers Topbar and Sidebar */
+.modal.show,
+.modal.fade.show,
+.modal.d-block {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  z-index: 99999 !important;
+  background-color: rgba(15, 23, 42, 0.75) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+.modal-dialog {
+  z-index: 100000 !important;
+  margin: 1.75rem auto !important;
+}
+
+.modal-backdrop.show {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 99998 !important;
+  background-color: rgba(15, 23, 42, 0.75) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+/* 5. Stable height for loading states to prevent sudden vertical page snaps */
 .dashboard-loading-stable {
   min-height: 420px;
   display: flex;
@@ -4683,3 +4931,322 @@ body.modal-open {
 .search-categories-scroll-list::-webkit-scrollbar-thumb:hover {
   background: #94a3b8 !important;
 }
+
+/* ==========================================================================
+   WEBSITE NAVIGATION STABILITY & ZERO-FOUC DEFENSIVE RULES
+   Guarantees header and navigation links maintain structured layout instantly
+   ========================================================================== */
+.header-wrap {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+.header-bottom {
+  border-top: 1px solid #ececec;
+  border-bottom: 1px solid #ececec;
+  background-color: #ffffff;
+}
+
+.main-menu > nav > ul {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  gap: 20px;
+}
+
+.main-menu > nav > ul > li {
+  display: inline-flex !important;
+  align-items: center !important;
+  list-style: none !important;
+}
+
+.main-menu > nav > ul > li > a {
+  text-decoration: none !important;
+  color: #253D4E !important;
+  font-weight: 700 !important;
+  font-size: 15px !important;
+}
+
+.header-action-right {
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+}
+
+.header-action-2 {
+  display: flex !important;
+  align-items: center !important;
+  gap: 18px !important;
+}
+
+.search-style-2 {
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* ========================================================
+   MODERN CATEGORY FILTER SIDEBAR STYLES (Matching Reference)
+   ======================================================== */
+.filter-card-container {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  cursor: pointer;
+  user-select: none;
+  background-color: #ffffff;
+  transition: background-color 0.15s ease;
+}
+
+.filter-card-header:hover {
+  background-color: #f8fafc;
+}
+
+.filter-card-header.is-open {
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.filter-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.1px;
+  margin: 0;
+}
+
+.filter-card-body {
+  padding: 16px 18px;
+}
+
+/* Size 3-column grid button */
+.filter-size-pill {
+  height: 40px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.filter-size-pill:hover {
+  border-color: #0f172a;
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.filter-size-pill.active {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+}
+
+/* Color 2-column pill */
+.filter-color-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.filter-color-pill:hover {
+  border-color: #0f172a;
+  background-color: #f8fafc;
+}
+
+.filter-color-pill.active {
+  border-color: #0f172a !important;
+  background-color: #f8fafc !important;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.1);
+}
+
+.filter-color-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.14);
+}
+
+.filter-color-name {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-color-pill.active .filter-color-name {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+/* Browse section pill */
+.filter-browse-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 14px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.filter-browse-item:hover {
+  border-color: #cbd5e1;
+  background-color: #f8fafc;
+}
+
+.filter-browse-item.active {
+  border-color: #0f172a !important;
+  background-color: #f8fafc !important;
+}
+
+/* Standard pill */
+.filter-std-pill {
+  height: 38px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  color: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0 8px;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.filter-std-pill:hover {
+  border-color: #0f172a;
+  background-color: #f8fafc;
+}
+
+.filter-std-pill.active {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.15);
+}
+
+/* Slider arrows */
+.btn-category-slider-arrow {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 50%;
+  border: 1.5px solid #cbd5e1;
+  background-color: #ffffff;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 5;
+  outline: none;
+  padding: 0;
+}
+
+.btn-category-slider-arrow:hover {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+  transform: scale(1.08);
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.2) !important;
+}
+
+.btn-category-slider-arrow:active {
+  transform: scale(0.95);
+}
+
+.category-pill-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease !important;
+}
+
+.category-pill-card:hover {
+  transform: translateY(-2px);
+  border-color: #16a34a !important;
+}
+
+/* Hide scrollbar utility */
+.hide-scrollbar {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Sticky Filters Sidebar custom scrollbar */
+.filters-sidebar {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.filters-sidebar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.filters-sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.filters-sidebar::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.filters-sidebar::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Sticky Filter Sidebar on Desktop */
+@media (min-width: 992px) {
+  .filter-sidebar-wrapper {
+    position: -webkit-sticky !important;
+    position: sticky !important;
+    top: 24px !important;
+    align-self: flex-start !important;
+    z-index: 20 !important;
+  }
+}
+

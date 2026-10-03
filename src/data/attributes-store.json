@@ -1,0 +1,47 @@
+{
+  "colors": [
+    {
+      "name": "Black",
+      "hex": "#0f172a"
+    },
+    {
+      "name": "White",
+      "hex": "#ffffff",
+      "border": "#cbd5e1"
+    },
+    {
+      "name": "Blue",
+      "hex": "#2563eb"
+    },
+    {
+      "name": "Red",
+      "hex": "#dc2626"
+    },
+    {
+      "name": "Green",
+      "hex": "#16a34a"
+    },
+    {
+      "name": "Yellow",
+      "hex": "#ffc800"
+    }
+  ],
+  "sizes": [
+    "S",
+    "M",
+    "L",
+    "XL",
+    "2XL",
+    "3XL",
+    "39",
+    "40",
+    "41",
+    "42",
+    "43",
+    "44",
+    "45",
+    "Free Size",
+    "Adjustable",
+    "Standard"
+  ]
+}

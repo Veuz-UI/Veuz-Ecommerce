@@ -3,12 +3,30 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
+import { fetchBannerSettings, BANNER_SETTINGS_EVENT } from '@/services/bannerSettingsService';
+import { DEFAULT_BANNER_SETTINGS, MainBannerItem, PromoBannerItem } from '@/data/defaultBannerSettings';
+import { fetchShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsService';
+import { DEFAULT_SHOP_SETTINGS, ShopCategory } from '@/data/defaultShopSettings';
+import { fetchProducts, recordProductClick, PRODUCTS_EVENT } from '@/services/productsService';
+import { ProductItem } from '@/data/categoryProductsData';
+
 export default function HomePage() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [activeSideSlide, setActiveSideSlide] = useState(0);
   const [activeCatIndex, setActiveCatIndex] = useState(0);
   const [isCatHovered, setIsCatHovered] = useState(false);
   const newProdScrollRef = useRef<HTMLDivElement>(null);
+  const browseCatScrollRef = useRef<HTMLDivElement>(null);
+
+  // Dynamic Catalog Products from Products Service
+  const [catalogProducts, setCatalogProducts] = useState<ProductItem[]>([]);
+
+  // Dynamic Banners from Banner Settings
+  const [heroSlides, setHeroSlides] = useState<MainBannerItem[]>(DEFAULT_BANNER_SETTINGS.mainBanners);
+  const [sideBannerSlides, setSideBannerSlides] = useState<PromoBannerItem[]>(DEFAULT_BANNER_SETTINGS.promoBanners);
+
+  // Dynamic Categories from Shop Settings (Shop by Categories)
+  const [shopCategories, setShopCategories] = useState<ShopCategory[]>(DEFAULT_SHOP_SETTINGS.categories);
 
   // Guarantee that the home page always starts at the very top (0, 0)
   useEffect(() => {
@@ -23,6 +41,163 @@ export default function HomePage() {
       document.body.scrollTop = 0;
     }
   }, []);
+
+  // Fetch dynamic banners & listen for real-time updates across tabs
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadBanners = async () => {
+      try {
+        const data = await fetchBannerSettings();
+        if (isMounted && data) {
+          const activeMain = (data.mainBanners || [])
+            .filter((b) => b.isActive !== false)
+            .sort((a, b) => (a.order || 0) - (b.order || 0));
+          const activePromo = (data.promoBanners || [])
+            .filter((b) => b.isActive !== false)
+            .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+          setHeroSlides(activeMain.length > 0 ? activeMain : DEFAULT_BANNER_SETTINGS.mainBanners);
+          setSideBannerSlides(activePromo.length > 0 ? activePromo : DEFAULT_BANNER_SETTINGS.promoBanners);
+        }
+      } catch (err) {
+        console.warn('Error loading dynamic banners:', err);
+      }
+    };
+
+    loadBanners();
+
+    const handleBannerUpdate = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (customEvt.detail) {
+        const data = customEvt.detail;
+        const activeMain = (data.mainBanners || [])
+          .filter((b: MainBannerItem) => b.isActive !== false)
+          .sort((a: MainBannerItem, b: MainBannerItem) => (a.order || 0) - (b.order || 0));
+        const activePromo = (data.promoBanners || [])
+          .filter((b: PromoBannerItem) => b.isActive !== false)
+          .sort((a: PromoBannerItem, b: PromoBannerItem) => (a.order || 0) - (b.order || 0));
+
+        setHeroSlides(activeMain.length > 0 ? activeMain : DEFAULT_BANNER_SETTINGS.mainBanners);
+        setSideBannerSlides(activePromo.length > 0 ? activePromo : DEFAULT_BANNER_SETTINGS.promoBanners);
+      } else {
+        loadBanners();
+      }
+    };
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'veuz_banners_cache') {
+        loadBanners();
+      }
+    };
+
+    window.addEventListener(BANNER_SETTINGS_EVENT, handleBannerUpdate);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener(BANNER_SETTINGS_EVENT, handleBannerUpdate);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  // Fetch dynamic categories & listen for real-time updates across tabs & dashboard
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadCategories = async () => {
+      try {
+        const data = await fetchShopSettings();
+        if (isMounted && data && Array.isArray(data.categories)) {
+          const activeCats = data.categories.filter((c) => c.isActive !== false);
+          setShopCategories(activeCats.length > 0 ? activeCats : DEFAULT_SHOP_SETTINGS.categories);
+        }
+      } catch (err) {
+        console.warn('Error loading dynamic categories:', err);
+      }
+    };
+
+    loadCategories();
+
+    const handleCategoryUpdate = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (customEvt.detail && Array.isArray(customEvt.detail.categories)) {
+        const activeCats = customEvt.detail.categories.filter((c: ShopCategory) => c.isActive !== false);
+        setShopCategories(activeCats.length > 0 ? activeCats : DEFAULT_SHOP_SETTINGS.categories);
+      } else {
+        loadCategories();
+      }
+    };
+
+    const handleCategoryStorage = (e: StorageEvent) => {
+      if (e.key === 'veuz_shop_settings_cache') {
+        loadCategories();
+      }
+    };
+
+    window.addEventListener(SHOP_SETTINGS_EVENT, handleCategoryUpdate);
+    window.addEventListener('storage', handleCategoryStorage);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener(SHOP_SETTINGS_EVENT, handleCategoryUpdate);
+      window.removeEventListener('storage', handleCategoryStorage);
+    };
+  }, []);
+
+  // Fetch dynamic catalog products & subscribe to updates
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProducts = async () => {
+      try {
+        const prods = await fetchProducts();
+        if (isMounted && Array.isArray(prods) && prods.length > 0) {
+          setCatalogProducts(prods);
+        }
+      } catch (err) {
+        console.warn('Error loading products for homepage:', err);
+      }
+    };
+
+    loadProducts();
+
+    const handleProductsUpdated = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (customEvt.detail && Array.isArray(customEvt.detail)) {
+        setCatalogProducts(customEvt.detail);
+      } else {
+        loadProducts();
+      }
+    };
+
+    window.addEventListener(PRODUCTS_EVENT, handleProductsUpdated);
+    return () => {
+      isMounted = false;
+      window.removeEventListener(PRODUCTS_EVENT, handleProductsUpdated);
+    };
+  }, []);
+
+  // Bounds safety check for category slide index
+  useEffect(() => {
+    const maxSlide = Math.max(0, shopCategories.length - 7);
+    if (activeCatIndex > maxSlide) {
+      setActiveCatIndex(0);
+    }
+  }, [shopCategories.length, activeCatIndex]);
+
+  // Bounds safety checks for active slide indices
+  useEffect(() => {
+    if (activeSlide >= heroSlides.length) {
+      setActiveSlide(0);
+    }
+  }, [heroSlides.length, activeSlide]);
+
+  useEffect(() => {
+    if (activeSideSlide >= sideBannerSlides.length) {
+      setActiveSideSlide(0);
+    }
+  }, [sideBannerSlides.length, activeSideSlide]);
 
   const scrollNewProd = (direction: 'prev' | 'next') => {
     if (newProdScrollRef.current) {
@@ -48,71 +223,13 @@ export default function HomePage() {
       }
     }
   };
+
   const [activeNewProdIndex, setActiveNewProdIndex] = useState(0);
   const [wishlist, setWishlist] = useState<{ [key: string]: boolean }>({});
 
   const toggleWishlist = (id: string) => {
-    setWishlist(prev => ({ ...prev, [id]: !prev[id] }));
+    setWishlist((prev) => ({ ...prev, [id]: !prev[id] }));
   };
-
-  const heroSlides = [
-    {
-      bg: '/assets/imgs/banner/safety-hero-1.jpg',
-      title: 'Certified Industrial\nSafety & PPE Supplies',
-      link: '/products'
-    },
-    {
-      bg: '/assets/imgs/banner/safety-hero-2.jpg',
-      title: 'Heavy Duty Steel Toe\nSafety Boots & Footwear',
-      link: '/products'
-    },
-    {
-      bg: '/assets/imgs/banner/safety-hero-3.jpg',
-      title: 'Flame Retardant &\nHigh-Vis Workwear',
-      link: '/products'
-    }
-  ];
-
-  const sideBannerSlides = [
-    {
-      bg: '/assets/imgs/banner/clean-side-1.jpg',
-      title: 'FALL ARREST SYSTEMS',
-      subtitle: 'OSHA & EN 361 CERTIFIED',
-      price: 'FROM 120 SR',
-      link: '/products'
-    },
-    {
-      bg: '/assets/imgs/banner/clean-hero-1.jpg',
-      title: 'HEAD & EYE PROTECTION',
-      subtitle: 'LEVEL 5 IMPACT RESISTANT',
-      price: 'FROM 45 SR',
-      link: '/products'
-    },
-    {
-      bg: '/assets/imgs/banner/clean-hero-2.jpg',
-      title: 'CERTIFIED FOOTWEAR',
-      subtitle: 'S3 STEEL TOE PROTECTION',
-      price: 'SAVE UP TO 30%',
-      link: '/products'
-    }
-  ];
-
-  const topCategories = [
-    { name: 'Safety Helmets', img: '/assets/imgs/shop/p1.jpg', link: '/products' },
-    { name: 'Safety Shoes', img: '/assets/imgs/shop/p2.jpg', link: '/products' },
-    { name: 'Hi-Vis Vests', img: '/assets/imgs/shop/p3.jpg', link: '/products' },
-    { name: 'Safety Goggles', img: '/assets/imgs/shop/p4.jpg', link: '/products' },
-    { name: 'Cut Gloves', img: '/assets/imgs/shop/p5.jpg', link: '/products' },
-    { name: 'Ear Protection', img: '/assets/imgs/shop/p6.jpg', link: '/products' },
-    { name: 'Respirators', img: '/assets/imgs/shop/card.jpg', link: '/products' },
-    { name: 'Fall Harness', img: '/assets/imgs/shop/cup.jpg', link: '/products' },
-    { name: 'Fire Safety', img: '/assets/imgs/shop/gift.jpg', link: '/products' },
-    { name: 'First Aid Kits', img: '/assets/imgs/shop/tshrt.jpg', link: '/products' },
-    { name: 'Coveralls', img: '/assets/imgs/shop/pr1.jpg', link: '/products' },
-    { name: 'Road Cones', img: '/assets/imgs/shop/pr2.jpg', link: '/products' },
-    { name: 'Welding Gear', img: '/assets/imgs/shop/pr3.jpg', link: '/products' },
-    { name: 'Spill Kits', img: '/assets/imgs/shop/prdct1.jpg', link: '/products' }
-  ];
 
   const newProducts = [
     {
@@ -269,8 +386,7 @@ export default function HomePage() {
     }
   ];
 
-  // Helper pairing into 2-row columns
-  const newProductPairs = [];
+  // Touch / navigation refs
 
   const mostSearchedScrollRef = useRef<HTMLDivElement>(null);
 
@@ -512,15 +628,7 @@ export default function HomePage() {
     }
   ];
 
-  const mostSearchedPairs = [];
-  for (let i = 0; i < mostSearchedProducts.length; i += 2) {
-    mostSearchedPairs.push(mostSearchedProducts.slice(i, i + 2));
-  }
 
-  const halfCount = Math.ceil(newProducts.length / 2);
-  for (let i = 0; i < halfCount; i++) {
-    newProductPairs.push([newProducts[i], newProducts[i + halfCount]].filter(Boolean));
-  }
 
   const onsaleProducts = [
     {
@@ -681,6 +789,76 @@ export default function HomePage() {
     }
   ];
 
+  // Derive dynamic lists from catalogProducts (synced live with dashboard products)
+  const displayedNewProducts = catalogProducts.length > 0
+    ? catalogProducts
+        .filter((p) => p.isNewArrival !== false && p.isActive !== false)
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+        .map((p) => ({
+          id: p.id,
+          title: p.title,
+          desc: p.desc || 'Certified workplace safety and protection equipment.',
+          img: p.image || '/assets/imgs/shop/pr1.jpg',
+          badge: p.badge || 'New Arrival',
+          badgeClass: (p.badgeClass || 'new') as 'new' | 'hot' | 'sale' | 'featured',
+          price: p.price,
+          oldPrice: p.oldPrice,
+          discount: p.discount,
+          rating: p.rating ? `${p.rating}/5` : '5.0/5',
+          reviews: p.reviews ? `${p.reviews} - Reviews` : '120 - Reviews',
+          link: p.link || '/product-details',
+        }))
+    : newProducts;
+
+  const displayedMostSearched = catalogProducts.length > 0
+    ? [...catalogProducts]
+        .filter((p) => p.isActive !== false)
+        .sort((a, b) => ((b.clicks || 0) + (b.views || 0)) - ((a.clicks || 0) + (a.views || 0)))
+        .map((p) => ({
+          id: p.id,
+          title: p.title,
+          desc: p.desc || 'High-performance certified workplace protection equipment.',
+          img: p.image || '/assets/imgs/shop/pr2.jpg',
+          badge: 'Top Searched',
+          badgeClass: 'new' as const,
+          price: p.price,
+          oldPrice: p.oldPrice,
+          discount: p.discount,
+          rating: p.rating ? `${p.rating}/5` : '4.9/5',
+          reviews: p.reviews ? `${p.reviews} - Reviews` : '200 - Reviews',
+          link: p.link || '/product-details',
+        }))
+    : mostSearchedProducts;
+
+  const displayedOnsale = catalogProducts.length > 0
+    ? catalogProducts
+        .filter((p) => (p.isSpecialOffer === true || Boolean(p.discount)) && p.isActive !== false)
+        .map((p) => ({
+          id: p.id,
+          title: p.title,
+          desc: p.desc || 'Special discounted offer on certified PPE supplies.',
+          img: p.image || '/assets/imgs/shop/pr3.jpg',
+          badge: p.discount || (p.offerPercent ? `${p.offerPercent}% OFF` : 'Special Offer'),
+          badgeClass: 'hot' as const,
+          price: p.price,
+          oldPrice: p.oldPrice,
+          rating: p.rating ? `${p.rating}/5` : '5.0/5',
+          reviews: p.reviews ? `${p.reviews} - Reviews` : '150 - Reviews',
+          link: p.link || '/product-details',
+        }))
+    : onsaleProducts;
+
+  const newProductPairs: any[] = [];
+  const halfCount = Math.ceil(displayedNewProducts.length / 2);
+  for (let i = 0; i < halfCount; i++) {
+    newProductPairs.push([displayedNewProducts[i], displayedNewProducts[i + halfCount]].filter(Boolean));
+  }
+
+  const mostSearchedPairs: any[] = [];
+  for (let i = 0; i < displayedMostSearched.length; i += 2) {
+    mostSearchedPairs.push(displayedMostSearched.slice(i, i + 2));
+  }
+
   // Auto slide for Main Hero Slider (5300ms)
   useEffect(() => {
     const mainTimer = setInterval(() => {
@@ -689,14 +867,40 @@ export default function HomePage() {
     return () => clearInterval(mainTimer);
   }, [heroSlides.length]);
 
-    // Auto slide for Browse by Safety Categories (3000ms) with pause on hover
+    // Smooth scroll handler for Browse by Safety Categories
+  const scrollBrowseCat = (direction: 'prev' | 'next') => {
+    if (browseCatScrollRef.current) {
+      const container = browseCatScrollRef.current;
+      const firstCol = container.querySelector('.browse-cat-card-wrapper') as HTMLElement;
+      const colWidth = firstCol ? firstCol.offsetWidth + 16 : 180;
+      const maxScroll = container.scrollWidth - container.clientWidth;
+
+      if (maxScroll <= 0) return;
+
+      if (direction === 'next') {
+        if (container.scrollLeft >= maxScroll - 15) {
+          container.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          container.scrollBy({ left: colWidth, behavior: 'smooth' });
+        }
+      } else {
+        if (container.scrollLeft <= 15) {
+          container.scrollTo({ left: maxScroll, behavior: 'smooth' });
+        } else {
+          container.scrollBy({ left: -colWidth, behavior: 'smooth' });
+        }
+      }
+    }
+  };
+
+  // Auto slide for Browse by Safety Categories (3500ms) with pause on hover
   useEffect(() => {
     if (isCatHovered) return;
     const catTimer = setInterval(() => {
-      setActiveCatIndex((prev) => (prev >= topCategories.length - 7 ? 0 : prev + 1));
-    }, 3000);
+      scrollBrowseCat('next');
+    }, 3500);
     return () => clearInterval(catTimer);
-  }, [isCatHovered, topCategories.length]);
+  }, [isCatHovered]);
 
   // Auto slide for Second Banner Slider (3800ms)
   useEffect(() => {
@@ -707,11 +911,11 @@ export default function HomePage() {
   }, [sideBannerSlides.length]);
 
   const handlePrevCat = () => {
-    setActiveCatIndex((prev) => (prev <= 0 ? topCategories.length - 7 : prev - 1));
+    scrollBrowseCat('prev');
   };
 
   const handleNextCat = () => {
-    setActiveCatIndex((prev) => (prev >= topCategories.length - 7 ? 0 : prev + 1));
+    scrollBrowseCat('next');
   };
 
   const handlePrevNewProd = () => {
@@ -735,10 +939,10 @@ export default function HomePage() {
                 <div className="hero-slider-1 style-4 hero-slider-height-custom position-relative overflow-hidden">
                   {heroSlides.map((slide, idx) => (
                     <div
-                      key={idx}
+                      key={slide.id || idx}
                       className={"hero-fade-slide " + (idx === activeSlide ? "active" : "")}
                       style={{
-                        backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.45) 45%, rgba(15, 23, 42, 0.1) 100%), url(${slide.bg})`,
+                        backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.45) 45%, rgba(15, 23, 42, 0.1) 100%), url(${(slide as any).image || (slide as any).bg})`,
                         backgroundSize: 'cover',
                         backgroundPosition: 'center center',
                         backgroundRepeat: 'no-repeat',
@@ -760,8 +964,8 @@ export default function HomePage() {
                         <h1 className="display-2 mb-35 text-white" style={{ whiteSpace: 'pre-line', textShadow: '0 2px 8px rgba(0,0,0,0.5)', fontWeight: '800' }}>
                           {slide.title}
                         </h1>
-                        <Link href={slide.link} className="ordr" style={{ fontSize: '15px', padding: '12px 32px' }}>
-                          Explore Catalog
+                        <Link href={slide.link || '/products'} className="ordr" style={{ fontSize: '15px', padding: '12px 32px' }}>
+                          {slide.buttonText || 'Explore Catalog'}
                         </Link>
                       </div>
                     </div>
@@ -797,10 +1001,10 @@ export default function HomePage() {
               >
                 {sideBannerSlides.map((slide, idx) => (
                   <div
-                    key={idx}
+                    key={slide.id || idx}
                     className={"side-fade-slide " + (idx === activeSideSlide ? "active" : "")}
                     style={{
-                      backgroundImage: `linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.25) 50%, rgba(0, 0, 0, 0.15) 100%), url(${slide.bg})`,
+                      backgroundImage: `linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.25) 50%, rgba(0, 0, 0, 0.15) 100%), url(${(slide as any).image || (slide as any).bg})`,
                       backgroundSize: 'cover',
                       backgroundPosition: 'center center',
                       backgroundRepeat: 'no-repeat',
@@ -828,8 +1032,8 @@ export default function HomePage() {
                       <h1 className="mb-25" style={{ color: '#FDC839', fontWeight: '900', fontSize: '36px', textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}>
                         {slide.price}
                       </h1>
-                      <Link href={slide.link} className="ordr" style={{ fontSize: '14px', padding: '10px 28px' }}>
-                        Order Now
+                      <Link href={slide.link || '/products'} className="ordr" style={{ fontSize: '14px', padding: '10px 28px' }}>
+                        {slide.buttonText || 'Order Now'}
                       </Link>
                     </div>
                   </div>
@@ -841,11 +1045,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 2. Top Categories Section (7 items visible + Slider + Styled View All & < > Buttons) */}
-      <section className="popular-categories section-spacer-mb">
-        <div className="container wow animate__animated animate__fadeIn">
-          <div className="section-title d-flex align-items-center justify-content-between mb-25 flex-wrap gap-2">
-            <div className="title">
+      {/* 2. Top Categories Section (Browse by Safety Categories) */}
+      <section id="categories-section" className="popular-categories section-spacer-mb">
+        <div className="container">
+          <div className="d-flex align-items-center justify-content-between mb-25 flex-wrap gap-2">
+            <div className="section-tit">
               <h3 className="mb-0" style={{ fontSize: '24px', fontWeight: '700' }}>Browse by Safety Categories</h3>
             </div>
             
@@ -877,33 +1081,38 @@ export default function HomePage() {
             </div>
           </div>
 
+          <hr className="hr mb-30" />
+
+          {/* Smooth Category Slider Track */}
           <div
-            className="top-categories-slider-wrapper position-relative overflow-hidden"
+            className="browse-categories-slider-wrapper position-relative"
             onMouseEnter={() => setIsCatHovered(true)}
             onMouseLeave={() => setIsCatHovered(false)}
           >
-            <div
-              className="top-categories-track"
-              style={{
-                display: 'flex',
-                transition: 'transform 0.6s cubic-bezier(0.25, 1, 0.5, 1)',
-                transform: `translateX(-${activeCatIndex * (100 / 7)}%)`
-              }}
-            >
-              {topCategories.map((cat, idx) => (
-                <div key={idx} className="top-cat-slide-item">
-                  <div className="card-2 wow animate__animated animate__fadeInUp">
-                    <figure className="img-hover-scale overflow-hidden">
-                      <Link href={cat.link}>
-                        <img src={cat.img} alt={cat.name} />
-                      </Link>
-                    </figure>
-                    <h6>
-                      <Link href={cat.link}>{cat.name}</Link>
-                    </h6>
+            <div ref={browseCatScrollRef} className="browse-cat-track-container">
+              {shopCategories.map((cat, idx) => {
+                const imgSrc = cat.image || (cat as any).img || `/assets/imgs/shop/p${(idx % 8) + 1}.jpg`;
+                const catLink = cat.link && cat.link !== '#' ? cat.link : `/category?category=${encodeURIComponent(cat.name)}`;
+                return (
+                  <div key={cat.id || idx} className="browse-cat-card-wrapper">
+                    <Link href={catLink} className="browse-cat-card">
+                      <div className="browse-cat-img-box">
+                        <img
+                          src={imgSrc}
+                          alt={cat.name}
+                          className="browse-cat-img"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = `/assets/imgs/shop/p${(idx % 8) + 1}.jpg`;
+                          }}
+                        />
+                      </div>
+                      <div className="browse-cat-title-box">
+                        <span className="browse-cat-title">{cat.name}</span>
+                      </div>
+                    </Link>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -918,7 +1127,7 @@ export default function HomePage() {
             </div>
             
             <div className="d-flex align-items-center" style={{ gap: '10px' }}>
-              <Link className="btn-outline-custom" href="/products">
+              <Link className="btn-outline-custom" href="/category?filter=new-arrival">
                 View All
               </Link>
               
@@ -952,12 +1161,12 @@ export default function HomePage() {
             <div ref={newProdScrollRef} className="new-products-track-container">
               {newProductPairs.map((pair, colIdx) => (
                 <div key={'col-' + colIdx} className="new-prod-pair-column">
-                  {pair.map((prod) => (
+                  {pair.map((prod: any) => (
                     <div key={prod.id} className="new-prod-card-wrapper">
                       <div className="product-cart-wrap uniform-product-card">
                         <div className="product-img-action-wrap position-relative">
                           <div className="product-img product-img-zoom">
-                            <Link href={prod.link}>
+                            <Link href={prod.link} onClick={() => recordProductClick(prod.id)}>
                               <img className="default-img" src={prod.img} alt={prod.title} />
                             </Link>
                             <ul className="clrs">
@@ -975,7 +1184,7 @@ export default function HomePage() {
                         <div className="product-content-wrap">
                           <div>
                             <h2 className="new-prod-title">
-                              <Link href={prod.link}>{prod.title}</Link>
+                              <Link href={prod.link} onClick={() => recordProductClick(prod.id)}>{prod.title}</Link>
                             </h2>
 
                             <p className="new-prod-desc">{prod.desc}</p>
@@ -1081,7 +1290,7 @@ export default function HomePage() {
             </div>
             
             <div className="d-flex align-items-center" style={{ gap: '10px' }}>
-              <Link className="btn-outline-custom" href="/products">
+              <Link className="btn-outline-custom" href="/category?filter=most-searched">
                 View All
               </Link>
               
@@ -1115,12 +1324,12 @@ export default function HomePage() {
             <div ref={mostSearchedScrollRef} className="new-products-track-container">
               {mostSearchedPairs.map((pair, colIdx) => (
                 <div key={'ms-col-' + colIdx} className="new-prod-pair-column">
-                  {pair.map((prod) => (
+                  {pair.map((prod: any) => (
                     <div key={prod.id} className="new-prod-card-wrapper">
                       <div className="product-cart-wrap uniform-product-card">
                         <div className="product-img-action-wrap position-relative">
                           <div className="product-img product-img-zoom">
-                            <Link href={prod.link}>
+                            <Link href={prod.link} onClick={() => recordProductClick(prod.id)}>
                               <img className="default-img" src={prod.img} alt={prod.title} />
                             </Link>
                             <ul className="clrs">
@@ -1138,7 +1347,7 @@ export default function HomePage() {
                         <div className="product-content-wrap">
                           <div>
                             <h2 className="new-prod-title">
-                              <Link href={prod.link}>{prod.title}</Link>
+                              <Link href={prod.link} onClick={() => recordProductClick(prod.id)}>{prod.title}</Link>
                             </h2>
 
                             <p className="new-prod-desc">{prod.desc}</p>
@@ -1276,7 +1485,7 @@ export default function HomePage() {
             <div className="title">
               <h3 className="mb-0" style={{ fontSize: '24px', fontWeight: '700' }}>Special Offers & Bulk PPE Deals</h3>
             </div>
-            <Link className="show-all btn-outline-custom" href="/products">
+            <Link className="show-all btn-outline-custom" href="/category?filter=special-offers">
               View All
             </Link>
           </div>
@@ -1284,7 +1493,7 @@ export default function HomePage() {
 
           {/* Clean 12-Card Responsive Grid */}
           <div className="row g-3 g-lg-4">
-            {onsaleProducts.map((prod) => (
+            {(displayedOnsale.length > 0 ? displayedOnsale : onsaleProducts).map((prod) => (
               <div key={prod.id} className="col-xl-4 col-md-6 col-12 d-flex">
                 <div className="compact-onsale-card w-100">
                   {/* Corner Ribbon Badge */}
@@ -1312,7 +1521,7 @@ export default function HomePage() {
 
                   {/* Image Left */}
                   <div className="compact-img-box">
-                    <Link href={prod.link} className="d-flex align-items-center justify-content-center w-100 h-100">
+                    <Link href={prod.link} onClick={() => recordProductClick(prod.id)} className="d-flex align-items-center justify-content-center w-100 h-100">
                       <img src={prod.img} alt={prod.title} className="compact-onsale-img" />
                     </Link>
                   </div>
@@ -1320,7 +1529,7 @@ export default function HomePage() {
                   {/* Content Right: Clamped Title, 2-Line Paragraph, Rating, Price */}
                   <div className="compact-content-box">
                     <h4 className="compact-prod-title">
-                      <Link href={prod.link}>{prod.title}</Link>
+                      <Link href={prod.link} onClick={() => recordProductClick(prod.id)}>{prod.title}</Link>
                     </h4>
 
                     <p className="compact-prod-desc">

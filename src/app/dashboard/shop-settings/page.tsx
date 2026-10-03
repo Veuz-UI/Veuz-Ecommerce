@@ -556,15 +556,31 @@ export default function ShopSettingsPage() {
                           <td className="py-3.5 px-4 text-muted fs-13 fw-semibold">{idx + 1}</td>
                           <td className="py-3.5 px-4">
                             <div className="d-flex align-items-center gap-3">
-                              <span
-                                className="rounded-3 bg-light border d-flex align-items-center justify-content-center text-dark"
-                                style={{ width: '40px', height: '40px', backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
-                              >
-                                <iconify-icon icon="solar:folder-bold" class="fs-20"></iconify-icon>
-                              </span>
+                              {cat.image ? (
+                                <div
+                                  className="rounded-3 border overflow-hidden flex-shrink-0 d-flex align-items-center justify-content-center"
+                                  style={{ width: '42px', height: '42px', backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
+                                >
+                                  <img
+                                    src={cat.image}
+                                    alt={cat.name}
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '2px' }}
+                                    onError={(e) => {
+                                      (e.target as HTMLElement).style.display = 'none';
+                                    }}
+                                  />
+                                </div>
+                              ) : (
+                                <span
+                                  className="rounded-3 bg-light border d-flex align-items-center justify-content-center text-dark flex-shrink-0"
+                                  style={{ width: '42px', height: '42px', backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
+                                >
+                                  <iconify-icon icon="solar:folder-bold" class="fs-20"></iconify-icon>
+                                </span>
+                              )}
                               <div>
                                 <span className="fs-14 fw-bold text-dark d-block mb-0.5">{cat.name}</span>
-                                <span className="text-muted fs-12">Header Dropdown Item</span>
+                                <span className="text-muted fs-12">Header &amp; Browse Item</span>
                               </div>
                             </div>
                           </td>
@@ -578,31 +594,50 @@ export default function ShopSettingsPage() {
                           </td>
                           <td className="py-3.5 px-4">
                             <div className="d-flex align-items-center gap-2 flex-wrap">
-                              <span
-                                className="badge fs-12 fw-semibold"
-                                style={{
-                                  padding: '5px 10px',
-                                  borderRadius: '6px',
-                                  backgroundColor: '#f1f5f9',
-                                  color: '#334155',
-                                  border: '1px solid #cbd5e1',
-                                }}
-                              >
-                                {countSub} / 5 items
-                              </span>
-                              {cat.subItems?.slice(0, 3).map((sub, sIdx) => (
+                              {cat.hasSubItems !== true ? (
                                 <span
-                                  key={sIdx}
-                                  className="badge bg-light text-secondary border fs-11"
-                                  style={{ padding: '4px 8px', borderRadius: '5px' }}
+                                  className="badge fs-11 fw-semibold d-inline-flex align-items-center gap-1"
+                                  style={{
+                                    padding: '5px 10px',
+                                    borderRadius: '6px',
+                                    backgroundColor: '#fffbeb',
+                                    color: '#b45309',
+                                    border: '1px solid #fde68a',
+                                  }}
+                                  title="Sub-items hidden: Category acts as standalone direct link without flyout"
                                 >
-                                  {sub.name}
+                                  <iconify-icon icon="solar:eye-closed-bold" class="fs-13"></iconify-icon>
+                                  <span>Hidden (Standalone Link)</span>
                                 </span>
-                              ))}
-                              {countSub > 3 && (
-                                <span className="badge bg-light text-muted border fs-11" style={{ padding: '4px 8px', borderRadius: '5px' }}>
-                                  +{countSub - 3} more
-                                </span>
+                              ) : (
+                                <>
+                                  <span
+                                    className="badge fs-12 fw-semibold"
+                                    style={{
+                                      padding: '5px 10px',
+                                      borderRadius: '6px',
+                                      backgroundColor: '#f1f5f9',
+                                      color: '#334155',
+                                      border: '1px solid #cbd5e1',
+                                    }}
+                                  >
+                                    {countSub} / 5 items
+                                  </span>
+                                  {cat.subItems?.slice(0, 3).map((sub, sIdx) => (
+                                    <span
+                                      key={sIdx}
+                                      className="badge bg-light text-secondary border fs-11"
+                                      style={{ padding: '4px 8px', borderRadius: '5px' }}
+                                    >
+                                      {sub.name}
+                                    </span>
+                                  ))}
+                                  {countSub > 3 && (
+                                    <span className="badge bg-light text-muted border fs-11" style={{ padding: '4px 8px', borderRadius: '5px' }}>
+                                      +{countSub - 3} more
+                                    </span>
+                                  )}
+                                </>
                               )}
                             </div>
                           </td>

@@ -4,6 +4,15 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth, User } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
+import { validateImageFile, compressImage } from '@/utils/imageSecurity';
+import {
+  sanitizeNumeric,
+  handleNumericKeyDown,
+  validateMobileNumber,
+  validateFullName,
+  validateEmailAddress,
+} from '@/utils/securityValidation';
 
 const COUNTRIES = [
   { name: 'Saudi Arabia', flag: '🇸🇦' },
@@ -59,6 +68,7 @@ const COUNTRIES = [
 export default function ProfilePage() {
   const router = useRouter();
   const { user, logout, isAdmin, isLoading, updateUserProfile, changeUserPassword, deleteUserAccount, verifyUserEmail } = useAuth();
+  const { showToast } = useToast();
 
   // Helper to convert date strings (ISO, dd/mm/yyyy, or yyyy-mm-dd) into standard HTML input date format YYYY-MM-DD
   const formatToDateInput = (val?: string) => {
@@ -181,8 +191,7 @@ export default function ProfilePage() {
   const [verifySending, setVerifySending] = useState(false);
   const [verifySuccessMsg, setVerifySuccessMsg] = useState('');
 
-  // UI Feedback Toasts
-  const [toastMsg, setToastMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  // UI Feedback State
   const [isSaving, setIsSaving] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -248,13 +257,6 @@ export default function ProfilePage() {
       document.body.scrollTop = 0;
     }
   }, []);
-
-  const showToast = (text: string, type: 'success' | 'error' = 'success') => {
-    setToastMsg({ type, text });
-    setTimeout(() => {
-      setToastMsg(null);
-    }, 4500);
-  };
 
   // Auto-detect country from IP when address tab opens (if no saved address)
   useEffect(() => {
@@ -323,7 +325,7 @@ export default function ProfilePage() {
           // ZIP
           if (addr.postcode) setZipCode(addr.postcode);
 
-          showToast('Location detected and address filled successfully!');
+          showToast('success', 'Location detected and address filled successfully!', 'Location Detected');
         } catch {
           setGeoError('Could not fetch address details. Please fill in manually.');
         } finally {
@@ -342,29 +344,44 @@ export default function ProfilePage() {
     );
   };
 
-  // Profile Photo Upload & Delete
-  const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Profile Photo Upload & Delete (Validated & Canvas Compressed)
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        showToast('Image is too large. Max allowed size is 2MB.', 'error');
-        return;
-      }
+    if (!file) return;
+
+    // 1. Strict File Type & Max 5MB Size Validation
+    const validation = validateImageFile(file, 5 * 1024 * 1024);
+    if (!validation.valid) {
+      showToast('danger', validation.error || 'Please select a valid JPG, PNG, or WebP image.', 'Error Message');
+      return;
+    }
+
+    try {
+      // 2. Client-side Canvas Compression (Max 400x400 avatar WebP, quality 0.85)
+      const compressedFile = await compressImage(file, {
+        maxWidth: 400,
+        maxHeight: 400,
+        quality: 0.85,
+        mimeType: 'image/webp',
+      });
+
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === 'string') {
           setAvatarPreview(reader.result);
-          showToast('Photo uploaded! Click "Save Details" to save your profile.');
+          showToast('success', 'Photo uploaded and optimized! Click "Save Details" to save your profile.', 'Photo Uploaded');
         }
       };
-      reader.readAsDataURL(file);
+      reader.readAsDataURL(compressedFile);
+    } catch (err) {
+      showToast('danger', 'Unable to process photo. Please try a different image.', 'Error Message');
     }
   };
 
   const handleDeletePhoto = () => {
     const defaultAvatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(firstName || 'User')}`;
     setAvatarPreview(defaultAvatar);
-    showToast('Photo removed. Click "Save Details" to apply.');
+    showToast('info', 'Photo removed. Click "Save Details" to apply.', 'Photo Removed');
   };
 
   // Handle Email Input Change & Rules
@@ -377,15 +394,41 @@ export default function ProfilePage() {
     }
   };
 
-  // Save Basic Info
+  // Save Basic Info with Comprehensive Security Validation
   const handleSaveBasicInfo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!firstName.trim()) {
-      showToast('First name is required.', 'error');
+
+    // 1. Validate First Name
+    const firstNameValidation = validateFullName(firstName, 'First name', true);
+    if (!firstNameValidation.valid) {
+      showToast('danger', firstNameValidation.error!, 'Validation Error');
       return;
     }
-    if (!email.trim() || !email.includes('@')) {
-      showToast('Please enter a valid email address.', 'error');
+
+    // 2. Validate Last Name (optional but must be valid characters if provided)
+    const lastNameValidation = validateFullName(lastName, 'Last name', false);
+    if (!lastNameValidation.valid) {
+      showToast('danger', lastNameValidation.error!, 'Validation Error');
+      return;
+    }
+
+    // 3. Validate Email
+    const emailValidation = validateEmailAddress(email);
+    if (!emailValidation.valid) {
+      showToast('danger', emailValidation.error!, 'Validation Error');
+      return;
+    }
+
+    // 4. Validate Phone & Alternate Phone (Numbers only, 7-15 digits if provided)
+    const phoneValidation = validateMobileNumber(phone, false);
+    if (!phoneValidation.valid) {
+      showToast('danger', phoneValidation.error!, 'Validation Error');
+      return;
+    }
+
+    const altPhoneValidation = validateMobileNumber(alternatePhone, false);
+    if (!altPhoneValidation.valid) {
+      showToast('danger', altPhoneValidation.error!, 'Validation Error');
       return;
     }
 
@@ -408,58 +451,49 @@ export default function ProfilePage() {
 
       if (res.success) {
         showToast(
+          'success',
           isEmailUpdated
             ? 'Profile saved! Your new email must be verified. Click "Verify Email" to proceed.'
-            : 'Profile details saved successfully!'
+            : 'Profile details saved successfully!',
+          'Saved Successfully'
         );
         setEmailChangedWarning(false);
       } else {
-        showToast(res.message || 'Failed to update profile.', 'error');
+        showToast('danger', res.message || 'Failed to update profile.', 'Error Message');
       }
     } catch (err: any) {
-      showToast(err.message || 'An error occurred while saving profile.', 'error');
+      showToast('danger', err.message || 'An error occurred while saving profile.', 'Error Message');
     } finally {
       setIsSaving(false);
     }
   };
 
-  // Reset Basic Info
+  // Cancel Basic Info - Navigate back to Home Page
   const handleCancelBasicInfo = () => {
-    if (user) {
-      const parts = (user.name || '').trim().split(' ');
-      setFirstName(user.firstName || parts[0] || '');
-      setLastName(user.lastName || parts.slice(1).join(' ') || '');
-      setEmail(user.email || '');
-      setPhone(user.phone || user.mobile || '');
-      setAlternatePhone(user.alternatePhone || '');
-      setDateOfBirth(formatToDateInput(user.dateOfBirth));
-      setGender(user.gender || 'Prefer not to say');
-      setAvatarPreview(user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name || 'User')}`);
-      setEmailChangedWarning(false);
-      showToast('Changes discarded.');
-    }
+    router.push('/');
   };
 
-  // Password Validation Checkers
-  const hasMinLength = newPassword.length >= 8;
+  // Password Validation Checkers (High Security: 8-16 chars, upper, lower, number, special char)
+  const hasMinLength = newPassword.length >= 8 && newPassword.length <= 16;
   const hasLowerCase = /[a-z]/.test(newPassword);
   const hasUpperCase = /[A-Z]/.test(newPassword);
   const hasNumber = /\d/.test(newPassword);
-  const isPasswordValid = hasMinLength && hasLowerCase && hasUpperCase && hasNumber;
+  const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(newPassword);
+  const isPasswordValid = hasMinLength && hasLowerCase && hasUpperCase && hasNumber && hasSpecialChar;
 
   // Handle Change Password
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentPassword) {
-      showToast('Please enter your current password.', 'error');
+      showToast('danger', 'Please enter your current password.', 'Error Message');
       return;
     }
     if (!isPasswordValid) {
-      showToast('New password does not meet security requirements.', 'error');
+      showToast('danger', 'New password must be between 8 and 16 characters and meet all security requirements.', 'Validation Error');
       return;
     }
     if (newPassword !== confirmPassword) {
-      showToast('New passwords do not match.', 'error');
+      showToast('danger', 'New passwords do not match.', 'Validation Error');
       return;
     }
 
@@ -467,15 +501,15 @@ export default function ProfilePage() {
     try {
       const res = await changeUserPassword(currentPassword, newPassword, confirmPassword);
       if (res.success) {
-        showToast('Password changed successfully!');
+        showToast('success', 'Password changed successfully!', 'Saved Successfully');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       } else {
-        showToast(res.message || 'Failed to update password.', 'error');
+        showToast('danger', res.message || 'Failed to update password.', 'Error Message');
       }
     } catch (err: any) {
-      showToast(err.message || 'Error updating password.', 'error');
+      showToast('danger', err.message || 'Error updating password.', 'Error Message');
     } finally {
       setIsSaving(false);
     }
@@ -550,7 +584,7 @@ export default function ProfilePage() {
       setIsDeleting(true);
       try {
         await deleteUserAccount();
-        alert('Your account has been deleted successfully. You will now be redirected.');
+        showToast('danger', 'Your account has been deleted successfully. You will now be redirected.', 'Deleted Successfully');
       } catch (err: any) {
         showToast(err.message || 'Failed to delete account.', 'error');
         setIsDeleting(false);
@@ -625,33 +659,6 @@ export default function ProfilePage() {
         }
       `}} />
       <div className="container py-4">
-
-        {/* Global Toast Alert */}
-        {toastMsg && (
-          <div
-            className={`alert ${toastMsg.type === 'success' ? 'alert-success' : 'alert-danger'} alert-dismissible fade show`}
-            role="alert"
-            style={{
-              position: 'fixed',
-              top: '24px',
-              right: '24px',
-              zIndex: 9999,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-              borderRadius: '12px',
-              padding: '14px 20px',
-              fontWeight: '600',
-              fontSize: '14px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              maxWidth: '460px',
-            }}
-          >
-            <i className={toastMsg.type === 'success' ? 'fi fi-rs-check' : 'fi fi-rs-exclamation'}></i>
-            <span>{toastMsg.text}</span>
-            <button type="button" className="btn-close" onClick={() => setToastMsg(null)} aria-label="Close"></button>
-          </div>
-        )}
 
         {/* Page Top Header with Title and Admin Back Button */}
         <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4 mt-2">
@@ -890,15 +897,20 @@ export default function ProfilePage() {
                     )}
                   </div>
 
-                  {/* Phone */}
+                  {/* Phone (Numbers Only) */}
                   <div className="col-md-6">
-                    <label className="profile-input-label">Phone</label>
+                    <label className="profile-input-label">
+                      Phone <span className="text-muted fs-12 fw-normal">(Numbers only)</span>
+                    </label>
                     <input
                       type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       className="profile-input-field"
-                      placeholder="+966 50 123 4567"
+                      placeholder="e.g. 966501234567"
                       value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      onKeyDown={handleNumericKeyDown}
+                      onChange={(e) => setPhone(sanitizeNumeric(e.target.value))}
                     />
                   </div>
 
@@ -914,15 +926,20 @@ export default function ProfilePage() {
                     />
                   </div>
 
-                  {/* Alternate Mobile Details */}
+                  {/* Alternate Mobile Details (Numbers Only) */}
                   <div className="col-md-6">
-                    <label className="profile-input-label">Alternate mobile details</label>
+                    <label className="profile-input-label">
+                      Alternate mobile details <span className="text-muted fs-12 fw-normal">(Numbers only)</span>
+                    </label>
                     <input
                       type="tel"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
                       className="profile-input-field"
-                      placeholder="Mobile details / alternate number"
+                      placeholder="e.g. 966559876543"
                       value={alternatePhone}
-                      onChange={(e) => setAlternatePhone(e.target.value)}
+                      onKeyDown={handleNumericKeyDown}
+                      onChange={(e) => setAlternatePhone(sanitizeNumeric(e.target.value))}
                     />
                   </div>
 
@@ -1097,7 +1114,7 @@ export default function ProfilePage() {
                   </p>
                   <ul style={{ paddingLeft: '18px', margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.8' }}>
                     <li style={{ color: hasMinLength ? '#16a34a' : undefined, fontWeight: hasMinLength ? '600' : 'normal' }}>
-                      {hasMinLength ? '✓' : '•'} At least 8 characters
+                      {hasMinLength ? '✓' : '•'} Between 8 and 16 characters
                     </li>
                     <li style={{ color: hasLowerCase ? '#16a34a' : undefined, fontWeight: hasLowerCase ? '600' : 'normal' }}>
                       {hasLowerCase ? '✓' : '•'} At least one lowercase character
@@ -1107,6 +1124,9 @@ export default function ProfilePage() {
                     </li>
                     <li style={{ color: hasNumber ? '#16a34a' : undefined, fontWeight: hasNumber ? '600' : 'normal' }}>
                       {hasNumber ? '✓' : '•'} At least one numeric character (0-9)
+                    </li>
+                    <li style={{ color: hasSpecialChar ? '#16a34a' : undefined, fontWeight: hasSpecialChar ? '600' : 'normal' }}>
+                      {hasSpecialChar ? '✓' : '•'} At least one special character (!@#$%^&*...)
                     </li>
                   </ul>
                 </div>
@@ -1123,11 +1143,7 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     className="profile-btn-cancel"
-                    onClick={() => {
-                      setCurrentPassword('');
-                      setNewPassword('');
-                      setConfirmPassword('');
-                    }}
+                    onClick={() => router.push('/')}
                   >
                     <i className="fi fi-rs-cross-circle"></i> Cancel
                   </button>
@@ -1375,16 +1391,7 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     className="profile-btn-cancel"
-                    onClick={() => {
-                      if (user?.address) {
-                        setCountry(user.address.country || 'Saudi Arabia');
-                        setCity(user.address.city || '');
-                        setStreetAddress(user.address.streetAddress || '');
-                        setZipCode(user.address.zipCode || '');
-                        setBuildingNo(user.address.buildingNo || '');
-                      }
-                      showToast('Address changes cancelled.');
-                    }}
+                    onClick={() => router.push('/')}
                   >
                     <i className="fi fi-rs-cross-circle"></i> Cancel
                   </button>
@@ -1493,16 +1500,7 @@ export default function ProfilePage() {
                   <button
                     type="button"
                     className="profile-btn-cancel"
-                    onClick={() => {
-                      if (user?.settings) {
-                        setLanguage(user.settings.language || 'English (US)');
-                        setTimezone(user.settings.timezone || 'GMT+03:00 (Riyadh, Saudi Arabia)');
-                        setEmailNotif(user.settings.emailNotif !== undefined ? user.settings.emailNotif : true);
-                        setSmsNotif(user.settings.smsNotif !== undefined ? user.settings.smsNotif : true);
-                        setPromoNotif(user.settings.promoNotif !== undefined ? user.settings.promoNotif : false);
-                      }
-                      showToast('Preferences reset.');
-                    }}
+                    onClick={() => router.push('/')}
                   >
                     <i className="fi fi-rs-cross-circle"></i> Cancel
                   </button>

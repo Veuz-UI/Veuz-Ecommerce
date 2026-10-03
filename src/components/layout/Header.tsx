@@ -633,14 +633,14 @@ export const Header: React.FC = () => {
                         /* Guest: Sign in / Register */
                         <ul>
                           <li>
-                            <Link href="/login" onClick={() => setMobileAccountOpen(false)}>
+                            <a href="/login" onClick={() => setMobileAccountOpen(false)} style={{ display: 'flex', alignItems: 'center' }}>
                               <i className="fi fi-rs-user mr-10"></i>Sign In
-                            </Link>
+                            </a>
                           </li>
                           <li>
-                            <Link href="/register" onClick={() => setMobileAccountOpen(false)}>
+                            <a href="/register" onClick={() => setMobileAccountOpen(false)} style={{ display: 'flex', alignItems: 'center' }}>
                               <i className="fi fi-rs-label mr-10"></i>Create Account
-                            </Link>
+                            </a>
                           </li>
                         </ul>
                       )}
@@ -783,11 +783,18 @@ export const Header: React.FC = () => {
                         }}
                       >
                         {categories.map((cat, idx) => {
-                          const isHovered = (hoveredCategory?.id && hoveredCategory.id === cat.id) || (hoveredCategory?.name === cat.name);
+                          const hasSub = cat.hasSubItems === true && Boolean(cat.subItems && cat.subItems.length > 0);
+                          const isHovered = hasSub && ((hoveredCategory?.id && hoveredCategory.id === cat.id) || (hoveredCategory?.name === cat.name));
                           return (
                             <li
                               key={cat.id || idx}
-                              onMouseEnter={() => setHoveredCategory(cat)}
+                              onMouseEnter={() => {
+                                if (hasSub) {
+                                  setHoveredCategory(cat);
+                                } else {
+                                  setHoveredCategory(null);
+                                }
+                              }}
                               style={{
                                 height: '42px',
                                 display: 'flex',
@@ -815,17 +822,19 @@ export const Header: React.FC = () => {
                                   textDecoration: 'none',
                                 }}
                               >
-                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '200px' }}>
+                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: hasSub ? '200px' : '230px' }}>
                                   {cat.name}
                                 </span>
-                                <i
-                                  className="fi-rs-angle-right"
-                                  style={{
-                                    fontSize: '11px',
-                                    color: isHovered ? '#000000' : '#4bb34d',
-                                    flexShrink: 0,
-                                  }}
-                                ></i>
+                                {hasSub && (
+                                  <i
+                                    className="fi-rs-angle-right"
+                                    style={{
+                                      fontSize: '11px',
+                                      color: isHovered ? '#000000' : '#4bb34d',
+                                      flexShrink: 0,
+                                    }}
+                                  ></i>
+                                )}
                               </Link>
                             </li>
                           );
@@ -834,7 +843,7 @@ export const Header: React.FC = () => {
                     </div>
 
                     {/* Flyout Sub-menu positioned outside scroll container so it NEVER gets clipped */}
-                    {hoveredCategory && (
+                    {hoveredCategory && hoveredCategory.hasSubItems === true && hoveredCategory.subItems && hoveredCategory.subItems.length > 0 && (
                       <div
                         className="shop-categories-flyout-menu"
                         style={{
@@ -856,77 +865,40 @@ export const Header: React.FC = () => {
                         }}
                       >
                         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-                          {hoveredCategory.subItems && hoveredCategory.subItems.length > 0 ? (
-                            hoveredCategory.subItems.map((sub, sIdx) => (
-                              <li
-                                key={sub.id || sIdx}
-                                style={{
-                                  height: '40px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  padding: '0 20px',
-                                  transition: 'background-color 0.15s',
+                          {hoveredCategory.subItems.map((sub, sIdx) => (
+                            <li
+                              key={sub.id || sIdx}
+                              style={{
+                                height: '40px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                padding: '0 20px',
+                                transition: 'background-color 0.15s',
+                              }}
+                              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8f9fa')}
+                              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                            >
+                              <Link
+                                href={sub.link}
+                                onClick={() => {
+                                  setShopCatOpen(false);
+                                  setHoveredCategory(null);
                                 }}
-                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8f9fa')}
-                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                              >
-                                <Link
-                                  href={sub.link}
-                                  onClick={() => {
-                                    setShopCatOpen(false);
-                                    setHoveredCategory(null);
-                                  }}
-                                  style={{
-                                    color: '#253D4E',
-                                    fontSize: '13px',
-                                    fontWeight: '500',
-                                    textDecoration: 'none',
-                                    width: '100%',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                >
-                                  {sub.name}
-                                </Link>
-                              </li>
-                            ))
-                          ) : (
-                            [1, 2, 3, 4].map((num) => (
-                              <li
-                                key={num}
                                 style={{
-                                  height: '40px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  padding: '0 20px',
-                                  transition: 'background-color 0.15s',
+                                  color: '#253D4E',
+                                  fontSize: '13px',
+                                  fontWeight: '500',
+                                  textDecoration: 'none',
+                                  width: '100%',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
                                 }}
-                                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8f9fa')}
-                                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
                               >
-                                <Link
-                                  href={hoveredCategory.link}
-                                  onClick={() => {
-                                    setShopCatOpen(false);
-                                    setHoveredCategory(null);
-                                  }}
-                                  style={{
-                                    color: '#253D4E',
-                                    fontSize: '13px',
-                                    fontWeight: '500',
-                                    textDecoration: 'none',
-                                    width: '100%',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
-                                  }}
-                                >
-                                  Custom {hoveredCategory.name} {num}
-                                </Link>
-                              </li>
-                            ))
-                          )}
+                                {sub.name}
+                              </Link>
+                            </li>
+                          ))}
                         </ul>
                       </div>
                     )}
@@ -1106,12 +1078,14 @@ export const Header: React.FC = () => {
                     onMouseLeave={handleAccountMouseLeave}
                   >
                     <a
-                      href="#"
+                      href={user ? "#" : "/login"}
                       onClick={(e) => {
-                        e.preventDefault();
-                        setAccountOpen(!accountOpen);
+                        if (user) {
+                          e.preventDefault();
+                          setAccountOpen(!accountOpen);
+                        }
                       }}
-                      title={user ? user.name : "My Account"}
+                      title={user ? user.name : "Sign In / Register"}
                       className="header-user-btn"
                     >
                       {user ? (
@@ -1134,7 +1108,12 @@ export const Header: React.FC = () => {
                       )}
                     </a>
 
-                    <div className={"cart-dropdown-wrap cart-dropdown-hm2 account-dropdown " + (accountOpen ? "open" : "")} style={{ minWidth: '220px' }}>
+                    <div
+                      className={"cart-dropdown-wrap cart-dropdown-hm2 account-dropdown " + (accountOpen ? "open" : "")}
+                      onMouseEnter={handleAccountMouseEnter}
+                      onMouseLeave={handleAccountMouseLeave}
+                      style={{ minWidth: '220px' }}
+                    >
                       {user ? (
                         <ul>
                           <li
@@ -1232,14 +1211,22 @@ export const Header: React.FC = () => {
                         /* Guest */
                         <ul>
                           <li>
-                            <Link href="/login" onClick={() => setAccountOpen(false)}>
+                            <a
+                              href="/login"
+                              onClick={() => setAccountOpen(false)}
+                              style={{ display: 'flex', alignItems: 'center' }}
+                            >
                               <i className="fi fi-rs-user mr-10"></i>Sign In
-                            </Link>
+                            </a>
                           </li>
                           <li>
-                            <Link href="/register" onClick={() => setAccountOpen(false)}>
+                            <a
+                              href="/register"
+                              onClick={() => setAccountOpen(false)}
+                              style={{ display: 'flex', alignItems: 'center' }}
+                            >
                               <i className="fi fi-rs-label mr-10"></i>Create Account
-                            </Link>
+                            </a>
                           </li>
                         </ul>
                       )}
@@ -1468,7 +1455,7 @@ export const Header: React.FC = () => {
                           </li>
                         ))}
                         <li className="view-all-item">
-                          <Link href="/products" onClick={() => setMobileMenuOpen(false)} className="view-all-link">
+                          <Link href="/category" onClick={() => setMobileMenuOpen(false)} className="view-all-link">
                             View All Categories <i className="fi-rs-arrow-small-right"></i>
                           </Link>
                         </li>

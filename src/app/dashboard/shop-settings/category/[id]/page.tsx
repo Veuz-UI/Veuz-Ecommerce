@@ -6,6 +6,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { fetchShopSettings, saveShopSettings } from '@/services/shopSettingsService';
 import { ShopCategory, CategorySubItem } from '@/data/defaultShopSettings';
 import { useToast } from '@/context/ToastContext';
+import { validateImageFile, compressImage } from '@/utils/imageSecurity';
 
 export default function CategoryEditPage() {
   const params = useParams();
@@ -23,7 +24,10 @@ export default function CategoryEditPage() {
   // Form State
   const [name, setName] = useState('');
   const [link, setLink] = useState('');
+  const [image, setImage] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   const [isActive, setIsActive] = useState(true);
+  const [hasSubItems, setHasSubItems] = useState(false);
   const [subItems, setSubItems] = useState<CategorySubItem[]>([]);
 
   // New sub-item input state
@@ -46,7 +50,9 @@ export default function CategoryEditPage() {
           if (found) {
             setName(found.name);
             setLink(found.link);
+            setImage(found.image || '');
             setIsActive(found.isActive !== false);
+            setHasSubItems(found.hasSubItems === true);
 
             let items = found.subItems ? [...found.subItems] : [];
             // Ensure 5th item is "See All" by default if not present
@@ -65,7 +71,9 @@ export default function CategoryEditPage() {
         } else {
           setName('');
           setLink('/products?category=');
+          setImage('/assets/imgs/shop/p1.jpg');
           setIsActive(true);
+          setHasSubItems(false);
           // Default with 5th "See All"
           setSubItems([
             { id: `sub-1`, name: 'Custom Sub 1', link: '/products' },
@@ -146,6 +154,76 @@ export default function CategoryEditPage() {
     setDeleteSubTarget(null);
   };
 
+  // Secure Category Image Upload Handler (Strict .jpg, .jpeg, .png, .webp, 5MB ceiling, Canvas Compression, Magic Bytes)
+  const handleImageFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Reset input value to allow re-selection
+    e.target.value = '';
+
+    // 1. Client Security: File format lock
+    const allowedExtensions = ['.jpg', '.jpeg', '.png', '.webp'];
+    const fileNameLower = file.name.toLowerCase();
+    const hasValidExt = allowedExtensions.some((ext) => fileNameLower.endsWith(ext));
+
+    if (!hasValidExt) {
+      showToast(
+        'danger',
+        'Security Error: Invalid file format locked. Only JPG, PNG, and WebP images are permitted.',
+        'Format Locked'
+      );
+      return;
+    }
+
+    // 2. Client Security: Max 5MB size limit
+    const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+    const validation = validateImageFile(file, MAX_SIZE_BYTES);
+    if (!validation.valid) {
+      showToast('danger', validation.error || 'File validation failed. Max size is 5MB.');
+      return;
+    }
+
+    // 3. Compress & sanitize image in browser (strips malicious EXIF payloads)
+    setIsUploading(true);
+    try {
+      showToast('info', 'Validating and optimizing category image...');
+      const compressed = await compressImage(file, {
+        maxWidth: 800,
+        maxHeight: 800,
+        quality: 0.88,
+        mimeType: file.type === 'image/png' ? 'image/png' : 'image/webp',
+      });
+
+      // Show immediate local preview
+      const previewUrl = URL.createObjectURL(compressed);
+      setImage(previewUrl);
+
+      // 4. Send to server upload endpoint with binary magic bytes verification
+      const formData = new FormData();
+      formData.append('file', compressed);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        showToast('warning', json.message || 'Image preview set locally.');
+        return;
+      }
+
+      setImage(json.url);
+      showToast('success', 'Category image uploaded securely and verified!');
+    } catch (err: any) {
+      console.error('Category image upload error:', err);
+      showToast('danger', err.message || 'Error uploading file.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSaveCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -173,6 +251,8 @@ export default function CategoryEditPage() {
           id: `cat-${Date.now()}`,
           name: name.trim(),
           link: link.trim() || `/products?category=${encodeURIComponent(name.toLowerCase().trim())}`,
+          image: image.trim(),
+          hasSubItems,
           isActive,
           subItems: finalSubItems,
         };
@@ -184,6 +264,8 @@ export default function CategoryEditPage() {
                 ...c,
                 name: name.trim(),
                 link: link.trim() || c.link,
+                image: image.trim(),
+                hasSubItems,
                 isActive,
                 subItems: finalSubItems,
               }
@@ -341,6 +423,132 @@ export default function CategoryEditPage() {
                       <small className="text-muted fs-12 mt-1.5 d-block">Target destination when clicking category title in the menu.</small>
                     </div>
 
+                    {/* Category Thumbnail Image Card (Storefront Category Card & Dropdown) */}
+                    <div className="mb-4">
+                      <div className="d-flex align-items-center justify-content-between mb-2">
+                        <label className="form-label fs-13 fw-semibold text-dark mb-0">
+                          Category Thumbnail Image
+                        </label>
+                        <span className="badge fs-11 fw-semibold" style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '4px', padding: '3px 8px' }}>
+                          Storefront &amp; Dropdown
+                        </span>
+                      </div>
+
+                      <div
+                        className="p-3 rounded-3 border"
+                        style={{
+                          backgroundColor: '#f8fafc',
+                          borderColor: '#e2e8f0',
+                        }}
+                      >
+                        <div className="d-flex align-items-center gap-3 mb-3">
+                          {/* Image Preview Box */}
+                          <div
+                            className="rounded-3 border overflow-hidden d-flex align-items-center justify-content-center flex-shrink-0"
+                            style={{
+                              width: '74px',
+                              height: '74px',
+                              backgroundColor: '#ffffff',
+                              borderColor: '#cbd5e1',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                            }}
+                          >
+                            {image ? (
+                              <img
+                                src={image}
+                                alt="Category Preview"
+                                style={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'contain',
+                                  padding: '4px',
+                                }}
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <iconify-icon icon="solar:gallery-wide-bold" class="fs-28 text-muted"></iconify-icon>
+                            )}
+                          </div>
+
+                          {/* Upload Actions */}
+                          <div className="flex-grow-1">
+                            <input
+                              type="file"
+                              id="categoryImageUploadInput"
+                              accept=".jpg,.jpeg,.png,.webp"
+                              className="d-none"
+                              onChange={handleImageFileChange}
+                              disabled={isUploading}
+                            />
+
+                            <div className="d-flex align-items-center gap-2 flex-wrap mb-1.5">
+                              <button
+                                type="button"
+                                onClick={() => document.getElementById('categoryImageUploadInput')?.click()}
+                                disabled={isUploading}
+                                className="btn btn-sm d-flex align-items-center gap-1.5 fs-12 fw-semibold text-white"
+                                style={{
+                                  borderRadius: '6px',
+                                  backgroundColor: '#0f172a',
+                                  padding: '7px 14px',
+                                }}
+                              >
+                                {isUploading ? (
+                                  <>
+                                    <span className="spinner-border spinner-border-sm" role="status"></span>
+                                    <span>Verifying &amp; Uploading...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <iconify-icon icon="solar:upload-minimalistic-bold" class="fs-15"></iconify-icon>
+                                    <span>Upload Image</span>
+                                  </>
+                                )}
+                              </button>
+
+                              {image && (
+                                <button
+                                  type="button"
+                                  onClick={() => setImage('')}
+                                  className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1 fs-12 fw-semibold"
+                                  style={{ borderRadius: '6px', padding: '6px 12px' }}
+                                >
+                                  <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-14"></iconify-icon>
+                                  <span>Clear</span>
+                                </button>
+                              )}
+                            </div>
+
+                            <span className="text-muted fs-11 d-block">
+                              Formats: JPG, PNG, WebP · Max: 5MB · Auto-compressed &amp; Magic-byte verified
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Static Image / Asset Path Input */}
+                        <div>
+                          <label className="form-label fs-11 text-muted mb-1">
+                            Or enter static image URL / asset path:
+                          </label>
+                          <div className="input-group input-group-sm">
+                            <span className="input-group-text bg-white" style={{ borderColor: '#cbd5e1' }}>
+                              <iconify-icon icon="solar:link-linear" class="fs-14 text-muted"></iconify-icon>
+                            </span>
+                            <input
+                              type="text"
+                              className="form-control fs-12"
+                              placeholder="/assets/imgs/shop/p1.jpg"
+                              value={image}
+                              onChange={(e) => setImage(e.target.value)}
+                              style={{ borderColor: '#cbd5e1' }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Status Toggle Card: With subtle background, proper padding, well-aligned data */}
                     <div className="pt-2">
                       <div
@@ -399,7 +607,7 @@ export default function CategoryEditPage() {
                       boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
                     }}
                   >
-                    <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style={{ borderColor: '#f1f5f9' }}>
+                    <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom flex-wrap gap-2" style={{ borderColor: '#f1f5f9' }}>
                       <div className="d-flex align-items-center" style={{ gap: '16px' }}>
                         <span
                           className="rounded-3 d-flex align-items-center justify-content-center text-dark flex-shrink-0"
@@ -412,13 +620,106 @@ export default function CategoryEditPage() {
                           <p className="text-muted fs-12 mb-0" style={{ marginTop: '2px' }}>Max 5 items. 5th slot defaults to &quot;See All&quot;.</p>
                         </div>
                       </div>
-                      <span
-                        className={`badge ${subItems.length >= 5 ? 'bg-danger text-white' : 'bg-dark text-white'} fs-12 fw-bold`}
-                        style={{ padding: '6px 12px', borderRadius: '6px' }}
-                      >
-                        {subItems.length} / 5 Slots
-                      </span>
+
+                      <div className="d-flex align-items-center gap-2">
+                        {/* Quick Show/Hide Toggle Button */}
+                        <button
+                          type="button"
+                          onClick={() => setHasSubItems(!hasSubItems)}
+                          className={`btn btn-sm d-flex align-items-center gap-1.5 fs-12 fw-semibold ${
+                            hasSubItems ? 'btn-outline-secondary' : 'btn-warning text-dark'
+                          }`}
+                          style={{
+                            borderRadius: '6px',
+                            padding: '6px 12px',
+                            transition: 'all 0.2s ease',
+                          }}
+                          title={hasSubItems ? 'Click to hide Level 2 Sub-Items in storefront' : 'Click to show Level 2 Sub-Items in storefront'}
+                        >
+                          <iconify-icon icon={hasSubItems ? 'solar:eye-closed-bold' : 'solar:eye-bold'} class="fs-15"></iconify-icon>
+                          <span>{hasSubItems ? 'Hide Sub-Items' : 'Show Sub-Items'}</span>
+                        </button>
+
+                        <span
+                          className={`badge ${subItems.length >= 5 ? 'bg-danger text-white' : 'bg-dark text-white'} fs-12 fw-bold`}
+                          style={{ padding: '6px 12px', borderRadius: '6px' }}
+                        >
+                          {subItems.length} / 5 Slots
+                        </span>
+                      </div>
                     </div>
+
+                    {/* Sub-Items Storefront Visibility Switch Card */}
+                    <div
+                      className="d-flex align-items-center justify-content-between p-3 rounded-3 border mb-3"
+                      style={{
+                        backgroundColor: hasSubItems ? '#f8fafc' : '#fffbeb',
+                        borderColor: hasSubItems ? '#e2e8f0' : '#fde68a',
+                        boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div className="pe-3">
+                        <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                          <span
+                            className="d-inline-block rounded-circle"
+                            style={{
+                              width: '8px',
+                              height: '8px',
+                              backgroundColor: hasSubItems ? '#16a34a' : '#d97706',
+                            }}
+                          ></span>
+                          <span className="fs-13 fw-bold text-dark">
+                            {hasSubItems ? 'Level 2 Sub-Items Active' : 'Level 2 Sub-Items Hidden'}
+                          </span>
+                          <span
+                            className="badge fs-11 fw-semibold"
+                            style={{
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              backgroundColor: hasSubItems ? '#f0fdf4' : '#fef3c7',
+                              color: hasSubItems ? '#16a34a' : '#b45309',
+                              border: hasSubItems ? '1px solid #bbf7d0' : '1px solid #fde68a',
+                            }}
+                          >
+                            {hasSubItems ? 'Storefront Flyout Window Active' : 'Standalone Direct Link (No Hover Flyout)'}
+                          </span>
+                        </div>
+                        <p className="text-muted fs-12 mb-0">
+                          {hasSubItems
+                            ? 'Hovering this category in the storefront header dropdown expands the Level 2 sub-items flyout window.'
+                            : 'Sub-items are hidden in the storefront. This category stays as a standalone link with NO submenu window opening on hover.'}
+                        </p>
+                      </div>
+
+                      <div className="form-check form-switch m-0 flex-shrink-0">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          checked={hasSubItems}
+                          onChange={(e) => setHasSubItems(e.target.checked)}
+                          style={{
+                            cursor: 'pointer',
+                            width: '2.8em',
+                            height: '1.4em',
+                            backgroundColor: hasSubItems ? '#16a34a' : '#cbd5e1',
+                            borderColor: hasSubItems ? '#16a34a' : '#cbd5e1',
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    {!hasSubItems && (
+                      <div
+                        className="alert d-flex align-items-center gap-2 py-2 px-3 fs-12 mb-3 rounded-2 border"
+                        style={{ backgroundColor: '#fffbeb', borderColor: '#fde68a', color: '#92400e' }}
+                      >
+                        <iconify-icon icon="solar:info-circle-bold" class="fs-18 flex-shrink-0 text-warning"></iconify-icon>
+                        <span>
+                          <strong>Standalone Mode:</strong> Sub-items below are saved but <strong>hidden from website users</strong>. The category link stays alone with no flyout window.
+                        </span>
+                      </div>
+                    )}
 
                     {/* Sub-items list */}
                     <div className="d-flex flex-column gap-3 mb-4">

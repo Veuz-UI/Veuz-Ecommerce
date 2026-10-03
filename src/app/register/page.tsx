@@ -4,10 +4,31 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
+import {
+  sanitizeNumeric,
+  handleNumericKeyDown,
+  validateMobileNumber,
+  validateFullName,
+  validateEmailAddress,
+  validatePasswordStrength,
+} from '@/utils/securityValidation';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register } = useAuth();
+  const { register, user, isLoading } = useAuth();
+  const { showToast } = useToast();
+
+  // If user is already authenticated (or authenticates in another window), redirect immediately
+  useEffect(() => {
+    if (!isLoading && user) {
+      if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
+        router.replace('/dashboard');
+      } else {
+        router.replace('/');
+      }
+    }
+  }, [user, isLoading, router]);
 
   // Scroll to top on initial mount
   useEffect(() => {
@@ -42,49 +63,37 @@ export default function RegisterPage() {
 
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Full Name Validation
+  const validateName = (val: string): boolean => {
+    const res = validateFullName(val, 'Full name', true);
+    setNameError(res.valid ? null : res.error!);
+    return res.valid;
+  };
 
   // Email Validation (RFC-compliant)
   const validateEmail = (val: string): boolean => {
-    const trimmed = val.trim();
-    if (!trimmed) {
-      setEmailError('Email address is required.');
-      return false;
-    }
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(trimmed)) {
-      setEmailError('Please enter a valid email address (e.g. name@example.com).');
-      return false;
-    }
-    setEmailError(null);
-    return true;
+    const res = validateEmailAddress(val);
+    setEmailError(res.valid ? null : res.error!);
+    return res.valid;
   };
 
-  // Mobile Number Validation
+  // Mobile Number Validation (Numbers Only, 7-15 Digits)
   const validateMobile = (val: string): boolean => {
-    const trimmed = val.trim();
-    if (!trimmed) {
-      setMobileError('Mobile number is required.');
-      return false;
-    }
-    const digits = trimmed.replace(/\D/g, '');
-    const phoneFormatRegex = /^(\+?[0-9]{1,4}[\s-]?)?(\(?\d{1,4}\)?[\s-]?)?[\d\s-]{6,15}$/;
-    if (digits.length < 7 || digits.length > 15 || !phoneFormatRegex.test(trimmed)) {
-      setMobileError('Please enter a valid mobile number (e.g. +966 50 123 4567 or 0501234567).');
-      return false;
-    }
-    setMobileError(null);
-    return true;
+    const res = validateMobileNumber(val, true);
+    setMobileError(res.valid ? null : res.error!);
+    return res.valid;
   };
+
+  // Password Strength Checkers
+  const passwordChecks = validatePasswordStrength(password).checks;
+  const isPasswordSecure = validatePasswordStrength(password).valid;
 
   // Password Validation
   const validatePassword = (val: string): boolean => {
-    if (!val || val.length < 8) {
-      setPasswordError('Password must be at least 8 characters.');
-      return false;
-    }
-    setPasswordError(null);
-    return true;
+    const res = validatePasswordStrength(val);
+    setPasswordError(res.valid ? null : res.error!);
+    return res.valid;
   };
 
   // Confirm Password Validation
@@ -103,19 +112,14 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMsg(null);
 
     setEmailTouched(true);
     setMobileTouched(true);
 
     let hasError = false;
 
-    if (!name.trim()) {
-      setNameError('Full name is required.');
-      hasError = true;
-    } else {
-      setNameError(null);
-    }
+    const isNameValid = validateName(name);
+    if (!isNameValid) hasError = true;
 
     const isEmailValid = validateEmail(email);
     if (!isEmailValid) hasError = true;
@@ -130,17 +134,21 @@ export default function RegisterPage() {
     if (!isConfirmValid) hasError = true;
 
     if (!agreeTerms) {
-      setErrorMsg('Please agree to the Terms of Service and Privacy Policy to proceed.');
+      showToast('warning', 'Please agree to the Terms of Service and Privacy Policy to proceed.', 'Alert Message');
       return;
     }
 
-    if (hasError) return;
+    if (hasError) {
+      showToast('danger', 'Please fix the errors in the form before proceeding.', 'Validation Error');
+      return;
+    }
 
     setLoading(true);
     const res = await register(name.trim(), email.trim(), password, confirmPassword, mobile.trim());
     setLoading(false);
 
     if (res.success) {
+      showToast('success', 'Account created successfully! Welcome to Veuz Safety.', 'Successfully Message');
       if (typeof window !== 'undefined') {
         try {
           if ('scrollRestoration' in window.history) {
@@ -154,7 +162,7 @@ export default function RegisterPage() {
       // Customer registration complete -> redirect to home page
       router.push('/', { scroll: true });
     } else {
-      setErrorMsg(res.message || 'Registration failed. Please try again.');
+      showToast('danger', res.message || 'Registration failed. Please try again.', 'Error Message');
     }
   };
 
@@ -285,25 +293,6 @@ export default function RegisterPage() {
               <span>Customer Portal. Admin accounts are invite-only by Super Admin.</span>
             </div>
 
-            {/* Form Top Error Message */}
-            {errorMsg && (
-              <div style={{
-                backgroundColor: '#fef2f2',
-                border: '1px solid #fecaca',
-                color: '#b91c1c',
-                fontSize: '13px',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                marginBottom: '20px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <i className="fi fi-rs-exclamation" style={{ fontSize: '15px' }}></i>
-                <span>{errorMsg}</span>
-              </div>
-            )}
-
             {/* Form with responsive 2-column desktop/tablet grid */}
             <form onSubmit={handleSubmit} noValidate className="register-form-grid">
               
@@ -385,27 +374,31 @@ export default function RegisterPage() {
                 )}
               </div>
 
-              {/* Row 2: Mobile Number (Full Width / Span 2) */}
+              {/* Row 2: Mobile Number (Numbers Only Validation) */}
               <div className="register-col-span-2">
                 <label htmlFor="mobile" style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
-                  Mobile Number <span style={{ color: '#ef4444', fontWeight: '700' }}>*</span>
+                  Mobile Number <span style={{ color: '#64748b', fontSize: '12px', fontWeight: '400' }}>(Numbers only)</span> <span style={{ color: '#ef4444', fontWeight: '700' }}>*</span>
                 </label>
                 <input
                   type="tel"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   id="mobile"
                   required
                   value={mobile}
+                  onKeyDown={handleNumericKeyDown}
                   onChange={(e) => {
-                    setMobile(e.target.value);
+                    const numeric = sanitizeNumeric(e.target.value);
+                    setMobile(numeric);
                     if (mobileTouched) {
-                      validateMobile(e.target.value);
+                      validateMobile(numeric);
                     }
                   }}
                   onBlur={() => {
                     setMobileTouched(true);
                     validateMobile(mobile);
                   }}
-                  placeholder="+966 50 123 4567 or 0501234567"
+                  placeholder="e.g. 966501234567"
                   style={{
                     width: '100%',
                     height: '42px',
@@ -438,6 +431,7 @@ export default function RegisterPage() {
                     id="password"
                     required
                     minLength={8}
+                    maxLength={16}
                     value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);
@@ -498,6 +492,30 @@ export default function RegisterPage() {
                     <span>⚠️</span> {passwordError}
                   </div>
                 )}
+
+                {/* Real-time Password Security Checklist */}
+                {password.length > 0 && (
+                  <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '10px 14px', marginTop: '8px', fontSize: '12px' }}>
+                    <div style={{ fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Password Requirements:</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2px' }}>
+                      <span style={{ color: passwordChecks.minLength ? '#16a34a' : '#94a3b8' }}>
+                        {passwordChecks.minLength ? '✓' : '•'} Between 8 and 16 characters
+                      </span>
+                      <span style={{ color: passwordChecks.hasUpper ? '#16a34a' : '#94a3b8' }}>
+                        {passwordChecks.hasUpper ? '✓' : '•'} At least one uppercase letter (A-Z)
+                      </span>
+                      <span style={{ color: passwordChecks.hasLower ? '#16a34a' : '#94a3b8' }}>
+                        {passwordChecks.hasLower ? '✓' : '•'} At least one lowercase letter (a-z)
+                      </span>
+                      <span style={{ color: passwordChecks.hasNumber ? '#16a34a' : '#94a3b8' }}>
+                        {passwordChecks.hasNumber ? '✓' : '•'} At least one numeric digit (0-9)
+                      </span>
+                      <span style={{ color: passwordChecks.hasSpecial ? '#16a34a' : '#94a3b8' }}>
+                        {passwordChecks.hasSpecial ? '✓' : '•'} At least one special symbol (!@#$%^&*...)
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Row 3 / Col 2: Confirm Password */}
@@ -511,6 +529,7 @@ export default function RegisterPage() {
                     id="confirmPassword"
                     required
                     minLength={8}
+                    maxLength={16}
                     value={confirmPassword}
                     onChange={(e) => {
                       setConfirmPassword(e.target.value);

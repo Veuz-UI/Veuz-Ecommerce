@@ -4,6 +4,7 @@
       "id": "cat-1",
       "name": "HELMET",
       "link": "/products?category=tshirts",
+      "image": "/assets/imgs/shop/p1.jpg",
       "isActive": true,
       "subItems": [
         {
@@ -37,6 +38,7 @@
       "id": "cat-2",
       "name": "Bag Print",
       "link": "/products?category=bags",
+      "image": "/assets/imgs/shop/p2.jpg",
       "isActive": true,
       "subItems": [
         {
@@ -65,6 +67,7 @@
       "id": "cat-3",
       "name": "Gift Pack",
       "link": "/products?category=gifts",
+      "image": "/assets/imgs/shop/p3.jpg",
       "isActive": true,
       "subItems": [
         {
@@ -93,6 +96,7 @@
       "id": "cat-4",
       "name": "Paper Cup",
       "link": "/products?category=paper-cups",
+      "image": "/assets/imgs/shop/p4.jpg",
       "isActive": true,
       "subItems": [
         {
@@ -121,6 +125,7 @@
       "id": "cat-5",
       "name": "Brochure",
       "link": "/products?category=brochures",
+      "image": "/assets/imgs/shop/p5.jpg",
       "isActive": true,
       "subItems": [
         {
@@ -149,6 +154,7 @@
       "id": "cat-6",
       "name": "Hoodies",
       "link": "/products?category=hoodies",
+      "image": "/assets/imgs/shop/p6.jpg",
       "isActive": true,
       "subItems": [
         {
@@ -170,6 +176,56 @@
           "id": "sub-24",
           "name": "Custom Printed Hoodies",
           "link": "/products?category=hoodies"
+        }
+      ]
+    },
+    {
+      "id": "cat-1791017648820",
+      "name": "Bags",
+      "link": "/products?category=",
+      "image": "/uploads/img_1791017640365_7aa1d973042f1b674a19dcb6a3cc3390.webp",
+      "isActive": true,
+      "subItems": [
+        {
+          "id": "see-all-1791017798830",
+          "name": "See All",
+          "link": "/products?category="
+        }
+      ],
+      "hasSubItems": false
+    },
+    {
+      "id": "cat-1791051887040",
+      "name": "PPE KIT",
+      "link": "/products?category=",
+      "image": "/assets/imgs/shop/p1.jpg",
+      "hasSubItems": false,
+      "isActive": true,
+      "subItems": [
+        {
+          "id": "sub-1",
+          "name": "Custom Sub 1",
+          "link": "/products"
+        },
+        {
+          "id": "sub-2",
+          "name": "Custom Sub 2",
+          "link": "/products"
+        },
+        {
+          "id": "sub-3",
+          "name": "Custom Sub 3",
+          "link": "/products"
+        },
+        {
+          "id": "sub-4",
+          "name": "Custom Sub 4",
+          "link": "/products"
+        },
+        {
+          "id": "sub-see-all",
+          "name": "See All",
+          "link": "/products"
         }
       ]
     }
@@ -282,13 +338,14 @@
       ],
       "banner": {
         "enabled": true,
-        "image": "/assets/imgs/banner/banner-menu.png",
-        "tag": "Hot deals",
-        "title": "Don't miss Trending",
-        "priceNote": "Save up to 50%",
-        "discountBadge": "25% off",
+        "image": "/uploads/banner_1791012533482_DSC00848.JPG.jpeg",
+        "tag": "",
+        "title": "",
+        "priceNote": "",
+        "discountBadge": "",
         "btnText": "Shop now",
-        "btnLink": "/products"
+        "btnLink": "/products",
+        "showBtn": false
       }
     },
     {
