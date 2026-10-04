@@ -80,7 +80,7 @@ export const MobileNav: React.FC = () => {
                   {CATEGORIES.map((cat) => (
                     <Link
                       key={cat.id}
-                      href="#"
+                      href={`/category?category=${encodeURIComponent(cat.name)}`}
                       onClick={() => setIsMobileNavOpen(false)}
                       className="flex items-center justify-between px-3 py-2 text-xs font-medium text-slate-600 hover:text-emerald-600 hover:bg-white rounded-lg transition-colors"
                     >
@@ -95,7 +95,7 @@ export const MobileNav: React.FC = () => {
             </div>
 
             <Link
-              href="#"
+              href="/offer-products"
               onClick={() => setIsMobileNavOpen(false)}
               className="flex items-center justify-between px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 rounded-xl transition-colors"
             >

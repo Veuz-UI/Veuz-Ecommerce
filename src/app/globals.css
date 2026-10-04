@@ -5204,6 +5204,25 @@ body.modal-open .main-nav {
   border-color: #16a34a !important;
 }
 
+/* Category slider horizontal track */
+.category-slider-track {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  scroll-behavior: smooth !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.category-slider-track::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 /* Hide scrollbar utility */
 .hide-scrollbar {
   -ms-overflow-style: none !important;

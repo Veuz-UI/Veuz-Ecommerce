@@ -1054,7 +1054,7 @@ export default function HomePage() {
             </div>
             
             <div className="d-flex align-items-center" style={{ gap: '10px' }}>
-              <Link className="btn-outline-custom" href="/category">
+              <Link className="btn-outline-custom" href="/all-categories-products">
                 View All
               </Link>
               
@@ -1127,7 +1127,7 @@ export default function HomePage() {
             </div>
             
             <div className="d-flex align-items-center" style={{ gap: '10px' }}>
-              <Link className="btn-outline-custom" href="/category?filter=new-arrival">
+              <Link className="btn-outline-custom" href="/new-arrival-products">
                 View All
               </Link>
               
@@ -1290,7 +1290,7 @@ export default function HomePage() {
             </div>
             
             <div className="d-flex align-items-center" style={{ gap: '10px' }}>
-              <Link className="btn-outline-custom" href="/category?filter=most-searched">
+              <Link className="btn-outline-custom" href="/most-searched-products">
                 View All
               </Link>
               
@@ -1485,7 +1485,7 @@ export default function HomePage() {
             <div className="title">
               <h3 className="mb-0" style={{ fontSize: '24px', fontWeight: '700' }}>Special Offers & Bulk PPE Deals</h3>
             </div>
-            <Link className="show-all btn-outline-custom" href="/category?filter=special-offers">
+            <Link className="show-all btn-outline-custom" href="/offer-products">
               View All
             </Link>
           </div>
