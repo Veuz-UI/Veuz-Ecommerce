@@ -1004,10 +1004,14 @@ iconify-icon {
 }
 
 
-/* Top Categories Modern Slider & Cards */
+
+/* ========================================================
+   HORIZONTAL CATEGORY SLIDER (REFERENCE PILL & NOTCH CARD STYLE)
+   ======================================================== */
 .browse-categories-slider-wrapper {
   width: 100%;
   position: relative;
+  overflow: visible;
 }
 
 .browse-cat-track-container {
@@ -1017,125 +1021,95 @@ iconify-icon {
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  gap: 16px;
-  padding: 6px 4px 16px 4px;
+  gap: 22px;
+  padding: 12px 6px 26px 6px;
 }
 
 .browse-cat-track-container::-webkit-scrollbar {
   display: none;
 }
 
+/* Horizontal Card Dimensions in Slider */
 .browse-cat-card-wrapper {
-  flex: 0 0 calc((100% - 96px) / 7);
-  min-width: calc((100% - 96px) / 7);
+  flex: 0 0 calc((100% - 66px) / 4);
+  min-width: 280px;
+  max-width: 320px;
   scroll-snap-align: start;
   display: flex;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1280px) {
   .browse-cat-card-wrapper {
-    flex: 0 0 calc((100% - 64px) / 5);
-    min-width: calc((100% - 64px) / 5);
+    flex: 0 0 calc((100% - 44px) / 3);
+    min-width: 270px;
+    max-width: 310px;
   }
 }
 
-@media (max-width: 992px) {
+@media (max-width: 900px) {
   .browse-cat-card-wrapper {
-    flex: 0 0 calc((100% - 48px) / 4);
-    min-width: calc((100% - 48px) / 4);
+    flex: 0 0 calc((100% - 22px) / 2);
+    min-width: 250px;
+    max-width: none;
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 580px) {
   .browse-cat-card-wrapper {
-    flex: 0 0 calc((100% - 32px) / 3);
-    min-width: calc((100% - 32px) / 3);
+    flex: 0 0 84%;
+    min-width: 240px;
+    max-width: none;
   }
 }
 
-@media (max-width: 540px) {
-  .browse-cat-card-wrapper {
-    flex: 0 0 calc((100% - 16px) / 2);
-    min-width: calc((100% - 16px) / 2);
-  }
-}
-
+/* Horizontal Category Card (Matching User Reference Image) */
 .browse-cat-card {
   width: 100% !important;
-  height: 185px !important;
-  min-height: 185px !important;
-  max-height: 185px !important;
+  height: 125px !important;
+  min-height: 125px !important;
+  max-height: 125px !important;
   background: #ffffff !important;
-  border: 1.5px solid #e2e8f0 !important;
-  border-radius: 14px !important;
-  padding: 12px 10px !important;
+  border: 1.5px solid #eef2f6 !important;
+  border-radius: 20px !important;
+  padding: 16px 18px 16px 20px !important;
   display: flex !important;
-  flex-direction: column !important;
+  flex-direction: row !important;
   align-items: center !important;
   justify-content: space-between !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
-  transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1) !important;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04) !important;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
   text-decoration: none !important;
   box-sizing: border-box !important;
   position: relative !important;
+  overflow: hidden !important;
 }
 
 .browse-cat-card:hover {
   transform: translateY(-4px) !important;
-  border-color: #16a34a !important;
-  box-shadow: 0 10px 24px rgba(22, 163, 74, 0.14) !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.09) !important;
 }
 
-.browse-cat-img-box {
-  width: 100% !important;
-  height: 105px !important;
-  min-height: 105px !important;
-  max-height: 105px !important;
-  background: #f8fafc !important;
-  border-radius: 10px !important;
+/* Left Info Column: Category Title + "View More" Pill */
+.browse-cat-info-col {
   display: flex !important;
-  align-items: center !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
   justify-content: center !important;
-  overflow: hidden !important;
-  padding: 8px !important;
-  box-sizing: border-box !important;
-  transition: background-color 0.25s ease !important;
+  gap: 10px !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  padding-right: 12px !important;
+  z-index: 1 !important;
 }
 
-.browse-cat-card:hover .browse-cat-img-box {
-  background: #f0fdf4 !important;
-}
-
-.browse-cat-img {
-  max-height: 85px !important;
-  max-width: 85px !important;
-  width: auto !important;
-  height: auto !important;
-  object-fit: contain !important;
-  transition: transform 0.3s ease !important;
-}
-
-.browse-cat-card:hover .browse-cat-img {
-  transform: scale(1.08) !important;
-}
-
-.browse-cat-title-box {
-  width: 100% !important;
-  height: 38px !important;
-  min-height: 38px !important;
-  max-height: 38px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  text-align: center !important;
-  padding: 0 2px !important;
-}
-
-.browse-cat-title {
-  font-size: 13.5px !important;
-  font-weight: 600 !important;
+/* Category Title: Bold, 17px */
+.browse-cat-name {
+  font-size: 17px !important;
+  font-weight: 700 !important;
   color: #0f172a !important;
   line-height: 1.25 !important;
+  margin: 0 !important;
   display: -webkit-box !important;
   -webkit-line-clamp: 2 !important;
   -webkit-box-orient: vertical !important;
@@ -1144,8 +1118,194 @@ iconify-icon {
   transition: color 0.2s ease !important;
 }
 
-.browse-cat-card:hover .browse-cat-title {
-  color: #16a34a !important;
+.browse-cat-card:hover .browse-cat-name {
+  color: #2563eb !important;
+}
+
+/* "View More" Pill Badge (Styled exactly as in reference image) */
+.browse-cat-view-more {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 5px 16px !important;
+  background-color: #f1f5f9 !important;
+  color: #64748b !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  border-radius: 999px !important;
+  transition: all 0.25s ease !important;
+  white-space: nowrap !important;
+  border: 1px solid transparent !important;
+}
+
+.browse-cat-card:hover .browse-cat-view-more {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+}
+
+/* Right Media Column: Clean Product/Category Image */
+.browse-cat-media-col {
+  width: 95px !important;
+  height: 95px !important;
+  min-width: 95px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.browse-cat-photo {
+  max-width: 100% !important;
+  max-height: 100% !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+
+.browse-cat-card:hover .browse-cat-photo {
+  transform: scale(1.08) !important;
+}
+
+/* ========================================================
+   MOBILE HOMEPAGE SINGLE-ROW PRODUCT SLIDER (SLIDE ONE BY ONE)
+   ======================================================== */
+.home-mobile-prod-slider {
+  width: 100%;
+  position: relative;
+  overflow: visible;
+  padding: 4px 0 16px 0;
+}
+
+.home-mobile-prod-track {
+  display: flex;
+  gap: 14px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 4px 6px 16px 6px;
+}
+
+.home-mobile-prod-track::-webkit-scrollbar {
+  display: none;
+}
+
+.home-mobile-prod-item {
+  flex: 0 0 84%;
+  min-width: 250px;
+  max-width: 310px;
+  scroll-snap-align: start;
+  display: flex;
+}
+
+@media (max-width: 380px) {
+  .home-mobile-prod-item {
+    flex: 0 0 88%;
+    min-width: 230px;
+  }
+}
+
+/* ========================================================
+   STYLISH PILL VIEW ALL BUTTON (NEON LIME ICON + DARK CONTAINER)
+   ======================================================== */
+.btn-view-all-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  background-color: #1a1d24 !important;
+  color: #ffffff !important;
+  border-radius: 12px !important;
+  padding: 4px 16px 4px 5px !important;
+  height: 38px !important;
+  text-decoration: none !important;
+  gap: 12px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  cursor: pointer !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+}
+
+.btn-view-all-pill:hover {
+  background-color: #0b0d12 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+  transform: translateY(-1px) !important;
+  color: #ffffff !important;
+}
+
+.btn-view-all-icon {
+  width: 28px !important;
+  height: 28px !important;
+  background-color: #d4ff32 !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  color: #12141a !important;
+  flex-shrink: 0 !important;
+  transition: transform 0.25s ease, box-shadow 0.25s ease !important;
+}
+
+.btn-view-all-pill:hover .btn-view-all-icon {
+  transform: translateX(2px) !important;
+  box-shadow: 0 0 10px rgba(212, 255, 50, 0.5) !important;
+}
+
+.btn-view-all-text {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #ffffff !important;
+  letter-spacing: 0.2px !important;
+  white-space: nowrap !important;
+}
+
+/* ========================================================
+   DESKTOP PRODUCT SLIDER TRACK (NEW ARRIVALS & MOST SEARCHED)
+   ======================================================== */
+.desktop-prod-slider-wrapper {
+  width: 100%;
+  position: relative;
+  overflow: visible;
+}
+
+.desktop-prod-slider-track {
+  display: flex;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  gap: 24px;
+  padding: 6px 2px 24px 2px;
+}
+
+.desktop-prod-slider-track::-webkit-scrollbar {
+  display: none;
+}
+
+.desktop-prod-slider-col {
+  flex: 0 0 calc((100% - 72px) / 4);
+  min-width: 270px;
+  max-width: 320px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@media (max-width: 1280px) {
+  .desktop-prod-slider-col {
+    flex: 0 0 calc((100% - 48px) / 3);
+    min-width: 260px;
+  }
+}
+
+@media (max-width: 991px) {
+  .desktop-prod-slider-col {
+    flex: 0 0 calc((100% - 24px) / 2);
+    min-width: 240px;
+  }
 }
 
 /* Browse Section Sidebar Filter Pills */
@@ -3686,7 +3846,7 @@ iconify-icon {
 
 .eco-banner-wrap {
   background: linear-gradient(135deg, #00c853 0%, #00a844 50%, #00963b 100%) !important;
-  border-radius: 24px !important;
+  border-radius: 10px !important;
   padding: 45px 50px 95px 50px !important;
   position: relative !important;
   overflow: hidden !important;
@@ -3870,7 +4030,7 @@ iconify-icon {
 
 @media (max-width: 576px) {
   .eco-banner-wrap {
-    border-radius: 16px !important;
+    border-radius: 8px !important;
     padding: 25px 20px 75px 20px !important;
   }
   .eco-banner-heading {
@@ -3893,21 +4053,269 @@ iconify-icon {
   }
 }
 
+/* ========================================================
+   PARTNERS OVERLAPPING LOGOS SLIDER (Shop Eco Section Replacement)
+   ======================================================== */
+.partners-slider-wrapper {
+  position: relative !important;
+  z-index: 10 !important;
+  margin-top: -65px !important;
+  padding: 0 35px !important;
+}
 
-/* Standardized New Arrival Card Spacing & Typography */
+.partners-slider-track {
+  display: flex !important;
+  gap: 18px !important;
+  overflow-x: auto !important;
+  scroll-behavior: smooth !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  padding: 10px 4px 24px 4px !important;
+}
+
+.partners-slider-track::-webkit-scrollbar {
+  display: none !important;
+}
+
+.partner-card-box {
+  flex: 0 0 calc(20% - 14.4px) !important;
+  min-width: 190px !important;
+  background: #ffffff !important;
+  border-radius: 16px !important;
+  padding: 24px 20px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
+  border: 1px solid #f1f5f9 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 180px !important;
+  text-decoration: none !important;
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.3s cubic-bezier(0.25, 1, 0.5, 1), border-color 0.25s ease !important;
+  cursor: pointer !important;
+  user-select: none !important;
+}
+
+.partner-card-box:hover {
+  transform: translateY(-6px) !important;
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.14) !important;
+  border-color: #00c853 !important;
+}
+
+.partner-logo-img {
+  max-height: 82px !important;
+  max-width: 82% !important;
+  width: auto !important;
+  height: auto !important;
+  object-fit: contain !important;
+  transition: transform 0.35s ease !important;
+  pointer-events: none !important;
+}
+
+.partner-card-box:hover .partner-logo-img {
+  transform: scale(1.08) !important;
+}
+
+/* Partner Slider Circular Navigation Arrows */
+.partner-nav-arrow {
+  position: absolute !important;
+  top: calc(50% - 7px) !important;
+  transform: translateY(-50%) !important;
+  width: 46px !important;
+  height: 46px !important;
+  border-radius: 50% !important;
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  border: 1px solid #e2e8f0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 22px !important;
+  cursor: pointer !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12) !important;
+  z-index: 20 !important;
+  transition: all 0.2s ease !important;
+  outline: none !important;
+}
+
+.partner-nav-arrow:hover {
+  background-color: #00a844 !important;
+  color: #ffffff !important;
+  border-color: #00a844 !important;
+  transform: translateY(-50%) scale(1.08) !important;
+  box-shadow: 0 8px 24px rgba(0, 168, 68, 0.32) !important;
+}
+
+.partner-nav-arrow:active {
+  transform: translateY(-50%) scale(0.96) !important;
+}
+
+.partner-nav-arrow svg {
+  display: block !important;
+  stroke: #111827 !important;
+  transition: stroke 0.2s ease !important;
+}
+
+.partner-nav-arrow:hover svg {
+  stroke: #ffffff !important;
+}
+
+.partner-nav-arrow.prev {
+  left: 10px !important;
+}
+
+.partner-nav-arrow.next {
+  right: 10px !important;
+}
+
+@media (max-width: 1200px) {
+  .partner-card-box {
+    flex: 0 0 calc(25% - 13.5px) !important;
+    height: 170px !important;
+  }
+  .partners-slider-wrapper {
+    padding: 0 24px !important;
+  }
+}
+
+@media (max-width: 991px) {
+  .partner-card-box {
+    flex: 0 0 calc(33.333% - 12px) !important;
+    height: 155px !important;
+  }
+  .partners-slider-wrapper {
+    padding: 0 16px !important;
+    margin-top: -55px !important;
+  }
+  .partner-nav-arrow {
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 18px !important;
+  }
+  .partner-nav-arrow.prev {
+    left: 4px !important;
+  }
+  .partner-nav-arrow.next {
+    right: 4px !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .partner-card-box {
+    flex: 0 0 calc(50% - 9px) !important;
+    min-width: 140px !important;
+    height: 135px !important;
+    padding: 14px !important;
+  }
+  .partner-logo-img {
+    max-height: 60px !important;
+  }
+  .partners-slider-wrapper {
+    padding: 0 10px !important;
+    margin-top: -45px !important;
+  }
+}
+
+
+
+/* ==========================================================================
+   REFERENCE SHOE CARD DESIGN (Organized, Clean, Premium Standard)
+   ========================================================================== */
 .uniform-product-card {
   width: 100% !important;
-  min-height: 475px !important;
+  min-height: 520px !important;
   background: #ffffff !important;
   border: 1px solid #e5e7eb !important;
-  border-radius: 14px !important;
+  border-radius: 16px !important;
   padding: 16px !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: space-between !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03) !important;
   transition: all 0.25s cubic-bezier(0.25, 1, 0.5, 1) !important;
   box-sizing: border-box !important;
+}
+
+.uniform-product-card:hover {
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08) !important;
+  transform: translateY(-2px) !important;
+}
+
+.uniform-product-card .product-img-action-wrap {
+  position: relative !important;
+  background-color: #f8fafc !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+}
+
+.uniform-product-card .product-img {
+  height: 200px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 12px !important;
+}
+
+.uniform-product-card .product-img img.default-img {
+  max-height: 175px !important;
+  max-width: 90% !important;
+  object-fit: contain !important;
+  transition: transform 0.35s ease !important;
+}
+
+.uniform-product-card:hover .product-img img.default-img {
+  transform: scale(1.05) !important;
+}
+
+/* Reference Card Top Left Badge */
+.ref-card-badge {
+  position: absolute !important;
+  top: 12px !important;
+  left: 12px !important;
+  z-index: 5 !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #0f172a !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  padding: 3px 10px !important;
+  border-radius: 6px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  line-height: 1.2 !important;
+}
+
+/* Reference Card Top Right Heart Wishlist Icon */
+.ref-card-top-wishlist {
+  position: absolute !important;
+  top: 12px !important;
+  right: 12px !important;
+  z-index: 5 !important;
+  width: 34px !important;
+  height: 34px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 16px !important;
+  cursor: pointer !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06) !important;
+  transition: all 0.2s ease !important;
+  padding: 0 !important;
+}
+
+.ref-card-top-wishlist:hover {
+  background: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+  color: #ef4444 !important;
+}
+
+.ref-card-top-wishlist.active {
+  color: #ef4444 !important;
+  border-color: #fca5a5 !important;
+  background: #fee2e2 !important;
 }
 
 .uniform-product-card .product-content-wrap {
@@ -3918,15 +4326,14 @@ iconify-icon {
   padding-top: 14px !important;
 }
 
+/* Title */
 .new-prod-title {
-  font-size: 16px !important;
+  font-size: 20px !important;
   font-weight: 700 !important;
-  color: #1e293b !important;
-  line-height: 1.3 !important;
-  height: 42px !important;
-  min-height: 42px !important;
-  max-height: 42px !important;
-  margin: 0 0 3px 0 !important; /* Closer gap between heading and paragraph */
+  color: #0f172a !important;
+  line-height: 1.35 !important;
+  min-height: 54px !important;
+  margin: 0 0 6px 0 !important;
   display: -webkit-box !important;
   -webkit-line-clamp: 2 !important;
   -webkit-box-orient: vertical !important;
@@ -3935,38 +4342,19 @@ iconify-icon {
 }
 
 .new-prod-title a {
-  color: #1e293b !important;
-  font-size: 16px !important;
+  color: #0f172a !important;
+  font-size: 20px !important;
   font-weight: 700 !important;
-  line-height: 1.3 !important;
+  line-height: 1.35 !important;
   text-decoration: none !important;
   transition: color 0.2s ease !important;
-  display: -webkit-box !important;
-  -webkit-line-clamp: 2 !important;
-  -webkit-box-orient: vertical !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
 }
 
 .new-prod-title a:hover {
-  color: #2e7d32 !important;
+  color: #2563eb !important;
 }
 
-.new-prod-desc {
-  font-size: 11.5px !important;
-  color: #64748b !important;
-  line-height: 1.35 !important;
-  height: 32px !important;
-  min-height: 32px !important;
-  max-height: 32px !important;
-  margin: 0 0 8px 0 !important;
-  display: -webkit-box !important;
-  -webkit-line-clamp: 2 !important;
-  -webkit-box-orient: vertical !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
-
+/* Star Rating */
 .uniform-product-card .product-rate {
   display: flex !important;
   align-items: center !important;
@@ -3975,21 +4363,163 @@ iconify-icon {
   min-height: 20px !important;
 }
 
+.ref-card-stars {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 2px !important;
+  color: #0f172a !important;
+  font-size: 13px !important;
+}
+
+.ref-card-stars i {
+  color: #0f172a !important;
+}
+
+/* Price Box */
 .new-prod-price-box {
-  margin: 0 0 10px 0 !important;
+  margin: 0 0 6px 0 !important;
   min-height: 42px !important;
   display: flex !important;
   flex-direction: column !important;
   justify-content: center !important;
 }
 
+.new-prod-current-price {
+  font-size: 22px !important;
+  font-weight: 800 !important;
+  color: #0f172a !important;
+  letter-spacing: -0.4px !important;
+}
+
+.new-prod-old-price {
+  font-size: 14.5px !important;
+  font-weight: 500 !important;
+  text-decoration: line-through !important;
+  color: #94a3b8 !important;
+  margin-left: 6px !important;
+}
+
+/* Reference Solid Black Discount Pill Badge (e.g. 28% OFF) */
+.ref-card-discount-black {
+  background: #000000 !important;
+  color: #ffffff !important;
+  font-size: 11.5px !important;
+  font-weight: 700 !important;
+  padding: 2.5px 8px !important;
+  border-radius: 4px !important;
+  margin-left: 6px !important;
+  letter-spacing: 0.2px !important;
+  display: inline-block !important;
+  line-height: 1.2 !important;
+}
+
+.new-prod-vat-label {
+  font-size: 11.5px !important;
+  color: #94a3b8 !important;
+  margin-top: 2px !important;
+}
+
+/* Description placed below price */
+.new-prod-desc {
+  font-size: 14px !important;
+  color: #64748b !important;
+  line-height: 1.45 !important;
+  min-height: 41px !important;
+  margin: 4px 0 10px 0 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Express Delivery */
+.express-delivery-badge {
+  height: 34px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: #fff7ed !important;
+  color: #c2410c !important;
+  border: 1px solid #ffedd5 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  padding: 0 12px !important;
+  border-radius: 8px !important;
+  letter-spacing: 0.1px !important;
+  white-space: nowrap !important;
+}
+
+.express-delivery-badge i {
+  font-size: 14px !important;
+  color: #ea580c !important;
+  margin-right: 5px !important;
+}
+
+/* Reference Card Bottom Action Bar: Wide Black Button + Square Heart Button */
 .uniform-product-card .product-card-bottom {
   margin-top: auto !important;
   padding-top: 10px !important;
-  border-top: 1px solid #f1f5f9 !important;
   display: flex !important;
   align-items: center !important;
-  justify-content: space-between !important;
+  gap: 10px !important;
+  width: 100% !important;
+  border-top: none !important;
+}
+
+.btn-add-cart-wide {
+  flex: 1 !important;
+  height: 48px !important;
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  border-radius: 12px !important;
+  border: 1px solid #0f172a !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px !important;
+  text-decoration: none !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.18) !important;
+  transition: all 0.2s ease !important;
+  cursor: pointer !important;
+}
+
+.btn-add-cart-wide:hover {
+  background-color: #1e293b !important;
+  color: #ffffff !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.25) !important;
+}
+
+.btn-add-cart-wide svg {
+  stroke: #ffffff !important;
+}
+
+.btn-wishlist-square {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  border-radius: 12px !important;
+  background: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #475569 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 19px !important;
+  cursor: pointer !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+  transition: all 0.2s ease !important;
+  padding: 0 !important;
+}
+
+.btn-wishlist-square:hover,
+.btn-wishlist-square.active {
+  background: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+  color: #ef4444 !important;
 }
 
 

@@ -52,6 +52,7 @@ export interface ProductItem {
   link: string;
   isNewArrival?: boolean;
   isSpecialOffer?: boolean;
+  isMostSearched?: boolean;
   offerPercent?: number;
   originalPrice?: number;
   currentPrice?: number;

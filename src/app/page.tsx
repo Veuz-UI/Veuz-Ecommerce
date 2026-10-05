@@ -9,6 +9,8 @@ import { fetchShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsS
 import { DEFAULT_SHOP_SETTINGS, ShopCategory } from '@/data/defaultShopSettings';
 import { fetchProducts, recordProductClick, PRODUCTS_EVENT } from '@/services/productsService';
 import { ProductItem } from '@/data/categoryProductsData';
+import { fetchPartners, PARTNERS_EVENT } from '@/services/partnersService';
+import { DEFAULT_PARTNERS_DATA, PartnersData } from '@/data/defaultPartners';
 
 export default function HomePage() {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -17,9 +19,13 @@ export default function HomePage() {
   const [isCatHovered, setIsCatHovered] = useState(false);
   const newProdScrollRef = useRef<HTMLDivElement>(null);
   const browseCatScrollRef = useRef<HTMLDivElement>(null);
+  const partnersScrollRef = useRef<HTMLDivElement>(null);
 
   // Dynamic Catalog Products from Products Service
   const [catalogProducts, setCatalogProducts] = useState<ProductItem[]>([]);
+
+  // Dynamic Partners Logos from Partners Service
+  const [partnersData, setPartnersData] = useState<PartnersData>(DEFAULT_PARTNERS_DATA);
 
   // Dynamic Banners from Banner Settings
   const [heroSlides, setHeroSlides] = useState<MainBannerItem[]>(DEFAULT_BANNER_SETTINGS.mainBanners);
@@ -178,6 +184,72 @@ export default function HomePage() {
     };
   }, []);
 
+  // Fetch dynamic partners & subscribe to real-time updates
+  useEffect(() => {
+    let isMounted = true;
+    const loadPartners = async () => {
+      try {
+        const data = await fetchPartners();
+        if (isMounted && data && Array.isArray(data.partners)) {
+          setPartnersData(data);
+        }
+      } catch (err) {
+        console.warn('Error loading dynamic partners:', err);
+      }
+    };
+
+    loadPartners();
+
+    const handlePartnersUpdate = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (customEvt.detail && Array.isArray(customEvt.detail.partners)) {
+        setPartnersData(customEvt.detail);
+      } else {
+        loadPartners();
+      }
+    };
+
+    const handlePartnersStorage = (e: StorageEvent) => {
+      if (e.key === 'veuz_partners_cache') {
+        loadPartners();
+      }
+    };
+
+    window.addEventListener(PARTNERS_EVENT, handlePartnersUpdate);
+    window.addEventListener('storage', handlePartnersStorage);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener(PARTNERS_EVENT, handlePartnersUpdate);
+      window.removeEventListener('storage', handlePartnersStorage);
+    };
+  }, []);
+
+  const scrollPartners = (direction: 'prev' | 'next') => {
+    if (partnersScrollRef.current) {
+      const container = partnersScrollRef.current;
+      const firstCard = container.querySelector('.partner-card-box') as HTMLElement;
+      const cardWidth = firstCard ? firstCard.offsetWidth + 18 : 220;
+      const maxScroll = container.scrollWidth - container.clientWidth;
+
+      if (maxScroll <= 0) return;
+
+      if (direction === 'next') {
+        if (container.scrollLeft >= maxScroll - 15) {
+          container.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          container.scrollBy({ left: cardWidth * 2, behavior: 'smooth' });
+        }
+      } else {
+        if (container.scrollLeft <= 15) {
+          container.scrollTo({ left: maxScroll, behavior: 'smooth' });
+        } else {
+          container.scrollBy({ left: -cardWidth * 2, behavior: 'smooth' });
+        }
+      }
+    }
+  };
+
   // Bounds safety check for category slide index
   useEffect(() => {
     const maxSlide = Math.max(0, shopCategories.length - 7);
@@ -237,10 +309,8 @@ export default function HomePage() {
       title: 'GuardianPro Vented Hard Hat with Ratchet Suspension',
       desc: 'High-density impact shell with adjustable 4-point ratchet suspension and ventilation slots.',
       img: '/assets/imgs/shop/pr1.jpg',
-      badge: 'In Stock',
+      badge: 'New Arrival',
       badgeClass: 'new',
-      oldPrice: '180 SR',
-      discount: '15% OFF',
       price: '149 SR',
       rating: '4.9/5',
       reviews: '1420 - Reviews',
@@ -251,7 +321,7 @@ export default function HomePage() {
       title: 'IronClad S3 Steel Toe Waterproof Work Safety Boots',
       desc: 'Heavy-duty steel toe cap with puncture-resistant Kevlar midsole and slip-resistant PU outsole.',
       img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'In Stock',
+      badge: 'New Arrival',
       badgeClass: 'new',
       price: '289 SR',
       rating: '4.8/5',
@@ -263,8 +333,8 @@ export default function HomePage() {
       title: 'ArmorFlex Level 5 Cut Resistant Nitrile Work Gloves',
       desc: 'Seamless HPPE knit fiber providing maximum Level 5 cut protection with enhanced sandy nitrile grip.',
       img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'Limited Stock',
-      badgeClass: 'hot',
+      badge: 'New Arrival',
+      badgeClass: 'new',
       price: '65 SR',
       rating: '5.0/5',
       reviews: '980 - Reviews',
@@ -275,10 +345,8 @@ export default function HomePage() {
       title: 'OptiShield Anti-Fog UV400 Industrial Safety Goggles',
       desc: 'Panoramic wraparound polycarbonate lens with anti-scratch coating and 99.9% UV radiation blocking.',
       img: '/assets/imgs/shop/pr1.jpg',
-      badge: 'In Stock',
+      badge: 'New Arrival',
       badgeClass: 'new',
-      oldPrice: '95 SR',
-      discount: '15% OFF',
       price: '79 SR',
       rating: '4.9/5',
       reviews: '1650 - Reviews',
@@ -289,7 +357,7 @@ export default function HomePage() {
       title: 'ProReflect Class 3 High-Visibility Weatherproof Jacket',
       desc: 'ANSI/ISEA Class 3 compliant waterproof Oxford fabric with 3M reflective tape for night visibility.',
       img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'In Stock',
+      badge: 'New Arrival',
       badgeClass: 'new',
       price: '199 SR',
       rating: '4.7/5',
@@ -301,8 +369,8 @@ export default function HomePage() {
       title: 'Full Body Fall Arrest Safety Harness with Shock Absorber',
       desc: 'OSHA certified ergonomic fall protection harness with dorsal D-ring and energy-absorbing lanyard.',
       img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'Limited Stock',
-      badgeClass: 'hot',
+      badge: 'New Arrival',
+      badgeClass: 'new',
       price: '349 SR',
       rating: '5.0/5',
       reviews: '740 - Reviews',
@@ -313,8 +381,8 @@ export default function HomePage() {
       title: 'Half-Face Dual Cartridge Chemical Respirator Mask',
       desc: 'Medical-grade silicone facepiece with dual cartridge filtration against toxic fumes and dust particles.',
       img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'Limited Stock',
-      badgeClass: 'hot',
+      badge: 'New Arrival',
+      badgeClass: 'new',
       price: '175 SR',
       rating: '4.9/5',
       reviews: '1120 - Reviews',
@@ -325,10 +393,8 @@ export default function HomePage() {
       title: 'Laser-Gard Heavy Duty Sound Cancelling Ear Defenders',
       desc: 'Industrial 34dB SNR noise reduction ear muffs with cushioned headband for prolonged loud environments.',
       img: '/assets/imgs/shop/pr1.jpg',
-      badge: 'In Stock',
+      badge: 'New Arrival',
       badgeClass: 'new',
-      oldPrice: '120 SR',
-      discount: '20% OFF',
       price: '96 SR',
       rating: '4.9/5',
       reviews: '1310 - Reviews',
@@ -339,7 +405,7 @@ export default function HomePage() {
       title: 'DuraShield Chemical Resistant Heavy Neoprene Coverall',
       desc: 'Heavyweight chemical splash protective suit with sealed seams for hazardous material operations.',
       img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'In Stock',
+      badge: 'New Arrival',
       badgeClass: 'new',
       price: '225 SR',
       rating: '4.8/5',
@@ -351,10 +417,8 @@ export default function HomePage() {
       title: 'ThermalGrip Insulated Cold-Store Heavy Work Gloves',
       desc: 'Thermal fleece lined waterproof winter work gloves with textured palm for sub-zero warehouse handling.',
       img: '/assets/imgs/shop/pr1.jpg',
-      badge: 'In Stock',
+      badge: 'New Arrival',
       badgeClass: 'new',
-      oldPrice: '85 SR',
-      discount: '12% OFF',
       price: '74 SR',
       rating: '4.9/5',
       reviews: '830 - Reviews',
@@ -365,8 +429,8 @@ export default function HomePage() {
       title: 'AirFlow Powered Air Purifying Heavy Hood System',
       desc: 'PAPR constant positive pressure blower unit with HEPA filter and wide-vision impact visor.',
       img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'Limited Stock',
-      badgeClass: 'hot',
+      badge: 'New Arrival',
+      badgeClass: 'new',
       price: '480 SR',
       rating: '5.0/5',
       reviews: '410 - Reviews',
@@ -377,7 +441,7 @@ export default function HomePage() {
       title: 'VoltGuard 1000V Dielectric High-Voltage Safety Boots',
       desc: 'Individually tested dielectric rubber safety boots certified for high-voltage utility electrical hazard protection.',
       img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'In Stock',
+      badge: 'New Arrival',
       badgeClass: 'new',
       price: '310 SR',
       rating: '4.9/5',
@@ -389,6 +453,7 @@ export default function HomePage() {
   // Touch / navigation refs
 
   const mostSearchedScrollRef = useRef<HTMLDivElement>(null);
+  const onsaleScrollRef = useRef<HTMLDivElement>(null);
 
   const scrollMostSearched = (direction: 'prev' | 'next') => {
     if (mostSearchedScrollRef.current) {
@@ -636,10 +701,11 @@ export default function HomePage() {
       title: 'ErgoGrip Anti-Vibration Heavy Impact Mechanics Gloves',
       desc: 'Engineered with reinforced palm padding and high-dexterity grip for heavy tools.',
       img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'Limited Stock',
+      badge: '22% OFF',
       badgeClass: 'hot',
       price: '125 SR',
       oldPrice: '160 SR',
+      discount: '22% OFF',
       rating: '4.8/5',
       reviews: '1350 - Reviews',
       link: '/product-details'
@@ -649,10 +715,11 @@ export default function HomePage() {
       title: 'UltraComfort S1P Lightweight Breathable Safety Sneakers',
       desc: 'Ultra-flexible composite toe protection with breathable mesh lining for all-day wear.',
       img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'In Stock',
-      badgeClass: 'new',
+      badge: '16% OFF',
+      badgeClass: 'hot',
       price: '219 SR',
       oldPrice: '260 SR',
+      discount: '16% OFF',
       rating: '4.9/5',
       reviews: '2850 - Reviews',
       link: '/product-details'
@@ -662,10 +729,11 @@ export default function HomePage() {
       title: 'Multi-Gas Dual Cartridge Respirator Half-Mask Protection',
       desc: 'Dual filtration system protecting against organic vapors, acid gases and fine dust.',
       img: '/assets/imgs/shop/pr1.jpg',
-      badge: 'Limited Stock',
+      badge: '14% OFF',
       badgeClass: 'hot',
       price: '189 SR',
       oldPrice: '220 SR',
+      discount: '14% OFF',
       rating: '4.7/5',
       reviews: '920 - Reviews',
       link: '/product-details'
@@ -675,10 +743,11 @@ export default function HomePage() {
       title: 'Heavy Duty Fall Arrest Body Harness with Lanyard System',
       desc: 'Full-body 5-point harness with energy-absorbing lanyard and forged steel carabiners.',
       img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'Out of stock',
-      badgeClass: 'out',
+      badge: '17% OFF',
+      badgeClass: 'hot',
       price: '299 SR',
       oldPrice: '360 SR',
+      discount: '17% OFF',
       rating: '5.0/5',
       reviews: '650 - Reviews',
       link: '/product-details'
@@ -688,10 +757,11 @@ export default function HomePage() {
       title: 'High-Visibility Class 2 Reflective Mesh Work Safety Vest',
       desc: 'Breathable polyester mesh with 360-degree high-reflectivity strips and zipper closure.',
       img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'Limited Stock',
+      badge: '25% OFF',
       badgeClass: 'hot',
       price: '45 SR',
       oldPrice: '60 SR',
+      discount: '25% OFF',
       rating: '4.8/5',
       reviews: '1100 - Reviews',
       link: '/product-details'
@@ -701,10 +771,11 @@ export default function HomePage() {
       title: 'Industrial Emergency 50-Person Workplace OSHA First Aid Kit',
       desc: 'Complete medical first aid supply box tailored for construction and warehouse crews.',
       img: '/assets/imgs/shop/pr1.jpg',
-      badge: 'In Stock',
-      badgeClass: 'new',
+      badge: '18% OFF',
+      badgeClass: 'hot',
       price: '160 SR',
       oldPrice: '195 SR',
+      discount: '18% OFF',
       rating: '4.9/5',
       reviews: '430 - Reviews',
       link: '/product-details'
@@ -714,10 +785,11 @@ export default function HomePage() {
       title: 'ThermoGuard Flame Retardant Arc Flash Protection Coverall',
       desc: 'Treated flame-resistant fabric certified for electrical arc flash and heat protection.',
       img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'In Stock',
-      badgeClass: 'new',
+      badge: '16% OFF',
+      badgeClass: 'hot',
       price: '380 SR',
       oldPrice: '450 SR',
+      discount: '16% OFF',
       rating: '5.0/5',
       reviews: '510 - Reviews',
       link: '/product-details'
@@ -727,10 +799,11 @@ export default function HomePage() {
       title: 'OptiClear Anti-Scratch Panoramic Safety Face Shield Visor',
       desc: 'Full-face polycarbonate shield offering high-velocity impact protection and clarity.',
       img: '/assets/imgs/shop/pr1.jpg',
-      badge: 'Limited Stock',
+      badge: '20% OFF',
       badgeClass: 'hot',
       price: '68 SR',
       oldPrice: '85 SR',
+      discount: '20% OFF',
       rating: '4.7/5',
       reviews: '780 - Reviews',
       link: '/product-details'
@@ -740,10 +813,11 @@ export default function HomePage() {
       title: 'SteelMax Metatarsal Protection S3 Heavy Duty Work Boots',
       desc: 'Integrated internal metatarsal guard with puncture-resistant steel midsole.',
       img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'In Stock',
-      badgeClass: 'new',
+      badge: '18% OFF',
+      badgeClass: 'hot',
       price: '310 SR',
       oldPrice: '380 SR',
+      discount: '18% OFF',
       rating: '4.9/5',
       reviews: '1420 - Reviews',
       link: '/product-details'
@@ -753,10 +827,11 @@ export default function HomePage() {
       title: 'SilentPro 34dB SNR Helmet-Mounted Industrial Ear Defenders',
       desc: 'Universal slot-mount hearing protection with soft memory foam acoustic cushions.',
       img: '/assets/imgs/shop/pr1.jpg',
-      badge: 'In Stock',
-      badgeClass: 'new',
+      badge: '23% OFF',
+      badgeClass: 'hot',
       price: '85 SR',
       oldPrice: '110 SR',
+      discount: '23% OFF',
       rating: '4.8/5',
       reviews: '890 - Reviews',
       link: '/product-details'
@@ -766,10 +841,11 @@ export default function HomePage() {
       title: 'ChemicalMaster Heavy Duty Chemical Resistant Gauntlet Gloves',
       desc: 'Thick chemical-proof nitrile formulation with textured grip for wet chemical handling.',
       img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'Limited Stock',
+      badge: '24% OFF',
       badgeClass: 'hot',
       price: '42 SR',
       oldPrice: '55 SR',
+      discount: '24% OFF',
       rating: '4.9/5',
       reviews: '620 - Reviews',
       link: '/product-details'
@@ -779,10 +855,11 @@ export default function HomePage() {
       title: 'High-Altitude Emergency Rescue Descender Harness System',
       desc: 'Controlled rate friction descender with durable braided kernmantle rope system.',
       img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'In Stock',
-      badgeClass: 'new',
+      badge: '15% OFF',
+      badgeClass: 'hot',
       price: '460 SR',
       oldPrice: '540 SR',
+      discount: '15% OFF',
       rating: '5.0/5',
       reviews: '310 - Reviews',
       link: '/product-details'
@@ -790,29 +867,29 @@ export default function HomePage() {
   ];
 
   // Derive dynamic lists from catalogProducts (synced live with dashboard products)
+  // 1. New Arrivals: ONLY show new products (strictly NO offers/discounts, and ONLY 'New Arrival' label)
   const displayedNewProducts = catalogProducts.length > 0
     ? catalogProducts
-        .filter((p) => p.isNewArrival !== false && p.isActive !== false)
+        .filter((p) => p.isNewArrival !== false && p.isActive !== false && !p.discount && !p.offerPercent && !p.isSpecialOffer && (!p.oldPrice || p.oldPrice === p.price))
         .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
         .map((p) => ({
           id: p.id,
           title: p.title,
           desc: p.desc || 'Certified workplace safety and protection equipment.',
           img: p.image || '/assets/imgs/shop/pr1.jpg',
-          badge: p.badge || 'New Arrival',
-          badgeClass: (p.badgeClass || 'new') as 'new' | 'hot' | 'sale' | 'featured',
+          badge: 'New Arrival',
+          badgeClass: 'new' as const,
           price: p.price,
-          oldPrice: p.oldPrice,
-          discount: p.discount,
           rating: p.rating ? `${p.rating}/5` : '5.0/5',
           reviews: p.reviews ? `${p.reviews} - Reviews` : '120 - Reviews',
           link: p.link || '/product-details',
         }))
-    : newProducts;
+    : newProducts.map((p) => ({ ...p, badge: 'New Arrival' }));
 
+  // 2. Most Searched: ONLY show most searched products
   const displayedMostSearched = catalogProducts.length > 0
     ? [...catalogProducts]
-        .filter((p) => p.isActive !== false)
+        .filter((p) => (p.isMostSearched === true || (p.clicks || 0) + (p.views || 0) > 0 || p.badgeClass === 'hot') && p.isActive !== false)
         .sort((a, b) => ((b.clicks || 0) + (b.views || 0)) - ((a.clicks || 0) + (a.views || 0)))
         .map((p) => ({
           id: p.id,
@@ -830,22 +907,27 @@ export default function HomePage() {
         }))
     : mostSearchedProducts;
 
+  // 3. Special Offers: ONLY show products that have an active discount / deal
   const displayedOnsale = catalogProducts.length > 0
     ? catalogProducts
-        .filter((p) => (p.isSpecialOffer === true || Boolean(p.discount)) && p.isActive !== false)
-        .map((p) => ({
-          id: p.id,
-          title: p.title,
-          desc: p.desc || 'Special discounted offer on certified PPE supplies.',
-          img: p.image || '/assets/imgs/shop/pr3.jpg',
-          badge: p.discount || (p.offerPercent ? `${p.offerPercent}% OFF` : 'Special Offer'),
-          badgeClass: 'hot' as const,
-          price: p.price,
-          oldPrice: p.oldPrice,
-          rating: p.rating ? `${p.rating}/5` : '5.0/5',
-          reviews: p.reviews ? `${p.reviews} - Reviews` : '150 - Reviews',
-          link: p.link || '/product-details',
-        }))
+        .filter((p) => (p.isSpecialOffer === true || Boolean(p.discount) || Boolean(p.offerPercent) || (Boolean(p.oldPrice) && p.oldPrice !== p.price)) && p.isActive !== false)
+        .map((p) => {
+          const discountText = p.discount || (p.offerPercent ? `${p.offerPercent}% OFF` : '');
+          return {
+            id: p.id,
+            title: p.title,
+            desc: p.desc || 'Special discounted offer on certified PPE supplies.',
+            img: p.image || '/assets/imgs/shop/pr3.jpg',
+            badge: discountText || p.badge || 'Special Offer',
+            badgeClass: 'hot' as const,
+            price: p.price,
+            oldPrice: p.oldPrice,
+            discount: discountText,
+            rating: p.rating ? `${p.rating}/5` : '5.0/5',
+            reviews: p.reviews ? `${p.reviews} - Reviews` : '150 - Reviews',
+            link: p.link || '/product-details',
+          };
+        })
     : onsaleProducts;
 
   const newProductPairs: any[] = [];
@@ -872,7 +954,7 @@ export default function HomePage() {
     if (browseCatScrollRef.current) {
       const container = browseCatScrollRef.current;
       const firstCol = container.querySelector('.browse-cat-card-wrapper') as HTMLElement;
-      const colWidth = firstCol ? firstCol.offsetWidth + 16 : 180;
+      const colWidth = firstCol ? firstCol.offsetWidth + 22 : 310;
       const maxScroll = container.scrollWidth - container.clientWidth;
 
       if (maxScroll <= 0) return;
@@ -918,12 +1000,225 @@ export default function HomePage() {
     scrollBrowseCat('next');
   };
 
+  const scrollProductSlider = (
+    ref: React.RefObject<HTMLDivElement | null>,
+    direction: 'prev' | 'next'
+  ) => {
+    if (ref.current) {
+      const container = ref.current;
+      const firstCol = container.querySelector('.desktop-prod-slider-col') as HTMLElement;
+      const colWidth = firstCol ? firstCol.offsetWidth + 24 : 310;
+      const maxScroll = container.scrollWidth - container.clientWidth;
+
+      if (maxScroll <= 0) return;
+
+      if (direction === 'next') {
+        if (container.scrollLeft >= maxScroll - 15) {
+          container.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          container.scrollBy({ left: colWidth, behavior: 'smooth' });
+        }
+      } else {
+        if (container.scrollLeft <= 15) {
+          container.scrollTo({ left: maxScroll, behavior: 'smooth' });
+        } else {
+          container.scrollBy({ left: -colWidth, behavior: 'smooth' });
+        }
+      }
+    }
+  };
+
   const handlePrevNewProd = () => {
     setActiveNewProdIndex((prev) => (prev <= 0 ? newProducts.length - 4 : prev - 1));
   };
 
   const handleNextNewProd = () => {
     setActiveNewProdIndex((prev) => (prev >= newProducts.length - 4 ? 0 : prev + 1));
+  };
+
+  // Reusable 2-Row Product Card Renderer (Reference Shoe Card Layout)
+  const renderProductCard = (prod: any, colClass: string) => {
+    const isWishlisted = Boolean(wishlist[prod.id]);
+    const badgeText = prod.discount || prod.badge || 'New';
+
+    return (
+      <div key={prod.id} className={colClass}>
+        <div className="product-cart-wrap uniform-product-card w-100 d-flex flex-column">
+          {/* Top image wrap with Top-Left Badge & Top-Right Circular Wishlist Heart */}
+          <div className="product-img-action-wrap position-relative">
+            {/* Top-Left Badge */}
+            <span className="ref-card-badge">{badgeText}</span>
+
+            {/* Top-Right Circular Wishlist Button */}
+            <button
+              type="button"
+              aria-label="Add To Wishlist"
+              className={`ref-card-top-wishlist ${isWishlisted ? 'active' : ''}`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleWishlist(prod.id);
+              }}
+              title="Add to Wishlist"
+            >
+              <i className={`fi-rs-heart ${isWishlisted ? 'fill-heart text-danger' : ''}`}></i>
+            </button>
+
+            {/* Main Image */}
+            <div className="product-img product-img-zoom">
+              <Link href={prod.link || '/product-details'} onClick={() => recordProductClick(prod.id)}>
+                <img
+                  className="default-img"
+                  src={prod.img || prod.image || '/assets/imgs/shop/pr1.jpg'}
+                  alt={prod.title}
+                />
+              </Link>
+            </div>
+          </div>
+
+          {/* Product Content Wrap */}
+          <div className="product-content-wrap d-flex flex-column flex-grow-1 justify-content-between">
+            <div>
+              {/* Product Title (20px bold) */}
+              <h2 className="new-prod-title">
+                <Link href={prod.link || '/product-details'} onClick={() => recordProductClick(prod.id)}>
+                  {prod.title}
+                </Link>
+              </h2>
+
+              {/* Star Rating with Review Count (Matching Reference Card) */}
+              <div className="product-rate d-flex align-items-center mb-2">
+                <div className="ref-card-stars me-2">
+                  <span style={{ color: '#0f172a', fontSize: '13px', letterSpacing: '1px' }}>★★★★★</span>
+                </div>
+                <span className="rating-score fw-bold" style={{ fontSize: '13px', color: '#0f172a', marginRight: '4px' }}>
+                  {prod.rating || '4.9/5'}
+                </span>
+                <span className="rating-reviews" style={{ fontSize: '13px', color: '#64748b' }}>
+                  ({prod.reviews || '120 - Reviews'})
+                </span>
+              </div>
+
+              {/* Product Price & Discount Badge (22px bold current price + 14px old price + solid black discount badge) */}
+              <div className="new-prod-price-box mb-2">
+                <div className="d-flex align-items-center" style={{ gap: '8px', flexWrap: 'wrap' }}>
+                  <span className="new-prod-current-price">{prod.price}</span>
+                  {prod.oldPrice && (
+                    <span className="new-prod-old-price">{prod.oldPrice}</span>
+                  )}
+                  {prod.discount && (
+                    <span className="ref-card-discount-black">{prod.discount}</span>
+                  )}
+                </div>
+                <div className="new-prod-vat-label">Inclusive of VAT</div>
+              </div>
+
+              {/* Product Description (14px, 2 lines clamp, placed below price) */}
+              <p className="new-prod-desc">{prod.desc}</p>
+
+              {/* Express Delivery Badge */}
+              <div className="mb-2">
+                <span className="express-delivery-badge">
+                  <i className="fi-rs-bolt"></i>Express Delivery
+                </span>
+              </div>
+            </div>
+
+            {/* Reference Card Bottom Action Bar (Wide Black Add to Cart + Square Wishlist Button) */}
+            <div className="product-card-bottom d-flex align-items-center gap-2 mt-auto">
+              <Link href="/cart" className="btn-add-cart-wide">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                  <line x1="3" y1="6" x2="21" y2="6"></line>
+                  <path d="M16 10a4 4 0 0 1-8 0"></path>
+                </svg>
+                Add to Cart
+              </Link>
+              <button
+                type="button"
+                aria-label="Add To Wishlist"
+                className={`btn-wishlist-square ${isWishlisted ? 'active' : ''}`}
+                onClick={() => toggleWishlist(prod.id)}
+                title="Add to Wishlist"
+              >
+                <i className={`fi-rs-heart ${isWishlisted ? 'fill-heart text-danger' : ''}`}></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Reusable Product Section Slider / Grid:
+  // Desktop:
+  // - If items.length >= 8: 2 full rows of 4 cards (paired in columns of 2 cards each, 4 columns per view)
+  // - If items.length < 8: Only 1 full row of 4 cards (held so incomplete 2nd rows with 1-3 cards never show).
+  // Clicking the arrow keys next to "View All" smoothly scrolls through cards.
+  // Mobile (< 768px):
+  // - Single horizontal row where cards slide one-by-one.
+  const renderProductSectionSlider = (
+    items: any[],
+    scrollRef: React.RefObject<HTMLDivElement | null>
+  ) => {
+    if (!items || items.length === 0) {
+      return (
+        <div className="text-center py-5 text-muted">
+          <p>No products available in this section.</p>
+        </div>
+      );
+    }
+
+    const isDoubleRow = items.length >= 8;
+
+    // In 2-row mode (8+ items): pair items into columns of 2 cards each
+    const columns: any[][] = [];
+    if (isDoubleRow) {
+      const fullCount = Math.floor(items.length / 2) * 2;
+      for (let i = 0; i < fullCount; i += 2) {
+        columns.push([items[i], items[i + 1]]);
+      }
+    } else {
+      // In 1-row mode (< 8 items, e.g. 5, 6, 7): only 1 card per column
+      // 4 cards are visible in the viewport at a time; remaining cards can be slid into view via arrow buttons
+      items.forEach((item) => {
+        columns.push([item]);
+      });
+    }
+
+    return (
+      <div className="w-100">
+        {/* Desktop & Tablet Slider (>= 768px) */}
+        <div className="d-none d-md-block">
+          <div className="desktop-prod-slider-wrapper position-relative">
+            <div ref={scrollRef} className="desktop-prod-slider-track">
+              {columns.map((colItems, idx) => (
+                <div key={idx} className="desktop-prod-slider-col">
+                  {colItems.map((prod) => (
+                    <div key={prod.id} className="w-100">
+                      {renderProductCard(prod, 'w-100')}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile (< 768px): Single row slider, sliding one by one */}
+        <div className="d-block d-md-none">
+          <div className="home-mobile-prod-slider">
+            <div className="home-mobile-prod-track">
+              {items.map((prod) => (
+                <div key={prod.id} className="home-mobile-prod-item">
+                  {renderProductCard(prod, 'w-100 d-flex')}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -1054,8 +1349,14 @@ export default function HomePage() {
             </div>
             
             <div className="d-flex align-items-center" style={{ gap: '10px' }}>
-              <Link className="btn-outline-custom" href="/all-categories-products">
-                View All
+              <Link className="btn-view-all-pill" href="/all-categories-products">
+                <span className="btn-view-all-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </span>
+                <span className="btn-view-all-text">View All</span>
               </Link>
               
               <div className="d-flex align-items-center" style={{ gap: '6px' }}>
@@ -1095,19 +1396,23 @@ export default function HomePage() {
                 const catLink = cat.link && cat.link !== '#' ? cat.link : `/category?category=${encodeURIComponent(cat.name)}`;
                 return (
                   <div key={cat.id || idx} className="browse-cat-card-wrapper">
-                    <Link href={catLink} className="browse-cat-card">
-                      <div className="browse-cat-img-box">
+                    <Link href={catLink} className="browse-cat-card" title={cat.name}>
+                      {/* Left: Category Name + View More Pill */}
+                      <div className="browse-cat-info-col">
+                        <h4 className="browse-cat-name">{cat.name}</h4>
+                        <span className="browse-cat-view-more">View More</span>
+                      </div>
+
+                      {/* Right: Floating Category Image */}
+                      <div className="browse-cat-media-col">
                         <img
                           src={imgSrc}
                           alt={cat.name}
-                          className="browse-cat-img"
+                          className="browse-cat-photo"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = `/assets/imgs/shop/p${(idx % 8) + 1}.jpg`;
                           }}
                         />
-                      </div>
-                      <div className="browse-cat-title-box">
-                        <span className="browse-cat-title">{cat.name}</span>
                       </div>
                     </Link>
                   </div>
@@ -1118,34 +1423,40 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 4. NEW PRODUCTS (2 Rows Slider with Touch Navigation & Perfectly Aligned Action Buttons) */}
+      {/* 4. NEW PRODUCTS (Slider + View All Button Style + Arrow Keys) */}
       <section className="product-tabs section-padding position-relative section-spacer-mb">
         <div className="container">
-          <div className="d-flex align-items-center justify-content-between mb-25 flex-wrap gap-2">
+          <div className="d-flex align-items-center justify-content-between mb-25 flex-wrap gap-3">
             <div className="section-tit">
               <h3 className="mb-0" style={{ fontSize: '24px', fontWeight: '700' }}>New Arrival Safety Gear & PPE</h3>
             </div>
             
             <div className="d-flex align-items-center" style={{ gap: '10px' }}>
-              <Link className="btn-outline-custom" href="/new-arrival-products">
-                View All
+              <Link className="btn-view-all-pill" href="/new-arrival-products">
+                <span className="btn-view-all-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </span>
+                <span className="btn-view-all-text">View All</span>
               </Link>
               
               <div className="d-flex align-items-center" style={{ gap: '6px' }}>
                 <button
                   type="button"
-                  onClick={() => scrollNewProd('prev')}
+                  onClick={() => scrollProductSlider(newProdScrollRef, 'prev')}
                   className="btn-outline-custom btn-nav-circle"
-                  aria-label="Previous Products"
+                  aria-label="Previous"
                   title="Previous"
                 >
                   <i className="fi-rs-angle-left"></i>
                 </button>
                 <button
                   type="button"
-                  onClick={() => scrollNewProd('next')}
+                  onClick={() => scrollProductSlider(newProdScrollRef, 'next')}
                   className="btn-outline-custom btn-nav-circle"
-                  aria-label="Next Products"
+                  aria-label="Next"
                   title="Next"
                 >
                   <i className="fi-rs-angle-right"></i>
@@ -1153,88 +1464,8 @@ export default function HomePage() {
               </div>
             </div>
           </div>
-          
           <hr className="hr mb-30" />
-
-          {/* 2-Row Smooth Slider Track with Scroll Snap & Navigation */}
-          <div className="new-products-slider-wrapper position-relative">
-            <div ref={newProdScrollRef} className="new-products-track-container">
-              {newProductPairs.map((pair, colIdx) => (
-                <div key={'col-' + colIdx} className="new-prod-pair-column">
-                  {pair.map((prod: any) => (
-                    <div key={prod.id} className="new-prod-card-wrapper">
-                      <div className="product-cart-wrap uniform-product-card">
-                        <div className="product-img-action-wrap position-relative">
-                          <div className="product-img product-img-zoom">
-                            <Link href={prod.link} onClick={() => recordProductClick(prod.id)}>
-                              <img className="default-img" src={prod.img} alt={prod.title} />
-                            </Link>
-                            <ul className="clrs">
-                              <li className="first"></li>
-                              <li className="sec"></li>
-                              <li className="third"></li>
-                            </ul>
-                          </div>
-
-                          <div className="product-badges product-badges-position product-badges-mrg">
-                            <span className={prod.badgeClass === 'hot' ? 'hot' : 'new'}>{prod.badge}</span>
-                          </div>
-                        </div>
-
-                        <div className="product-content-wrap">
-                          <div>
-                            <h2 className="new-prod-title">
-                              <Link href={prod.link} onClick={() => recordProductClick(prod.id)}>{prod.title}</Link>
-                            </h2>
-
-                            <p className="new-prod-desc">{prod.desc}</p>
-
-                            <div className="product-rate d-flex align-items-center">
-                              <img src="/assets/imgs/icons/star.png" alt="star" className="star-icon" width={14} height={14} />
-                              <h6 className="rating-score mb-0">{prod.rating}</h6>
-                              <span className="rating-reviews font-small">({prod.reviews})</span>
-                            </div>
-
-                            <div className="new-prod-price-box">
-                              <div className="d-flex align-items-center" style={{ gap: '8px', flexWrap: 'wrap' }}>
-                                <span className="new-prod-current-price">{prod.price}</span>
-                                {prod.oldPrice && (
-                                  <span className="new-prod-old-price">{prod.oldPrice}</span>
-                                )}
-                                {prod.discount && (
-                                  <span className="new-prod-discount-badge">{prod.discount}</span>
-                                )}
-                              </div>
-                              <div className="new-prod-vat-label">Inclusive of VAT</div>
-                            </div>
-                          </div>
-
-                          {/* Perfectly Aligned Bottom Action Bar with Wishlist Heart & Add to Cart */}
-                          <div className="product-card-bottom d-flex align-items-center justify-content-between">
-                            <span className="express-delivery-badge"><i className="fi-rs-bolt"></i>Express Delivery</span>
-                            <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                              <button
-                                type="button"
-                                aria-label="Add To Wishlist"
-                                className={`btn-wishlist-action ${wishlist[prod.id] ? 'active' : ''}`}
-                                onClick={() => toggleWishlist(prod.id)}
-                                title="Add to Wishlist"
-                              >
-                                <i className={`fi-rs-heart ${wishlist[prod.id] ? 'fill-heart text-danger' : ''}`}></i>
-                              </button>
-                              <Link href="/cart" className="btn-add-cart-custom">
-                                <i className="fi-rs-shopping-cart mr-5"></i>Add
-                              </Link>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
+          {renderProductSectionSlider(displayedNewProducts, newProdScrollRef)}
         </div>
       </section>
 
@@ -1281,34 +1512,40 @@ export default function HomePage() {
         </div>
       </section>
 
-            {/* Most Searched Items (Placed Directly Above Eco Promo Banner) */}
+      {/* Most Searched Items (Slider + View All Button Style + Arrow Keys) */}
       <section className="product-tabs section-padding position-relative section-spacer-mb">
         <div className="container">
-          <div className="section-title d-flex align-items-center justify-content-between mb-25 flex-wrap gap-2">
+          <div className="section-title d-flex align-items-center justify-content-between mb-25 flex-wrap gap-3">
             <div className="section-tit">
               <h3 className="mb-0" style={{ fontSize: '24px', fontWeight: '700' }}>Most Searched Items</h3>
             </div>
             
             <div className="d-flex align-items-center" style={{ gap: '10px' }}>
-              <Link className="btn-outline-custom" href="/most-searched-products">
-                View All
+              <Link className="btn-view-all-pill" href="/most-searched-products">
+                <span className="btn-view-all-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </span>
+                <span className="btn-view-all-text">View All</span>
               </Link>
               
               <div className="d-flex align-items-center" style={{ gap: '6px' }}>
                 <button
                   type="button"
-                  onClick={() => scrollMostSearched('prev')}
+                  onClick={() => scrollProductSlider(mostSearchedScrollRef, 'prev')}
                   className="btn-outline-custom btn-nav-circle"
-                  aria-label="Previous Most Searched Products"
+                  aria-label="Previous"
                   title="Previous"
                 >
                   <i className="fi-rs-angle-left"></i>
                 </button>
                 <button
                   type="button"
-                  onClick={() => scrollMostSearched('next')}
+                  onClick={() => scrollProductSlider(mostSearchedScrollRef, 'next')}
                   className="btn-outline-custom btn-nav-circle"
-                  aria-label="Next Most Searched Products"
+                  aria-label="Next"
                   title="Next"
                 >
                   <i className="fi-rs-angle-right"></i>
@@ -1318,92 +1555,12 @@ export default function HomePage() {
           </div>
           
           <hr className="hr mb-30" />
-
-          {/* 2-Row Smooth Slider Track with Scroll Snap & Navigation */}
-          <div className="new-products-slider-wrapper position-relative">
-            <div ref={mostSearchedScrollRef} className="new-products-track-container">
-              {mostSearchedPairs.map((pair, colIdx) => (
-                <div key={'ms-col-' + colIdx} className="new-prod-pair-column">
-                  {pair.map((prod: any) => (
-                    <div key={prod.id} className="new-prod-card-wrapper">
-                      <div className="product-cart-wrap uniform-product-card">
-                        <div className="product-img-action-wrap position-relative">
-                          <div className="product-img product-img-zoom">
-                            <Link href={prod.link} onClick={() => recordProductClick(prod.id)}>
-                              <img className="default-img" src={prod.img} alt={prod.title} />
-                            </Link>
-                            <ul className="clrs">
-                              <li className="first"></li>
-                              <li className="sec"></li>
-                              <li className="third"></li>
-                            </ul>
-                          </div>
-
-                          <div className="product-badges product-badges-position product-badges-mrg">
-                            <span className={prod.badgeClass === 'hot' ? 'hot' : 'new'}>{prod.badge}</span>
-                          </div>
-                        </div>
-
-                        <div className="product-content-wrap">
-                          <div>
-                            <h2 className="new-prod-title">
-                              <Link href={prod.link} onClick={() => recordProductClick(prod.id)}>{prod.title}</Link>
-                            </h2>
-
-                            <p className="new-prod-desc">{prod.desc}</p>
-
-                            <div className="product-rate d-flex align-items-center">
-                              <img src="/assets/imgs/icons/star.png" alt="star" className="star-icon" width={14} height={14} />
-                              <h6 className="rating-score mb-0">{prod.rating}</h6>
-                              <span className="rating-reviews font-small">({prod.reviews})</span>
-                            </div>
-
-                            <div className="new-prod-price-box">
-                              <div className="d-flex align-items-center" style={{ gap: '8px', flexWrap: 'wrap' }}>
-                                <span className="new-prod-current-price">{prod.price}</span>
-                                {prod.oldPrice && (
-                                  <span className="new-prod-old-price">{prod.oldPrice}</span>
-                                )}
-                                {prod.discount && (
-                                  <span className="new-prod-discount-badge">{prod.discount}</span>
-                                )}
-                              </div>
-                              <div className="new-prod-vat-label">Inclusive of VAT</div>
-                            </div>
-                          </div>
-
-                          <div className="product-card-bottom d-flex align-items-center justify-content-between">
-                            <span className="express-delivery-badge">
-                              <i className="fi-rs-bolt"></i>Express Delivery
-                            </span>
-                            <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                              <button
-                                type="button"
-                                aria-label="Add To Wishlist"
-                                className={`btn-wishlist-action ${wishlist[prod.id] ? 'active text-danger' : ''}`}
-                                title="Wishlist"
-                                onClick={() => toggleWishlist(prod.id)}
-                              >
-                                <i className={wishlist[prod.id] ? "fi-ss-heart text-danger toggle-heart" : "fi-rs-heart toggle-heart"}></i>
-                              </button>
-                              <Link href="/cart" className="btn-add-cart-custom">
-                                <i className="fi-rs-shopping-cart mr-5"></i>Add
-                              </Link>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
+          {renderProductSectionSlider(displayedMostSearched, mostSearchedScrollRef)}
         </div>
       </section>
 
 
-      {/* 5. VIBRANT PROMO BANNER WITH 5 OVERLAPPING WHITE CATEGORY CARDS (Exact Reference Design) */}
+      {/* 5. BRAND & SAFETY PARTNERS BANNER WITH OVERLAPPING LOGOS SLIDER */}
       <section className="eco-promo-section section-spacer-mb">
         <div className="container">
           {/* Top Vibrant Green Banner */}
@@ -1418,142 +1575,117 @@ export default function HomePage() {
             {/* Left Banner Text */}
             <div className="eco-banner-content">
               <h2 className="eco-banner-heading">
-                Shop Eco-Friendly, Live Sustainably!
+                {partnersData.title || 'Our Official Brand & Safety Partners'}
               </h2>
               <p className="eco-banner-subtitle">
-                Good for you, great for the Earth—explore eco-conscious products.
+                {partnersData.subtitle || 'Partnered with globally certified industrial safety, PPE, and equipment manufacturers.'}
               </p>
             </div>
 
             {/* Right Banner Button */}
             <div className="eco-banner-btn-wrap">
-              <Link href="/products" className="eco-banner-pill-btn">
-                Buy a eco friendly product
+              <Link href={partnersData.buttonLink || '/products'} className="eco-banner-pill-btn">
+                {partnersData.buttonText || 'View All Partners'}
               </Link>
             </div>
           </div>
 
-          {/* 5 Overlapping White Feature Category Cards */}
-          <div className="eco-cards-grid">
-            {/* Card 1: Home & Kitchen */}
-            <Link href="/products" className="eco-card-item">
-              <div className="eco-card-img-wrap">
-                <img src="/assets/imgs/shop/pr1.jpg" alt="Home & Kitchen" className="eco-card-img" />
-              </div>
-              <h4 className="eco-card-title">Home & Kitchen</h4>
-            </Link>
+          {/* Overlapping White Feature Partner Logo Cards (Slider) */}
+          <div className="partners-slider-wrapper">
+            {/* Previous Arrow Button */}
+            <button
+              type="button"
+              className="partner-nav-arrow prev"
+              onClick={() => scrollPartners('prev')}
+              aria-label="Previous Partner Logos"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
 
-            {/* Card 2: Personal Care */}
-            <Link href="/products" className="eco-card-item">
-              <div className="eco-card-img-wrap">
-                <img src="/assets/imgs/shop/pr2.jpg" alt="Personal Care" className="eco-card-img" />
-              </div>
-              <h4 className="eco-card-title">Personal Care</h4>
-            </Link>
+            {/* Slider Scroll Track */}
+            <div className="partners-slider-track" ref={partnersScrollRef}>
+              {(partnersData.partners && partnersData.partners.length > 0
+                ? partnersData.partners.filter((p) => p.isActive !== false)
+                : DEFAULT_PARTNERS_DATA.partners
+              ).map((partner) => (
+                <Link
+                  key={partner.id}
+                  href={partner.link || '/products'}
+                  className="partner-card-box"
+                  title={partner.name}
+                >
+                  <img
+                    src={partner.logo}
+                    alt={partner.name}
+                    className="partner-logo-img"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/assets/imgs/client/partner1.svg';
+                    }}
+                  />
+                </Link>
+              ))}
+            </div>
 
-            {/* Card 3: Tech & Gadgets */}
-            <Link href="/products" className="eco-card-item">
-              <div className="eco-card-img-wrap">
-                <img src="/assets/imgs/shop/pr3.jpg" alt="Tech & Gadgets" className="eco-card-img" />
-              </div>
-              <h4 className="eco-card-title">Tech & Gadgets</h4>
-            </Link>
-
-            {/* Card 4: Kids Products */}
-            <Link href="/products" className="eco-card-item">
-              <div className="eco-card-img-wrap">
-                <img src="/assets/imgs/shop/p4.jpg" alt="Kids Products" className="eco-card-img" />
-              </div>
-              <h4 className="eco-card-title">Kids Products</h4>
-            </Link>
-
-            {/* Card 5: Food & Groceries */}
-            <Link href="/products" className="eco-card-item">
-              <div className="eco-card-img-wrap">
-                <img src="/assets/imgs/shop/p5.jpg" alt="Food & Groceries" className="eco-card-img" />
-              </div>
-              <h4 className="eco-card-title">Food & Groceries</h4>
-            </Link>
+            {/* Next Arrow Button */}
+            <button
+              type="button"
+              className="partner-nav-arrow next"
+              onClick={() => scrollPartners('next')}
+              aria-label="Next Partner Logos"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
           </div>
         </div>
       </section>
 
-      {/* 6. ONSALE PRODUCTS Section (Aligned Action Icons, 2-Line Title & 2-Line Paragraph) */}
+      {/* 6. ONSALE PRODUCTS Section (Slider + View All Button Style + Arrow Keys) */}
       <section className="onsal section-spacer-mb">
         <div className="container">
-          <div className="section-title wow animate__animated animate__fadeIn d-flex align-items-center justify-content-between mb-25 flex-wrap gap-2" data-wow-delay="0">
+          <div className="section-title wow animate__animated animate__fadeIn d-flex align-items-center justify-content-between mb-25 flex-wrap gap-3" data-wow-delay="0">
             <div className="title">
               <h3 className="mb-0" style={{ fontSize: '24px', fontWeight: '700' }}>Special Offers & Bulk PPE Deals</h3>
             </div>
-            <Link className="show-all btn-outline-custom" href="/offer-products">
-              View All
-            </Link>
+            
+            <div className="d-flex align-items-center" style={{ gap: '10px' }}>
+              <Link className="show-all btn-view-all-pill" href="/offer-products">
+                <span className="btn-view-all-icon">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                    <polyline points="12 5 19 12 12 19"></polyline>
+                  </svg>
+                </span>
+                <span className="btn-view-all-text">View All</span>
+              </Link>
+              
+              <div className="d-flex align-items-center" style={{ gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => scrollProductSlider(onsaleScrollRef, 'prev')}
+                  className="btn-outline-custom btn-nav-circle"
+                  aria-label="Previous"
+                  title="Previous"
+                >
+                  <i className="fi-rs-angle-left"></i>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollProductSlider(onsaleScrollRef, 'next')}
+                  className="btn-outline-custom btn-nav-circle"
+                  aria-label="Next"
+                  title="Next"
+                >
+                  <i className="fi-rs-angle-right"></i>
+                </button>
+              </div>
+            </div>
           </div>
           <hr className="mb-25" />
-
-          {/* Clean 12-Card Responsive Grid */}
-          <div className="row g-3 g-lg-4">
-            {(displayedOnsale.length > 0 ? displayedOnsale : onsaleProducts).map((prod) => (
-              <div key={prod.id} className="col-xl-4 col-md-6 col-12 d-flex">
-                <div className="compact-onsale-card w-100">
-                  {/* Corner Ribbon Badge */}
-                  <span className={"onsale-corner-badge " + (prod.badgeClass === 'hot' ? 'badge-hot' : prod.badgeClass === 'out' ? 'badge-out' : 'badge-new')}>
-                    {prod.badge}
-                  </span>
-
-                  {/* Top-Right Quick Action Icons: View + Love + Cart (Icon-Only) */}
-                  <div className="onsale-top-actions">
-                    <Link href={prod.link} className="onsale-action-btn" title="Quick View">
-                      <i className="fi-rs-eye"></i>
-                    </Link>
-                    <button
-                      type="button"
-                      className={`onsale-action-btn btn-wish ${wishlist[prod.id] ? 'active text-danger' : ''}`}
-                      title="Wishlist"
-                      onClick={() => toggleWishlist(prod.id)}
-                    >
-                      <i className={wishlist[prod.id] ? "fi-ss-heart text-danger toggle-heart" : "fi-rs-heart toggle-heart"}></i>
-                    </button>
-                    <Link href="/cart" className="onsale-action-btn btn-cart" title="Add to Cart">
-                      <i className="fi-rs-shopping-cart"></i>
-                    </Link>
-                  </div>
-
-                  {/* Image Left */}
-                  <div className="compact-img-box">
-                    <Link href={prod.link} onClick={() => recordProductClick(prod.id)} className="d-flex align-items-center justify-content-center w-100 h-100">
-                      <img src={prod.img} alt={prod.title} className="compact-onsale-img" />
-                    </Link>
-                  </div>
-
-                  {/* Content Right: Clamped Title, 2-Line Paragraph, Rating, Price */}
-                  <div className="compact-content-box">
-                    <h4 className="compact-prod-title">
-                      <Link href={prod.link} onClick={() => recordProductClick(prod.id)}>{prod.title}</Link>
-                    </h4>
-
-                    <p className="compact-prod-desc">
-                      {prod.desc}
-                    </p>
-
-                    <div className="product-rate d-flex align-items-center">
-                      <img src="/assets/imgs/icons/star.png" alt="star" className="star-icon" width={14} height={14} />
-                      <h6 className="rating-score mb-0">{prod.rating}</h6>
-                      <span className="rating-reviews font-small">({prod.reviews.split(' ')[0]} - Reviews)</span>
-                    </div>
-
-                    <div className="compact-price-row">
-                      <span className="compact-current-price">{prod.price}</span>
-                      {prod.oldPrice && (
-                        <span className="compact-old-price">{prod.oldPrice}</span>
-                      )}
-                    </div>
-                    <span className="compact-vat-text">Inclusive of VAT</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
+          {renderProductSectionSlider(displayedOnsale, onsaleScrollRef)}
         </div>
       </section>
     </main>

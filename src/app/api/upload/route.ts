@@ -12,6 +12,7 @@ const MIME_TO_EXT: Record<string, string> = {
   'image/png': '.png',
   'image/webp': '.webp',
   'image/gif': '.gif',
+  'image/svg+xml': '.svg',
 };
 
 /**
@@ -62,6 +63,15 @@ function verifyMagicBytes(buffer: Buffer): string | null {
     buffer[11] === 0x50
   ) {
     return 'image/webp';
+  }
+
+  // SVG: Text-based XML check (contains <svg and no script tags)
+  const headStr = buffer.slice(0, 512).toString('utf-8').toLowerCase();
+  if (headStr.includes('<svg') || (headStr.includes('<?xml') && headStr.includes('<svg'))) {
+    const fullStr = buffer.toString('utf-8').toLowerCase();
+    if (!fullStr.includes('<script') && !fullStr.includes('javascript:')) {
+      return 'image/svg+xml';
+    }
   }
 
   return null;

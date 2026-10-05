@@ -1096,6 +1096,16 @@ export default function DashboardLayout({
                   <span className="nav-text"> Banner Settings </span>
                 </Link>
               </li>
+
+              {/* 7. Our Partners */}
+              <li className="nav-item">
+                <Link className={`nav-link ${pathname?.startsWith('/dashboard/our-partners') ? 'active' : ''}`} href="/dashboard/our-partners">
+                  <span className="nav-icon">
+                    <iconify-icon icon="solar:hand-shake-broken"></iconify-icon>
+                  </span>
+                  <span className="nav-text"> Our Partners </span>
+                </Link>
+              </li>
             </ul>
           </div>
 

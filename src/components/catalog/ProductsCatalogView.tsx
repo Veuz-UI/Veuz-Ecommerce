@@ -353,13 +353,17 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     }
 
     if (pageMode === 'products') {
-      // Focus on New Arrival Products
+      // Focus on New Arrival Products (Strictly NO offers/deals)
       return active.filter(
         (p) =>
-          p.isNewArrival !== false ||
+          (p.isNewArrival !== false ||
           p.badgeClass === 'new' ||
           p.badge === 'New Arrival' ||
-          p.badge === 'In Stock'
+          p.badge === 'In Stock') &&
+          !p.discount &&
+          !p.offerPercent &&
+          !p.isSpecialOffer &&
+          (!p.oldPrice || p.oldPrice === p.price)
       );
     }
 
@@ -434,11 +438,32 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
 
     // 1. Collection filter inside page mode
     if (activeCollection === 'new-arrival') {
-      result = result.filter((p) => p.isNewArrival !== false || p.badgeClass === 'new');
+      result = result.filter(
+        (p) =>
+          (p.isNewArrival !== false || p.badgeClass === 'new') &&
+          !p.discount &&
+          !p.offerPercent &&
+          !p.isSpecialOffer &&
+          (!p.oldPrice || p.oldPrice === p.price)
+      );
     } else if (activeCollection === 'most-searched') {
-      result = [...result].sort((a, b) => ((b.clicks || 0) + (b.views || 0)) - ((a.clicks || 0) + (a.views || 0)));
+      result = result.filter(
+        (p) =>
+          p.isMostSearched === true ||
+          (p.clicks || 0) + (p.views || 0) > 0 ||
+          p.badgeClass === 'hot' ||
+          p.badge === 'Top Searched' ||
+          p.badge === 'Best Seller'
+      );
+      result.sort((a, b) => ((b.clicks || 0) + (b.views || 0)) - ((a.clicks || 0) + (a.views || 0)));
     } else if (activeCollection === 'special-offers') {
-      result = result.filter((p) => p.isSpecialOffer === true || Boolean(p.discount));
+      result = result.filter(
+        (p) =>
+          p.isSpecialOffer === true ||
+          Boolean(p.discount) ||
+          (p.offerPercent && p.offerPercent > 0) ||
+          (Boolean(p.oldPrice) && p.oldPrice !== p.price)
+      );
     }
 
     // 2. Category filter (multiple selection)
@@ -1540,134 +1565,119 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                       style={{ transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}
                     >
                       <div className="product-cart-wrap uniform-product-card w-100 d-flex flex-column">
-                        {/* Image Wrap */}
+                        {/* Image Wrap with Top-Left Badge & Top-Right Circular Wishlist Heart */}
                         <div className="product-img-action-wrap position-relative">
+                          {/* Top-Left Badge */}
+                          <span className="ref-card-badge">
+                            {pageMode === 'products' ? 'New Arrival' : (prod.badge || (displayDiscount ? displayDiscount : 'New'))}
+                          </span>
+
+                          {/* Top-Right Circular Wishlist Button */}
+                          <button
+                            type="button"
+                            aria-label="Add To Wishlist"
+                            className={`ref-card-top-wishlist ${wishlist[prod.id] ? 'active' : ''}`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              toggleWishlist(prod.id);
+                            }}
+                            title="Add to Wishlist"
+                          >
+                            <i className={`fi-rs-heart ${wishlist[prod.id] ? 'fill-heart text-danger' : ''}`}></i>
+                          </button>
+
+                          {/* Main Product Image (No color dots) */}
                           <div className="product-img product-img-zoom">
                             <Link href={prod.link} onClick={() => recordProductClick(prod.id)}>
                               <img className="default-img" src={prod.image} alt={prod.title} />
                             </Link>
-                            <ul className="clrs">
-                              <li className="first"></li>
-                              <li className="sec"></li>
-                              <li className="third"></li>
-                            </ul>
-                          </div>
-
-                          {/* Offer / Badge Labels */}
-                          <div className="product-badges product-badges-position product-badges-mrg">
-                            {displayDiscount ? (
-                              <span className="hot" style={{ backgroundColor: '#ef4444' }}>{displayDiscount}</span>
-                            ) : prod.badge ? (
-                              <span className={prod.badgeClass === 'hot' ? 'hot' : 'new'}>{prod.badge}</span>
-                            ) : null}
                           </div>
                         </div>
 
                         {/* Product Content Wrap */}
                         <div className="product-content-wrap d-flex flex-column flex-grow-1 justify-content-between">
                           <div>
-                            {/* Product Title */}
+                            {/* Product Title (20px bold) */}
                             <h2 className="new-prod-title">
                               <Link
                                 href={prod.link}
                                 onClick={() => recordProductClick(prod.id)}
-                                style={{
-                                  fontSize: '16.5px',
-                                  fontWeight: 700,
-                                  lineHeight: '1.35',
-                                  color: '#0f172a',
-                                  textDecoration: 'none',
-                                }}
                               >
                                 {prod.title}
                               </Link>
                             </h2>
 
-                            {/* Product Description */}
-                            <p
-                              className="new-prod-desc"
-                              style={{
-                                fontSize: '13.5px',
-                                lineHeight: '1.45',
-                                color: '#64748b',
-                                marginTop: '4px',
-                                marginBottom: '10px',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                              }}
-                            >
-                              {prod.desc || 'Certified industrial safety gear with high performance compliance.'}
-                            </p>
-
-                            {/* Star Rating */}
+                            {/* Star Rating with Review Count (Matching Reference Card) */}
                             <div className="product-rate d-flex align-items-center mb-2">
-                              <img src="/assets/imgs/icons/star.png" alt="star" className="star-icon" width={14} height={14} />
-                              <h6 className="rating-score mb-0 ms-1 fw-bold fs-13 text-dark">{prod.rating || '4.8'}/5</h6>
-                              <span className="rating-reviews font-small text-muted ms-1">({prod.reviews || '85'})</span>
+                              <div className="ref-card-stars me-2">
+                                <span style={{ color: '#0f172a', fontSize: '13px', letterSpacing: '1px' }}>★★★★★</span>
+                              </div>
+                              <span className="rating-score fw-bold" style={{ fontSize: '13px', color: '#0f172a', marginRight: '4px' }}>
+                                {prod.rating || '4.8'}
+                              </span>
+                              <span className="rating-reviews" style={{ fontSize: '13px', color: '#64748b' }}>
+                                ({prod.reviews || '85'} reviews)
+                              </span>
                             </div>
 
-                            {/* Product Price */}
+                            {/* Product Price & Discount Badge (22px bold current price + 14px old price + solid black discount badge) */}
                             <div className="new-prod-price-box mb-2">
-                              <div className="d-flex align-items-baseline" style={{ gap: '8px', flexWrap: 'wrap' }}>
-                                <span
-                                  className="new-prod-current-price"
-                                  style={{
-                                    fontSize: '20px',
-                                    fontWeight: 800,
-                                    color: '#16a34a',
-                                    letterSpacing: '-0.3px',
-                                  }}
-                                >
+                              <div className="d-flex align-items-center" style={{ gap: '8px', flexWrap: 'wrap' }}>
+                                <span className="new-prod-current-price">
                                   {currentPrice}
                                 </span>
                                 {prod.oldPrice && (
-                                  <span
-                                    className="new-prod-old-price text-muted text-decoration-line-through"
-                                    style={{ fontSize: '13.5px', fontWeight: 500 }}
-                                  >
+                                  <span className="new-prod-old-price">
                                     {prod.oldPrice}
                                   </span>
                                 )}
                                 {displayDiscount && (
-                                  <span
-                                    className="new-prod-discount-badge badge bg-danger-subtle text-danger"
-                                    style={{ fontSize: '11px', fontWeight: 700 }}
-                                  >
+                                  <span className="ref-card-discount-black">
                                     {displayDiscount}
                                   </span>
                                 )}
                               </div>
-                              <div className="new-prod-vat-label text-muted" style={{ fontSize: '11px' }}>Inclusive of VAT</div>
+                              <div className="new-prod-vat-label">Inclusive of VAT</div>
+                            </div>
+
+                            {/* Product Description (14px, 2-line clamp, placed below price) */}
+                            <p className="new-prod-desc">
+                              {prod.desc || 'Certified industrial safety gear with high performance compliance.'}
+                            </p>
+
+                            {/* Express Delivery Badge */}
+                            <div className="mb-2">
+                              <span className="express-delivery-badge">
+                                <i className="fi-rs-bolt"></i>Express Delivery
+                              </span>
                             </div>
                           </div>
 
-                          {/* Bottom Action Bar */}
-                          <div className="product-card-bottom d-flex align-items-center justify-content-between pt-2 border-top mt-auto">
-                            <span className="express-delivery-badge" style={{ fontSize: '11px', color: '#ea580c', fontWeight: 600 }}>
-                              <i className="fi-rs-bolt me-1"></i>Express Delivery
-                            </span>
-                            <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                              <button
-                                type="button"
-                                aria-label="Add To Wishlist"
-                                className={`btn-wishlist-action ${wishlist[prod.id] ? 'active' : ''}`}
-                                onClick={() => toggleWishlist(prod.id)}
-                                title="Add to Wishlist"
-                              >
-                                <i className={`fi-rs-heart ${wishlist[prod.id] ? 'fill-heart text-danger' : ''}`}></i>
-                              </button>
-                              <button
-                                type="button"
-                                className="btn-add-cart-custom"
-                                onClick={(e) => handleAddToCart(prod, e)}
-                                title="Add to Cart"
-                              >
-                                <i className="fi-rs-shopping-cart mr-5"></i>Add
-                              </button>
-                            </div>
+                          {/* Reference Card Bottom Action Bar (Wide Black Add to Cart + Square Wishlist Button) */}
+                          <div className="product-card-bottom d-flex align-items-center gap-2 mt-auto">
+                            <button
+                              type="button"
+                              className="btn-add-cart-wide"
+                              onClick={(e) => handleAddToCart(prod, e)}
+                              title="Add to Cart"
+                            >
+                              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                                <line x1="3" y1="6" x2="21" y2="6"></line>
+                                <path d="M16 10a4 4 0 0 1-8 0"></path>
+                              </svg>
+                              Add to Cart
+                            </button>
+                            <button
+                              type="button"
+                              aria-label="Add To Wishlist"
+                              className={`btn-wishlist-square ${wishlist[prod.id] ? 'active' : ''}`}
+                              onClick={() => toggleWishlist(prod.id)}
+                              title="Add to Wishlist"
+                            >
+                              <i className={`fi-rs-heart ${wishlist[prod.id] ? 'fill-heart text-danger' : ''}`}></i>
+                            </button>
                           </div>
                         </div>
                       </div>
