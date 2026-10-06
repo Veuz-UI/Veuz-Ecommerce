@@ -18,6 +18,8 @@ export default function HomePage() {
   const [activeCatIndex, setActiveCatIndex] = useState(0);
   const [isCatHovered, setIsCatHovered] = useState(false);
   const newProdScrollRef = useRef<HTMLDivElement>(null);
+  const mostSearchedScrollRef = useRef<HTMLDivElement>(null);
+  const onsaleScrollRef = useRef<HTMLDivElement>(null);
   const browseCatScrollRef = useRef<HTMLDivElement>(null);
   const partnersScrollRef = useRef<HTMLDivElement>(null);
 
@@ -450,35 +452,7 @@ export default function HomePage() {
     }
   ];
 
-  // Touch / navigation refs
 
-  const mostSearchedScrollRef = useRef<HTMLDivElement>(null);
-  const onsaleScrollRef = useRef<HTMLDivElement>(null);
-
-  const scrollMostSearched = (direction: 'prev' | 'next') => {
-    if (mostSearchedScrollRef.current) {
-      const container = mostSearchedScrollRef.current;
-      const firstCol = container.querySelector('.new-prod-pair-column') as HTMLElement;
-      const colWidth = firstCol ? firstCol.offsetWidth + 20 : 300;
-      const maxScroll = container.scrollWidth - container.clientWidth;
-
-      if (maxScroll <= 0) return;
-
-      if (direction === 'next') {
-        if (container.scrollLeft >= maxScroll - 15) {
-          container.scrollTo({ left: 0, behavior: 'smooth' });
-        } else {
-          container.scrollBy({ left: colWidth, behavior: 'smooth' });
-        }
-      } else {
-        if (container.scrollLeft <= 15) {
-          container.scrollTo({ left: maxScroll, behavior: 'smooth' });
-        } else {
-          container.scrollBy({ left: -colWidth, behavior: 'smooth' });
-        }
-      }
-    }
-  };
 
   const mostSearchedProducts = [
     {
@@ -868,7 +842,7 @@ export default function HomePage() {
 
   // Derive dynamic lists from catalogProducts (synced live with dashboard products)
   // 1. New Arrivals: ONLY show new products (strictly NO offers/discounts, and ONLY 'New Arrival' label)
-  const displayedNewProducts = catalogProducts.length > 0
+  const dynamicNewProducts = catalogProducts.length > 0
     ? catalogProducts
         .filter((p) => p.isNewArrival !== false && p.isActive !== false && !p.discount && !p.offerPercent && !p.isSpecialOffer && (!p.oldPrice || p.oldPrice === p.price))
         .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
@@ -884,7 +858,16 @@ export default function HomePage() {
           reviews: p.reviews ? `${p.reviews} - Reviews` : '120 - Reviews',
           link: p.link || '/product-details',
         }))
-    : newProducts.map((p) => ({ ...p, badge: 'New Arrival' }));
+    : [];
+
+  const fallbackNewProducts = newProducts.map((p) => ({ ...p, badge: 'New Arrival' }));
+
+  const displayedNewProducts = dynamicNewProducts.length >= 8
+    ? dynamicNewProducts
+    : [
+        ...dynamicNewProducts,
+        ...fallbackNewProducts.filter((fp) => !dynamicNewProducts.some((dp) => dp.id === fp.id)),
+      ];
 
   // 2. Most Searched: ONLY show most searched products
   const displayedMostSearched = catalogProducts.length > 0
@@ -908,7 +891,7 @@ export default function HomePage() {
     : mostSearchedProducts;
 
   // 3. Special Offers: ONLY show products that have an active discount / deal
-  const displayedOnsale = catalogProducts.length > 0
+  const dynamicOnsale = catalogProducts.length > 0
     ? catalogProducts
         .filter((p) => (p.isSpecialOffer === true || Boolean(p.discount) || Boolean(p.offerPercent) || (Boolean(p.oldPrice) && p.oldPrice !== p.price)) && p.isActive !== false)
         .map((p) => {
@@ -928,7 +911,14 @@ export default function HomePage() {
             link: p.link || '/product-details',
           };
         })
-    : onsaleProducts;
+    : [];
+
+  const displayedOnsale = dynamicOnsale.length >= 8
+    ? dynamicOnsale
+    : [
+        ...dynamicOnsale,
+        ...onsaleProducts.filter((op) => !dynamicOnsale.some((dp) => dp.id === op.id)),
+      ];
 
   const newProductPairs: any[] = [];
   const halfCount = Math.ceil(displayedNewProducts.length / 2);
@@ -1001,10 +991,24 @@ export default function HomePage() {
   };
 
   const scrollProductSlider = (
-    ref: React.RefObject<HTMLDivElement | null>,
+    sliderKey: 'newProd' | 'mostSearched' | 'onsale',
     direction: 'prev' | 'next'
   ) => {
-    if (ref.current) {
+    let ref: React.RefObject<HTMLDivElement | null>;
+    switch (sliderKey) {
+      case 'newProd':
+        ref = newProdScrollRef;
+        break;
+      case 'mostSearched':
+        ref = mostSearchedScrollRef;
+        break;
+      case 'onsale':
+        ref = onsaleScrollRef;
+        break;
+      default:
+        return;
+    }
+    if (ref && ref.current) {
       const container = ref.current;
       const firstCol = container.querySelector('.desktop-prod-slider-col') as HTMLElement;
       const colWidth = firstCol ? firstCol.offsetWidth + 24 : 310;
@@ -1013,16 +1017,22 @@ export default function HomePage() {
       if (maxScroll <= 0) return;
 
       if (direction === 'next') {
-        if (container.scrollLeft >= maxScroll - 15) {
+        if (container.scrollLeft >= maxScroll - 20) {
           container.scrollTo({ left: 0, behavior: 'smooth' });
         } else {
-          container.scrollBy({ left: colWidth, behavior: 'smooth' });
+          container.scrollTo({
+            left: Math.min(container.scrollLeft + colWidth, maxScroll),
+            behavior: 'smooth',
+          });
         }
       } else {
-        if (container.scrollLeft <= 15) {
+        if (container.scrollLeft <= 20) {
           container.scrollTo({ left: maxScroll, behavior: 'smooth' });
         } else {
-          container.scrollBy({ left: -colWidth, behavior: 'smooth' });
+          container.scrollTo({
+            left: Math.max(container.scrollLeft - colWidth, 0),
+            behavior: 'smooth',
+          });
         }
       }
     }
@@ -1150,17 +1160,20 @@ export default function HomePage() {
     );
   };
 
-  // Reusable Product Section Slider / Grid:
-  // Desktop:
-  // - If items.length >= 8: 2 full rows of 4 cards (paired in columns of 2 cards each, 4 columns per view)
-  // - If items.length < 8: Only 1 full row of 4 cards (held so incomplete 2nd rows with 1-3 cards never show).
-  // Clicking the arrow keys next to "View All" smoothly scrolls through cards.
-  // Mobile (< 768px):
-  // - Single horizontal row where cards slide one-by-one.
+  // Reusable Product Section Slider:
+  // Desktop & Tablet: strictly ONE row of 4 cards per view, smoothly sliding with arrow keys
+  // Mobile (< 768px): single horizontal row with smooth scrolling and swipe
   const renderProductSectionSlider = (
     items: any[],
-    scrollRef: React.RefObject<HTMLDivElement | null>
+    sliderKey: 'newProd' | 'mostSearched' | 'onsale'
   ) => {
+    const scrollRef =
+      sliderKey === 'newProd'
+        ? newProdScrollRef
+        : sliderKey === 'mostSearched'
+        ? mostSearchedScrollRef
+        : onsaleScrollRef;
+
     if (!items || items.length === 0) {
       return (
         <div className="text-center py-5 text-muted">
@@ -1169,52 +1182,15 @@ export default function HomePage() {
       );
     }
 
-    const isDoubleRow = items.length >= 8;
-
-    // In 2-row mode (8+ items): pair items into columns of 2 cards each
-    const columns: any[][] = [];
-    if (isDoubleRow) {
-      const fullCount = Math.floor(items.length / 2) * 2;
-      for (let i = 0; i < fullCount; i += 2) {
-        columns.push([items[i], items[i + 1]]);
-      }
-    } else {
-      // In 1-row mode (< 8 items, e.g. 5, 6, 7): only 1 card per column
-      // 4 cards are visible in the viewport at a time; remaining cards can be slid into view via arrow buttons
-      items.forEach((item) => {
-        columns.push([item]);
-      });
-    }
-
     return (
       <div className="w-100">
-        {/* Desktop & Tablet Slider (>= 768px) */}
-        <div className="d-none d-md-block">
-          <div className="desktop-prod-slider-wrapper position-relative">
-            <div ref={scrollRef} className="desktop-prod-slider-track">
-              {columns.map((colItems, idx) => (
-                <div key={idx} className="desktop-prod-slider-col">
-                  {colItems.map((prod) => (
-                    <div key={prod.id} className="w-100">
-                      {renderProductCard(prod, 'w-100')}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Mobile (< 768px): Single row slider, sliding one by one */}
-        <div className="d-block d-md-none">
-          <div className="home-mobile-prod-slider">
-            <div className="home-mobile-prod-track">
-              {items.map((prod) => (
-                <div key={prod.id} className="home-mobile-prod-item">
-                  {renderProductCard(prod, 'w-100 d-flex')}
-                </div>
-              ))}
-            </div>
+        <div className="desktop-prod-slider-wrapper position-relative">
+          <div ref={scrollRef} className="desktop-prod-slider-track">
+            {items.map((prod) => (
+              <div key={prod.id} className="desktop-prod-slider-col">
+                {renderProductCard(prod, 'w-100')}
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -1363,20 +1339,28 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={handlePrevCat}
-                  className="btn-outline-custom btn-nav-circle"
+                  className="btn-slider-nav-pill"
                   aria-label="Previous Categories"
                   title="Previous"
                 >
-                  <i className="fi-rs-angle-left"></i>
+                  <span className="btn-slider-nav-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                  </span>
                 </button>
                 <button
                   type="button"
                   onClick={handleNextCat}
-                  className="btn-outline-custom btn-nav-circle"
+                  className="btn-slider-nav-pill"
                   aria-label="Next Categories"
                   title="Next"
                 >
-                  <i className="fi-rs-angle-right"></i>
+                  <span className="btn-slider-nav-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </span>
                 </button>
               </div>
             </div>
@@ -1397,10 +1381,9 @@ export default function HomePage() {
                 return (
                   <div key={cat.id || idx} className="browse-cat-card-wrapper">
                     <Link href={catLink} className="browse-cat-card" title={cat.name}>
-                      {/* Left: Category Name + View More Pill */}
+                      {/* Left: Category Name */}
                       <div className="browse-cat-info-col">
                         <h4 className="browse-cat-name">{cat.name}</h4>
-                        <span className="browse-cat-view-more">View More</span>
                       </div>
 
                       {/* Right: Floating Category Image */}
@@ -1445,27 +1428,35 @@ export default function HomePage() {
               <div className="d-flex align-items-center" style={{ gap: '6px' }}>
                 <button
                   type="button"
-                  onClick={() => scrollProductSlider(newProdScrollRef, 'prev')}
-                  className="btn-outline-custom btn-nav-circle"
+                  onClick={() => scrollProductSlider('newProd', 'prev')}
+                  className="btn-slider-nav-pill"
                   aria-label="Previous"
                   title="Previous"
                 >
-                  <i className="fi-rs-angle-left"></i>
+                  <span className="btn-slider-nav-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                  </span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => scrollProductSlider(newProdScrollRef, 'next')}
-                  className="btn-outline-custom btn-nav-circle"
+                  onClick={() => scrollProductSlider('newProd', 'next')}
+                  className="btn-slider-nav-pill"
                   aria-label="Next"
                   title="Next"
                 >
-                  <i className="fi-rs-angle-right"></i>
+                  <span className="btn-slider-nav-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </span>
                 </button>
               </div>
             </div>
           </div>
           <hr className="hr mb-30" />
-          {renderProductSectionSlider(displayedNewProducts, newProdScrollRef)}
+          {renderProductSectionSlider(displayedNewProducts, 'newProd')}
         </div>
       </section>
 
@@ -1534,28 +1525,36 @@ export default function HomePage() {
               <div className="d-flex align-items-center" style={{ gap: '6px' }}>
                 <button
                   type="button"
-                  onClick={() => scrollProductSlider(mostSearchedScrollRef, 'prev')}
-                  className="btn-outline-custom btn-nav-circle"
+                  onClick={() => scrollProductSlider('mostSearched', 'prev')}
+                  className="btn-slider-nav-pill"
                   aria-label="Previous"
                   title="Previous"
                 >
-                  <i className="fi-rs-angle-left"></i>
+                  <span className="btn-slider-nav-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                  </span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => scrollProductSlider(mostSearchedScrollRef, 'next')}
-                  className="btn-outline-custom btn-nav-circle"
+                  onClick={() => scrollProductSlider('mostSearched', 'next')}
+                  className="btn-slider-nav-pill"
                   aria-label="Next"
                   title="Next"
                 >
-                  <i className="fi-rs-angle-right"></i>
+                  <span className="btn-slider-nav-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </span>
                 </button>
               </div>
             </div>
           </div>
           
           <hr className="hr mb-30" />
-          {renderProductSectionSlider(displayedMostSearched, mostSearchedScrollRef)}
+          {renderProductSectionSlider(displayedMostSearched, 'mostSearched')}
         </div>
       </section>
 
@@ -1665,27 +1664,35 @@ export default function HomePage() {
               <div className="d-flex align-items-center" style={{ gap: '6px' }}>
                 <button
                   type="button"
-                  onClick={() => scrollProductSlider(onsaleScrollRef, 'prev')}
-                  className="btn-outline-custom btn-nav-circle"
+                  onClick={() => scrollProductSlider('onsale', 'prev')}
+                  className="btn-slider-nav-pill"
                   aria-label="Previous"
                   title="Previous"
                 >
-                  <i className="fi-rs-angle-left"></i>
+                  <span className="btn-slider-nav-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                  </span>
                 </button>
                 <button
                   type="button"
-                  onClick={() => scrollProductSlider(onsaleScrollRef, 'next')}
-                  className="btn-outline-custom btn-nav-circle"
+                  onClick={() => scrollProductSlider('onsale', 'next')}
+                  className="btn-slider-nav-pill"
                   aria-label="Next"
                   title="Next"
                 >
-                  <i className="fi-rs-angle-right"></i>
+                  <span className="btn-slider-nav-icon">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </span>
                 </button>
               </div>
             </div>
           </div>
           <hr className="mb-25" />
-          {renderProductSectionSlider(displayedOnsale, onsaleScrollRef)}
+          {renderProductSectionSlider(displayedOnsale, 'onsale')}
         </div>
       </section>
     </main>
