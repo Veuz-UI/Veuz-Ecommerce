@@ -931,7 +931,11 @@ export default function HomePage() {
           desc: p.desc || 'High-performance certified workplace protection equipment.',
           img: p.image || '/assets/imgs/shop/pr2.jpg',
           badge: 'Top Searched',
-          badgeClass: 'new' as const,
+          badgeClass: 'top-searched' as const,
+          collectionStatus: p.offerEndDate ? 'limited' : p.isSpecialOffer ? 'offer' : p.isNewArrival !== false ? 'new' : undefined,
+          isSpecialOffer: p.isSpecialOffer,
+          isNewArrival: p.isNewArrival,
+          offerEndDate: p.offerEndDate,
           price: p.price,
           oldPrice: p.oldPrice,
           discount: p.discount,
@@ -939,12 +943,17 @@ export default function HomePage() {
           reviews: p.reviews ? `${p.reviews} - Reviews` : '200 - Reviews',
           link: p.link || '/product-details',
         }))
-    : mostSearchedProducts;
+    : mostSearchedProducts.map((p) => ({
+        ...p,
+        badge: 'Top Searched',
+        badgeClass: 'top-searched' as const,
+        collectionStatus: p.discount ? 'offer' : p.badgeClass === 'new' ? 'new' : undefined,
+      }));
 
   // 3. Special Offers: ONLY show products where isSpecialOffer is explicitly TRUE
   const dynamicOnsale = catalogProducts.length > 0
     ? catalogProducts
-        .filter((p) => p.isSpecialOffer === true && p.isActive !== false)
+        .filter((p) => p.isSpecialOffer === true && !p.offerEndDate && p.isActive !== false)
         .map((p) => {
           const discountText = p.discount || (p.offerPercent ? `${p.offerPercent}% OFF` : '');
           return {
@@ -954,6 +963,7 @@ export default function HomePage() {
             img: p.image || '/assets/imgs/shop/pr3.jpg',
             badge: discountText || p.badge || 'Special Offer',
             badgeClass: 'hot' as const,
+            isSpecialOffer: true,
             price: p.price,
             oldPrice: p.oldPrice,
             discount: discountText,
@@ -1097,10 +1107,18 @@ export default function HomePage() {
   // Reusable 2-Row Product Card Renderer (Reference Shoe Card Layout)
   const renderProductCard = (prod: any, colClass: string) => {
     const isWishlisted = Boolean(wishlist[prod.id]);
-    const hasOffer = prod.isSpecialOffer === true && Boolean(prod.discount);
+    const isLimitedOffer = prod.collectionStatus === 'limited' || Boolean(prod.offerEndDate);
+    const hasOffer = prod.collectionStatus === 'offer' || isLimitedOffer || ((prod.isSpecialOffer === true || prod.badgeClass === 'hot') && Boolean(prod.discount || prod.badge));
+    const isNewArrival = prod.collectionStatus === 'new' || (!hasOffer && (prod.badge === 'New Arrival' || prod.badgeClass === 'new'));
+    const isTopSearched = prod.badge === 'Top Searched';
+    const limitedOfferDaysLeft = prod.offerEndDate
+      ? Math.max(0, Math.ceil((new Date(`${prod.offerEndDate}T23:59:59`).getTime() - Date.now()) / 86400000))
+      : null;
     
     let badgeText = 'New Arrival';
-    if (hasOffer) {
+    if (isTopSearched) {
+      badgeText = 'Top Searched';
+    } else if (hasOffer) {
       badgeText = prod.discount || 'Special Offer';
     } else if (prod.badge && prod.badge !== 'Special Offer') {
       badgeText = prod.badge;
@@ -1112,7 +1130,7 @@ export default function HomePage() {
           {/* Top image wrap with Top-Left Badge & Top-Right Circular Wishlist Heart */}
           <div className="product-img-action-wrap position-relative">
             {/* Top-Left Badge */}
-            <span className="ref-card-badge">{badgeText}</span>
+            <span className={`ref-card-badge ${isTopSearched ? 'ref-card-badge-top-searched' : hasOffer ? 'ref-card-badge-offer' : isNewArrival ? 'ref-card-badge-new' : ''}`}>{badgeText}</span>
 
             {/* Top-Right Circular Wishlist Button */}
             <button
@@ -1170,9 +1188,18 @@ export default function HomePage() {
                   {hasOffer && prod.oldPrice && (
                     <span className="new-prod-old-price">{prod.oldPrice}</span>
                   )}
-                  {hasOffer && prod.discount && (
-                    <span className="ref-card-discount-black">{prod.discount}</span>
-                  )}
+                  {isLimitedOffer ? (
+                    <span className="badge" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', fontSize: '11px', padding: '4px 7px' }}>
+                      {limitedOfferDaysLeft === null
+                        ? 'LIMITED SALE'
+                        : limitedOfferDaysLeft === 0
+                          ? 'Ends Today'
+                          : `${limitedOfferDaysLeft} ${limitedOfferDaysLeft === 1 ? 'Day' : 'Days'} Left`}
+                    </span>
+                  ) : hasOffer ? (
+                    <span className="badge" style={{ backgroundColor: '#dc2626', color: '#ffffff', fontSize: '11px', padding: '4px 7px' }}>OFFER</span>
+                  ) : null}
+                  {isNewArrival && <span className="badge" style={{ backgroundColor: '#16a34a', color: '#ffffff', fontSize: '11px', padding: '4px 7px' }}>NEW</span>}
                 </div>
                 <div className="new-prod-vat-label">Inclusive of VAT</div>
               </div>

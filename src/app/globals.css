@@ -832,6 +832,28 @@ body {
   padding-right: 20px !important;
 }
 
+/* On phones, filters open as a drawer above the product grid. */
+@media (max-width: 991.98px) {
+  .filter-sidebar-wrapper {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0;
+    bottom: 0;
+    width: min(320px, 88vw) !important;
+    max-width: min(320px, 88vw) !important;
+    height: 100dvh;
+    overflow-y: auto !important;
+    padding: 16px 12px;
+    background: #ffffff;
+    box-shadow: 12px 0 32px rgba(15, 23, 42, 0.18);
+    z-index: 2000 !important;
+  }
+
+  .filter-sidebar-wrapper .filters-sidebar {
+    width: 100% !important;
+  }
+}
+
 .main-menu nav > ul > li ul.mega-menu li.sub-mega-menu-banner {
   flex: 0 0 350px !important;
   width: 350px !important;
@@ -4411,6 +4433,24 @@ iconify-icon {
   line-height: 1.2 !important;
 }
 
+.ref-card-badge.ref-card-badge-new {
+  background: #16a34a !important;
+  border-color: #16a34a !important;
+  color: #ffffff !important;
+}
+
+.ref-card-badge.ref-card-badge-offer {
+  background: #dc2626 !important;
+  border-color: #dc2626 !important;
+  color: #ffffff !important;
+}
+
+.ref-card-badge.ref-card-badge-top-searched {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+}
+
 /* Reference Card Top Right Heart Wishlist Icon */
 .ref-card-top-wishlist {
   position: absolute !important;
@@ -5972,4 +6012,3 @@ body.modal-open .main-nav {
   border-color: #0f172a !important;
   transform: translateY(-50%) scale(1.08);
 }
-

@@ -13,8 +13,9 @@ import { ClientPortal } from '@/components/common/ClientPortal';
 
 const ALLOWED_MENU_BADGES = ['NEW', 'OFFER', 'LIMITED SALE'];
 const BADGE_DESTINATIONS: Record<string, string> = {
-  NEW: '/products?filter=new-arrival',
-  OFFER: '/products?filter=special-offers',
+  NEW: '/new-arrival-products',
+  OFFER: '/offer-products',
+  'LIMITED SALE': '/limited-offers',
 };
 
 const getWordCount = (value: string) => value.trim() ? value.trim().split(/\s+/).length : 0;
@@ -107,7 +108,7 @@ export default function MenuEditPage() {
           const found = settings.mainMenu.find((m) => m.id === menuId);
           if (found) {
             setName(found.name);
-            setLink(found.link || '/products');
+            setLink(BADGE_DESTINATIONS[found.badge || ''] || found.link || '/products');
             setHasMegaMenu(found.badge ? false : found.hasMegaMenu);
             setBadge(ALLOWED_MENU_BADGES.includes(found.badge || '') ? found.badge || '' : '');
             setIsActive(found.isActive !== false);
@@ -395,7 +396,7 @@ export default function MenuEditPage() {
         const newMenuItem: MainMenuItem = {
           id: `menu-${Date.now()}`,
           name: name.trim(),
-          link: link.trim() || '/products',
+          link: BADGE_DESTINATIONS[badge] || link.trim() || '/products',
           hasMegaMenu: badge ? false : hasMegaMenu,
           badge: badge.trim() || undefined,
           isActive,
@@ -409,7 +410,7 @@ export default function MenuEditPage() {
             ? {
                 ...m,
                 name: name.trim(),
-                link: link.trim() || m.link,
+                link: BADGE_DESTINATIONS[badge] || link.trim() || m.link,
                 hasMegaMenu: badge ? false : hasMegaMenu,
                 isHotDeal: undefined,
                 badge: badge.trim() || undefined,
@@ -453,9 +454,10 @@ export default function MenuEditPage() {
   };
 
   const destinationFilteredProducts = availableProducts.filter((product) => {
-    if (link === '/products?filter=new-arrival') return product.isNewArrival === true;
-    if (link === '/products?filter=special-offers') return product.isSpecialOffer === true;
-    if (link === '/products?filter=most-searched') return product.isMostSearched === true;
+    if (link === '/products?filter=new-arrival' || link === '/new-arrival-products') return product.isNewArrival === true && !product.isSpecialOffer;
+    if (link === '/products?filter=special-offers' || link === '/offer-products') return product.isSpecialOffer === true && !product.offerEndDate;
+    if (link === '/products?filter=most-searched' || link === '/most-searched-products') return product.isMostSearched === true;
+    if (link === '/limited-offers') return product.isSpecialOffer === true && Boolean(product.offerEndDate);
     return true;
   });
 
@@ -632,7 +634,7 @@ export default function MenuEditPage() {
                     <div className="input-group">
                       <select
                         className="form-select fs-13 fw-medium"
-                        value={['/products', '/products?filter=new-arrival', '/products?filter=special-offers', '/products?filter=most-searched'].includes(link) ? link : '/products'}
+                        value={['/products', '/new-arrival-products', '/offer-products', '/most-searched-products', '/limited-offers'].includes(link) ? link : '/products'}
                         onChange={(e) => setLink(e.target.value)}
                         style={{
                           borderRadius: '8px',
@@ -645,9 +647,10 @@ export default function MenuEditPage() {
                       >
                         <optgroup label="System Store Pages">
                           <option value="/products">All Products</option>
-                          <option value="/products?filter=new-arrival">New Arrivals</option>
-                          <option value="/products?filter=special-offers">Offer Products</option>
-                          <option value="/products?filter=most-searched">Most Searched</option>
+                          <option value="/new-arrival-products">New Arrivals</option>
+                          <option value="/offer-products">Offer Products</option>
+                          <option value="/limited-offers">Limited Offers</option>
+                          <option value="/most-searched-products">Most Searched</option>
                         </optgroup>
                       </select>
                     </div>

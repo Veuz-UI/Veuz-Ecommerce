@@ -17,7 +17,7 @@ export default function AllProductsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
-  const [activeTab, setActiveTab] = useState<'all' | 'new-arrival' | 'most-searched' | 'special-offers'>('all');
+  const [activeTab, setActiveTab] = useState<'all' | 'new-arrival' | 'most-searched' | 'special-offers' | 'limited-offers'>('all');
 
   // Delete modal state
   const [deleteTarget, setDeleteTarget] = useState<ProductItem | null>(null);
@@ -89,7 +89,10 @@ export default function AllProductsPage() {
     } else if (activeTab === 'most-searched') {
       list = list.sort((a, b) => ((b.clicks || 0) + (b.views || 0)) - ((a.clicks || 0) + (a.views || 0)));
     } else if (activeTab === 'special-offers') {
-      list = list.filter((p) => p.isSpecialOffer === true || Boolean(p.discount));
+      list = list.filter((p) => (p.isSpecialOffer === true || Boolean(p.discount)) && !p.offerEndDate);
+    } else if (activeTab === 'limited-offers') {
+      const today = new Date().toISOString().slice(0, 10);
+      list = list.filter((p) => p.isSpecialOffer === true && Boolean(p.offerEndDate) && p.offerEndDate! >= today);
     }
 
     // Category filter
@@ -119,7 +122,8 @@ export default function AllProductsPage() {
   // Metrics
   const totalCount = products.length;
   const newArrivalCount = products.filter((p) => p.isNewArrival !== false).length;
-  const offerCount = products.filter((p) => p.isSpecialOffer === true || Boolean(p.discount)).length;
+  const offerCount = products.filter((p) => (p.isSpecialOffer === true || Boolean(p.discount)) && !p.offerEndDate).length;
+  const limitedOfferCount = products.filter((p) => p.isSpecialOffer === true && Boolean(p.offerEndDate)).length;
   const totalInteractions = products.reduce((acc, p) => acc + (p.clicks || 0) + (p.views || 0), 0);
 
   return (
@@ -474,6 +478,12 @@ export default function AllProductsPage() {
                   {offerCount}
                 </span>
               </button>
+
+              <button type="button" onClick={() => setActiveTab('limited-offers')} className={`btn btn-sm d-flex align-items-center gap-1.5 fw-medium ${activeTab === 'limited-offers' ? 'btn-dark' : 'btn-light border'}`} style={{ borderRadius: '8px', padding: '0 16px', height: '38px', fontSize: '13px' }}>
+                <iconify-icon icon="solar:calendar-date-bold" class="fs-15 text-warning"></iconify-icon>
+                <span>Limited Offers</span>
+                <span className={`badge rounded-pill ${activeTab === 'limited-offers' ? 'bg-white text-dark' : 'bg-secondary text-white'}`} style={{ fontSize: '10px' }}>{limitedOfferCount}</span>
+              </button>
             </div>
 
             {/* Right: Search and Category Filter Toolbar (Aligned with matching 38px height) */}
@@ -616,7 +626,8 @@ export default function AllProductsPage() {
               ) : (
                 filteredProducts.map((item, idx) => {
                   const isOffer = item.isSpecialOffer === true;
-                  const isNew = item.isNewArrival !== false;
+                  const isLimitedOffer = isOffer && Boolean(item.offerEndDate);
+                  const isNew = !isOffer && item.isNewArrival !== false;
 
                   return (
                     <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -730,7 +741,7 @@ export default function AllProductsPage() {
                               className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fs-11 fw-semibold align-self-start"
                               style={{ padding: '3px 7px', borderRadius: '4px' }}
                             >
-                              Special Offer
+                              {isLimitedOffer ? 'Limited Offer' : 'Special Offer'}
                             </span>
                           )}
                           {!isNew && !isOffer && (

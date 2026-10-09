@@ -798,7 +798,18 @@ export default function ShopSettingsPage() {
                                   <div className="d-flex align-items-center gap-2 mb-0.5">
                                     <span className="fs-14 fw-bold text-dark">{item.name}</span>
                                     {item.badge && (
-                                      <span className="badge bg-danger fs-11 fw-bold" style={{ padding: '3px 8px', borderRadius: '5px' }}>
+                                      <span
+                                        className="badge fs-11 fw-bold"
+                                        style={{
+                                          padding: '3px 8px',
+                                          borderRadius: '5px',
+                                          ...(item.badge === 'NEW'
+                                            ? { backgroundColor: '#dcfce7', color: '#15803d', border: '1px solid #86efac' }
+                                            : item.badge === 'LIMITED SALE'
+                                              ? { backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }
+                                              : { backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }),
+                                        }}
+                                      >
                                         {item.badge}
                                       </span>
                                     )}

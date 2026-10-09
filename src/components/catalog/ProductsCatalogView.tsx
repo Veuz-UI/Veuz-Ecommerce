@@ -6,13 +6,13 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { fetchShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsService';
 import { DEFAULT_SHOP_SETTINGS, ShopCategory } from '@/data/defaultShopSettings';
 import { fetchProducts, recordProductClick, PRODUCTS_EVENT } from '@/services/productsService';
-import { CATEGORY_PRODUCTS_DATA, ProductItem, SYSTEM_COLORS, PRESET_SIZES, SystemColor } from '@/data/categoryProductsData';
+import { ProductItem, SYSTEM_COLORS, PRESET_SIZES, SystemColor } from '@/data/categoryProductsData';
 import { fetchAttributes, ATTRIBUTES_EVENT } from '@/services/attributesService';
 import { useToast } from '@/context/ToastContext';
 import { ProductCardImageSlider } from '@/components/common/ProductCardImageSlider';
 
-export type CatalogPageMode = 'category' | 'products' | 'offers' | 'most-searched';
-type CollectionFilter = 'all' | 'new-arrival' | 'most-searched' | 'special-offers';
+export type CatalogPageMode = 'category' | 'products' | 'offers' | 'limited-offers' | 'most-searched';
+type CollectionFilter = 'all' | 'new-arrival' | 'most-searched' | 'special-offers' | 'limited-offers';
 type SortOption = 'newest' | 'popular' | 'price-asc' | 'price-desc' | 'discount';
 
 interface ProductsCatalogViewProps {
@@ -29,7 +29,8 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
   const urlSearchQuery = searchParams.get('q') || '';
 
   const [categories, setCategories] = useState<ShopCategory[]>(DEFAULT_SHOP_SETTINGS.categories);
-  const [products, setProducts] = useState<ProductItem[]>(CATEGORY_PRODUCTS_DATA);
+  // Wait for stored catalog data instead of briefly showing sample products from another collection.
+  const [products, setProducts] = useState<ProductItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   // Filters state
@@ -61,7 +62,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
   // UI state
   const [wishlist, setWishlist] = useState<{ [key: string]: boolean }>({});
   const [isClearClicked, setIsClearClicked] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const sliderRef = useRef<HTMLDivElement>(null);
   const isMouseDownRef = useRef(false);
   const startXRef = useRef(0);
@@ -330,13 +331,14 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     const active = products.filter((p) => p.isActive !== false);
 
     if (pageMode === 'offers') {
-      return active.filter(
-        (p) =>
-          p.isSpecialOffer === true ||
-          Boolean(p.discount) ||
-          (p.offerPercent && p.offerPercent > 0) ||
-          p.badgeClass === 'sale'
-      );
+      return active.filter((p) => !p.offerEndDate && (
+        p.isSpecialOffer === true || Boolean(p.discount) || (p.offerPercent && p.offerPercent > 0) || p.badgeClass === 'sale'
+      ));
+    }
+
+    if (pageMode === 'limited-offers') {
+      const today = new Date().toISOString().slice(0, 10);
+      return active.filter((p) => p.isSpecialOffer === true && Boolean(p.offerEndDate) && p.offerEndDate! >= today);
     }
 
     if (pageMode === 'most-searched') {
@@ -458,13 +460,13 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
       );
       result.sort((a, b) => ((b.clicks || 0) + (b.views || 0)) - ((a.clicks || 0) + (a.views || 0)));
     } else if (activeCollection === 'special-offers') {
-      result = result.filter(
-        (p) =>
-          p.isSpecialOffer === true ||
-          Boolean(p.discount) ||
-          (p.offerPercent && p.offerPercent > 0) ||
-          (Boolean(p.oldPrice) && p.oldPrice !== p.price)
-      );
+      result = result.filter((p) => !p.offerEndDate && (
+        p.isSpecialOffer === true || Boolean(p.discount) || (p.offerPercent && p.offerPercent > 0) ||
+        (Boolean(p.oldPrice) && p.oldPrice !== p.price)
+      ));
+    } else if (activeCollection === 'limited-offers') {
+      const today = new Date().toISOString().slice(0, 10);
+      result = result.filter((p) => p.isSpecialOffer === true && Boolean(p.offerEndDate) && p.offerEndDate! >= today);
     }
 
     // 2. Category filter (multiple selection)
@@ -541,6 +543,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     if (pageMode === 'offers') {
       return { label: 'Offer Products', link: '/offer-products' };
     }
+    if (pageMode === 'limited-offers') return { label: 'Limited Offers', link: '/limited-offers' };
     if (pageMode === 'most-searched') {
       return { label: 'Most Searched Products', link: '/most-searched-products' };
     }
@@ -556,6 +559,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     if (pageMode === 'offers') {
       return 'Offer Products';
     }
+    if (pageMode === 'limited-offers') return 'Limited Offers';
     if (pageMode === 'most-searched') {
       return 'Most Searched Products';
     }
@@ -574,6 +578,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     if (pageMode === 'offers') {
       return `Exclusive discounted promotions and limited-time certified safety gear offers (${filteredAndSortedProducts.length} items).`;
     }
+    if (pageMode === 'limited-offers') return `Time-limited discounted safety products (${filteredAndSortedProducts.length} items).`;
     if (pageMode === 'most-searched') {
       return `Top-viewed certified industrial safety equipment and high-demand protective gear based on customer queries (${filteredAndSortedProducts.length} items).`;
     }
@@ -631,36 +636,6 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
           }}
         >
           <div className="d-flex align-items-center w-100 position-relative" style={{ gap: '14px' }}>
-            {/* Left arrow button (White bg with subtle border & shadow) */}
-            <button
-              type="button"
-              onClick={() => scrollSlider('left')}
-              className="btn-category-slider-arrow flex-shrink-0"
-              aria-label="Scroll Left"
-              title="Previous Categories"
-              style={{
-                width: '44px',
-                height: '44px',
-                minWidth: '44px',
-                borderRadius: '50%',
-                backgroundColor: '#ffffff',
-                border: '1.5px solid #cbd5e1',
-                color: '#0f172a',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-                cursor: 'pointer',
-                padding: 0,
-                zIndex: 3,
-                transition: 'all 0.2s ease',
-              }}
-            >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-            </button>
-
             {/* Draggable Category Slider Track */}
             <div
               ref={sliderRef}
@@ -903,99 +878,54 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                 </div>
 
                 <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                  <button
+                  {isAnyFilterActive && <button
                     type="button"
                     onClick={handleClearAllFilters}
                     style={{
                       height: '34px',
-                      padding: '0 12px',
+                      width: '34px',
+                      padding: 0,
                       borderRadius: '7px',
-                      backgroundColor: isAnyFilterActive || isClearClicked ? '#dc2626' : '#0f172a',
+                      backgroundColor: '#dc2626',
                       color: '#ffffff',
-                      border: isAnyFilterActive || isClearClicked ? '1px solid #b91c1c' : '1px solid #0f172a',
+                      border: '1px solid #b91c1c',
                       fontSize: '12px',
                       fontWeight: 600,
                       cursor: 'pointer',
                       display: 'inline-flex',
                       alignItems: 'center',
+                      justifyContent: 'center',
                       gap: '6px',
-                      boxShadow: isAnyFilterActive || isClearClicked
-                        ? '0 2px 8px rgba(220, 38, 38, 0.28)'
-                        : '0 2px 6px rgba(15, 23, 42, 0.15)',
+                      boxShadow: '0 2px 8px rgba(220, 38, 38, 0.28)',
                       transition: 'all 0.2s ease',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = isAnyFilterActive || isClearClicked ? '#b91c1c' : '#1e293b';
+                      e.currentTarget.style.backgroundColor = '#b91c1c';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = isAnyFilterActive || isClearClicked ? '#dc2626' : '#0f172a';
+                      e.currentTarget.style.backgroundColor = '#dc2626';
                     }}
                     title="Clear all filters"
                     aria-label="Clear all filters"
                   >
                     <svg
-                      width="12"
-                      height="12"
+                      width="15"
+                      height="15"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="#ffffff"
-                      strokeWidth="2.6"
+                      strokeWidth="2.3"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     >
-                      <line x1="18" y1="6" x2="6" y2="18"></line>
-                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                      <path d="M3 3v5h5"></path>
                     </svg>
-                    <span>Clear all</span>
+                  </button>}
+                  <button type="button" onClick={() => setIsSidebarOpen(false)} title="Close filters" aria-label="Close filters" style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer' }}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
                   </button>
 
-                  <button
-                    type="button"
-                    onClick={() => setIsSidebarOpen(false)}
-                    style={{
-                      width: '34px',
-                      height: '34px',
-                      minWidth: '34px',
-                      borderRadius: '7px',
-                      backgroundColor: '#f8fafc',
-                      border: '1.5px solid #cbd5e1',
-                      color: '#334155',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      padding: 0,
-                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
-                      transition: 'all 0.15s ease',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#e2e8f0';
-                      e.currentTarget.style.borderColor = '#94a3b8';
-                      e.currentTarget.style.color = '#0f172a';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f8fafc';
-                      e.currentTarget.style.borderColor = '#cbd5e1';
-                      e.currentTarget.style.color = '#334155';
-                    }}
-                    title="Hide Filters Sidebar"
-                    aria-label="Hide Filters Sidebar"
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#334155"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                      <line x1="9" y1="3" x2="9" y2="21" />
-                      <polyline points="15 9 12 12 15 15" />
-                    </svg>
-                  </button>
                 </div>
               </div>
 
@@ -1040,16 +970,17 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                   {openSections.browse && (
                     <div className="filter-card-body d-flex flex-column gap-2">
                       {[
-                        { key: 'all', label: 'All Products', count: baseScopedProducts.length },
-                        { key: 'new-arrival', label: 'New Arrival', count: baseScopedProducts.filter((p) => p.isNewArrival !== false || p.badgeClass === 'new').length },
-                        { key: 'most-searched', label: 'Most Searched / Viewed', count: baseScopedProducts.filter((p) => (p.clicks || 0) + (p.views || 0) > 0 || p.badgeClass === 'hot').length },
-                        { key: 'special-offers', label: 'Special Offers', count: baseScopedProducts.filter((p) => p.isSpecialOffer === true || Boolean(p.discount)).length, isSpecial: true },
+                        { key: 'all', label: 'All Products', count: products.filter((p) => p.isActive !== false).length, href: '/products' },
+                        { key: 'new-arrival', label: 'New Arrival', count: products.filter((p) => p.isActive !== false && p.isNewArrival !== false && !p.isSpecialOffer).length, href: '/products?filter=new-arrival' },
+                        { key: 'most-searched', label: 'Most Searched / Viewed', count: products.filter((p) => p.isActive !== false && ((p.clicks || 0) + (p.views || 0) > 0 || p.badgeClass === 'hot')).length, href: '/products?filter=most-searched' },
+                        { key: 'special-offers', label: 'Special Offers', count: products.filter((p) => p.isActive !== false && (p.isSpecialOffer === true || Boolean(p.discount)) && !p.offerEndDate).length, href: '/products?filter=special-offers', isSpecial: true },
+                        { key: 'limited-offers', label: 'Limited Offers', count: products.filter((p) => p.isActive !== false && p.isSpecialOffer === true && Boolean(p.offerEndDate)).length, href: '/products?filter=limited-offers', isSpecial: true },
                       ].map((item) => {
                         const isActive = activeCollection === item.key;
                         return (
                           <div
                             key={item.key}
-                            onClick={() => setActiveCollection(item.key as CollectionFilter)}
+                            onClick={() => router.push(item.href)}
                             className={`filter-browse-item ${isActive ? 'active' : ''}`}
                           >
                             <div className="d-flex align-items-center gap-2.5">
@@ -1432,7 +1363,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
             <div className="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom flex-wrap gap-3">
               <div className="d-flex align-items-center gap-3">
                 {/* Modern Hamburger Filter Toggle Button */}
-                <button
+                {!isSidebarOpen && <button
                   type="button"
                   onClick={() => setIsSidebarOpen((prev) => !prev)}
                   style={{
@@ -1484,7 +1415,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                     <line x1="3" y1="12" x2="21" y2="12"></line>
                     <line x1="3" y1="18" x2="21" y2="18"></line>
                   </svg>
-                  <span>{isSidebarOpen ? 'Hide Filters' : 'Show Filters'}</span>
+                  <span>Show Filters</span>
                   {isAnyFilterActive && (
                     <span
                       className={`badge rounded-pill ${isSidebarOpen ? 'bg-dark text-white' : 'bg-danger text-white'}`}
@@ -1493,7 +1424,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                       Active
                     </span>
                   )}
-                </button>
+                </button>}
 
                 <span className="text-muted fs-13 d-none d-sm-inline">
                   Showing <strong className="text-dark">{filteredAndSortedProducts.length}</strong> of {baseScopedProducts.length} items
@@ -1560,7 +1491,11 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                   const displayDiscount = hasActiveOffer
                     ? (prod.discount || (prod.offerPercent ? `${prod.offerPercent}% OFF` : ''))
                     : '';
+                  const limitedOfferDaysLeft = prod.offerEndDate
+                    ? Math.max(0, Math.ceil((new Date(`${prod.offerEndDate}T23:59:59`).getTime() - Date.now()) / 86400000))
+                    : null;
                   const currentPrice = prod.price || (prod.currentPrice ? `${prod.currentPrice} SR` : '');
+                  const isNewArrivalProduct = !hasActiveOffer && prod.isNewArrival !== false;
 
                   // Determine clean card badge
                   let cardBadge = 'New Arrival';
@@ -1582,7 +1517,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                         {/* Image Wrap with Top-Left Badge & Top-Right Circular Wishlist Heart */}
                         <div className="product-img-action-wrap position-relative">
                           {/* Top-Left Badge */}
-                          <span className="ref-card-badge">
+                          <span className={`ref-card-badge ${hasActiveOffer ? 'ref-card-badge-offer' : isNewArrivalProduct ? 'ref-card-badge-new' : ''}`}>
                             {cardBadge}
                           </span>
 
@@ -1649,10 +1584,16 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                                     {prod.oldPrice}
                                   </span>
                                 )}
-                                {hasActiveOffer && displayDiscount && (
-                                  <span className="ref-card-discount-black">
-                                    {displayDiscount}
+                                {hasActiveOffer && !prod.offerEndDate && (
+                                  <span className="badge" style={{ backgroundColor: '#dc2626', color: '#ffffff', fontSize: '11px', padding: '4px 7px' }}>OFFER</span>
+                                )}
+                                {limitedOfferDaysLeft !== null && (
+                                  <span className="badge" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', fontSize: '11px', padding: '4px 7px' }}>
+                                    {limitedOfferDaysLeft === 0 ? 'Ends Today' : `${limitedOfferDaysLeft} ${limitedOfferDaysLeft === 1 ? 'Day' : 'Days'} Left`}
                                   </span>
+                                )}
+                                {isNewArrivalProduct && (
+                                  <span className="badge" style={{ backgroundColor: '#16a34a', color: '#ffffff', fontSize: '11px', padding: '4px 7px' }}>NEW</span>
                                 )}
                               </div>
                               <div className="new-prod-vat-label">Inclusive of VAT</div>

@@ -20,6 +20,29 @@ function readStoredProducts(): ProductItem[] {
   return CATEGORY_PRODUCTS_DATA;
 }
 
+function expireLimitedOffers(products: ProductItem[]) {
+  const today = new Date().toISOString().slice(0, 10);
+  let changed = false;
+  products.forEach((product) => {
+    if (product.isSpecialOffer && product.offerEndDate && product.offerEndDate < today) {
+      const regularPrice = product.originalPrice || Number(product.price?.replace(/[^\d.]/g, '')) || 0;
+      product.isSpecialOffer = false;
+      product.isNewArrival = false;
+      product.currentPrice = regularPrice;
+      product.price = `${regularPrice} SR`;
+      delete product.oldPrice;
+      delete product.discount;
+      delete product.offerPercent;
+      delete product.offerEndDate;
+      product.badge = undefined;
+      product.badgeClass = undefined;
+      changed = true;
+    }
+  });
+  if (changed) writeStoredProducts(products);
+  return products;
+}
+
 function writeStoredProducts(data: ProductItem[]): boolean {
   try {
     const dir = path.dirname(DATA_FILE_PATH);
@@ -40,7 +63,7 @@ export async function GET(req: Request) {
     const filter = searchParams.get('filter');
     const id = searchParams.get('id');
 
-    const products = readStoredProducts();
+    const products = expireLimitedOffers(readStoredProducts());
 
     if (id) {
       const item = products.find((p) => p.id === id);
@@ -74,7 +97,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const products = readStoredProducts();
+    const products = expireLimitedOffers(readStoredProducts());
 
     // 1. Direct array replacement
     if (Array.isArray(body)) {
@@ -148,8 +171,9 @@ export async function POST(req: Request) {
         currentPrice: currentPrice,
         isSpecialOffer: isSpecialOffer,
         offerPercent: offerPercent,
+        offerEndDate: isSpecialOffer ? newProductData.offerEndDate : undefined,
         // Crucial requirement: Newly added product is considered "New Arrival" and shows 1st!
-        isNewArrival: true,
+        isNewArrival: isSpecialOffer ? false : true,
         createdAt: now,
         views: Number(newProductData.views) || 1,
         clicks: Number(newProductData.clicks) || 0,
@@ -183,6 +207,7 @@ export async function POST(req: Request) {
       const originalPrice = Number(updateData.originalPrice) || Number(updateData.price?.toString().replace(/[^\d.]/g, '')) || existing.originalPrice || 100;
       const isSpecialOffer = updateData.isSpecialOffer !== undefined ? Boolean(updateData.isSpecialOffer) : Boolean(existing.isSpecialOffer);
       const offerPercent = isSpecialOffer ? (Number(updateData.offerPercent) || 0) : undefined;
+      const offerEndDate = isSpecialOffer ? updateData.offerEndDate : undefined;
       
       let currentPrice = originalPrice;
       let discountText: string | undefined = undefined;
@@ -207,7 +232,8 @@ export async function POST(req: Request) {
         originalPrice: originalPrice,
         currentPrice: currentPrice,
         isSpecialOffer: isSpecialOffer,
-        isNewArrival: updateData.isNewArrival !== undefined ? Boolean(updateData.isNewArrival) : existing.isNewArrival,
+        offerEndDate,
+        isNewArrival: isSpecialOffer ? false : (existing.isSpecialOffer ? false : (updateData.isNewArrival !== undefined ? Boolean(updateData.isNewArrival) : existing.isNewArrival)),
         isActive: updateData.isActive !== undefined ? Boolean(updateData.isActive) : existing.isActive,
         specifications: Array.isArray(updateData.specifications) ? updateData.specifications : (existing.specifications || []),
         sizes: Array.isArray(updateData.sizes) ? updateData.sizes : (existing.sizes || []),
@@ -218,6 +244,7 @@ export async function POST(req: Request) {
         updatedProduct.oldPrice = oldPriceText;
         updatedProduct.discount = discountText;
         updatedProduct.offerPercent = offerPercent;
+        updatedProduct.offerEndDate = offerEndDate;
         updatedProduct.badge = discountText || 'Special Offer';
         updatedProduct.badgeClass = 'sale';
       } else {
@@ -225,9 +252,10 @@ export async function POST(req: Request) {
         delete updatedProduct.oldPrice;
         delete updatedProduct.discount;
         delete updatedProduct.offerPercent;
+        delete updatedProduct.offerEndDate;
         if (updatedProduct.badge === 'Special Offer' || updatedProduct.badgeClass === 'sale' || updatedProduct.badge?.includes('OFF')) {
-          updatedProduct.badge = 'New Arrival';
-          updatedProduct.badgeClass = 'new';
+          updatedProduct.badge = undefined;
+          updatedProduct.badgeClass = undefined;
         }
       }
 

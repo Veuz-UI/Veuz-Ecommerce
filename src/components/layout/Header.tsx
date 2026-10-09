@@ -16,10 +16,17 @@ const getMegaProductPreview = (label: string) => {
 };
 
 const getMenuBadgeStyle = (badge?: string): React.CSSProperties => {
-  if (badge === 'NEW') return { backgroundColor: '#dcfce7', color: '#15803d', border: '1px solid #86efac' };
+  if (badge === 'NEW') return { backgroundColor: '#16a34a', color: '#ffffff', border: '1px solid #16a34a' };
   if (badge === 'OFFER') return { backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' };
-  if (badge === 'LIMITED SALE') return { backgroundColor: '#fef9c3', color: '#a16207', border: '1px solid #fde68a' };
+  if (badge === 'LIMITED SALE') return { backgroundColor: '#ca8a04', color: '#ffffff', border: '1px solid #ca8a04' };
   return { backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' };
+};
+
+const getMenuDestination = (menu: MainMenuItem) => {
+  if (menu.badge === 'NEW') return '/new-arrival-products';
+  if (menu.badge === 'OFFER') return '/offer-products';
+  if (menu.badge === 'LIMITED SALE') return '/limited-offers';
+  return menu.link || '/products';
 };
 
 export const Header: React.FC = () => {
@@ -926,7 +933,8 @@ export const Header: React.FC = () => {
                   <nav>
                     <ul>
                       {mainMenuItems.filter(m => m.isActive !== false).slice(0, 6).map((menuItem) => {
-                        const hasMega = menuItem.hasMegaMenu && menuItem.columns && menuItem.columns.length > 0;
+                        const hasMega = !menuItem.badge && menuItem.hasMegaMenu && menuItem.columns && menuItem.columns.length > 0;
+                        const menuDestination = getMenuDestination(menuItem);
                         const isMenuOpen = activeMegaMenu === menuItem.id;
 
                         if (hasMega) {
@@ -1059,7 +1067,7 @@ export const Header: React.FC = () => {
                         return (
                           <li key={menuItem.id} onMouseEnter={() => handleMegaMenuEnter('')}>
                             <Link
-                              href={menuItem.link || '/products'}
+                              href={menuDestination}
                               className={isSpecial ? 'spcl' : ''}
                               onClick={() => setActiveMegaMenu(null)}
                             >
@@ -1456,7 +1464,7 @@ export const Header: React.FC = () => {
                 
                 {/* 1. Home */}
                 <li className="py-2 border-bottom">
-                  <Link href="/" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '14px', fontWeight: 'bold', color: '#3BB77E' }}>
+                  <Link href="/" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '14px', fontWeight: 'bold', color: '#253D4E' }}>
                     Home
                   </Link>
                 </li>
@@ -1493,7 +1501,8 @@ export const Header: React.FC = () => {
 
                 {/* Dynamic Main Menu items in Mobile Drawer */}
                 {mainMenuItems.filter(m => m.isActive !== false).slice(0, 6).map((menuItem) => {
-                  const hasSub = menuItem.hasMegaMenu && menuItem.columns && menuItem.columns.length > 0;
+                  const hasSub = !menuItem.badge && menuItem.hasMegaMenu && menuItem.columns && menuItem.columns.length > 0;
+                  const menuDestination = getMenuDestination(menuItem);
                   const isAccordionOpen = openAccordion === menuItem.id;
 
                   if (hasSub) {
@@ -1534,16 +1543,18 @@ export const Header: React.FC = () => {
                   }
 
                   const isOffer = menuItem.link.includes('offer') || menuItem.name.toLowerCase().includes('offer');
+                  const mobileMenuLabelColor = '#253D4E';
                   return (
                     <li key={menuItem.id} className="py-2 border-bottom">
                       <Link
-                        href={menuItem.link || '/products'}
+                        href={menuDestination}
                         onClick={() => setMobileMenuOpen(false)}
-                        className={isOffer ? "d-flex align-items-center justify-content-between" : ""}
+                        className="d-flex align-items-center"
                         style={{
                           fontSize: '14px',
-                          fontWeight: isOffer ? 'bold' : '600',
-                          color: isOffer ? '#e11d48' : '#253D4E'
+                          fontWeight: '600',
+                          color: mobileMenuLabelColor,
+                          gap: '7px',
                         }}
                       >
                         <span>{formatNavigationLabel(menuItem.name)}</span>

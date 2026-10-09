@@ -58,6 +58,7 @@ function ProductEditForm() {
   const [originalPrice, setOriginalPrice] = useState<number>(150);
   const [isSpecialOffer, setIsSpecialOffer] = useState<boolean>(false);
   const [offerPercent, setOfferPercent] = useState<number>(15);
+  const [offerEndDate, setOfferEndDate] = useState('');
 
   // Specifications State
   const [specifications, setSpecifications] = useState<ProductDetailSection[]>([]);
@@ -136,6 +137,7 @@ function ProductEditForm() {
             setOriginalPrice(basePrice);
             setIsSpecialOffer(Boolean(found.isSpecialOffer || found.discount));
             setOfferPercent(found.offerPercent || (found.discount ? parseInt(found.discount) : 15));
+            setOfferEndDate(found.offerEndDate || '');
             setExistingViews(found.views || 0);
             setExistingClicks(found.clicks || 0);
             setExistingCreatedAt(found.createdAt);
@@ -169,6 +171,7 @@ function ProductEditForm() {
     setOriginalPrice(160);
     setIsSpecialOffer(false);
     setOfferPercent(15);
+    setOfferEndDate('');
     setStandard('EN 397 & ANSI Z89.1');
     setLocation('Riyadh Central Warehouse');
     setExistingViews(0);
@@ -410,9 +413,10 @@ function ProductEditForm() {
         discount: isSpecialOffer ? `${offerPercent}% OFF` : undefined,
         isSpecialOffer: isSpecialOffer,
         offerPercent: isSpecialOffer ? offerPercent : undefined,
+        offerEndDate: isSpecialOffer ? offerEndDate : undefined,
         badge: isSpecialOffer ? (offerPercent ? `${offerPercent}% OFF` : 'Special Offer') : 'New Arrival',
         badgeClass: isSpecialOffer ? 'sale' : 'new',
-        isNewArrival: true,
+        isNewArrival: isSpecialOffer ? false : true,
         standard: standard.trim(),
         location: location.trim(),
         link: link || '/product-details',
@@ -1077,7 +1081,7 @@ function ProductEditForm() {
                       <div className="pe-2">
                         <div className="d-flex align-items-center gap-2 mb-1">
                           <span className="fw-bold text-dark fs-14">
-                            Special Offer Product
+                            Limited Offer Product
                           </span>
                           {isSpecialOffer && (
                             <span
@@ -1135,6 +1139,11 @@ function ProductEditForm() {
                           <div className="form-text fs-12 text-muted mt-1">
                             Calculated automatically against base retail price.
                           </div>
+                        </div>
+                        <div className="mb-3">
+                          <label className="form-label fs-13 fw-semibold text-dark mb-1.5">Offer End Date <span className="text-muted fw-normal">(Optional — Limited Offer)</span></label>
+                          <input type="date" min={new Date().toISOString().slice(0, 10)} className="form-control" value={offerEndDate} onChange={(e) => setOfferEndDate(e.target.value)} style={{ height: '42px', borderRadius: '8px', borderColor: '#cbd5e1' }} />
+                          <div className="form-text fs-12 text-muted mt-1">No date: Offer Products. With a date: Limited Offers, then returns to All Products after expiry.</div>
                         </div>
 
                         {/* Live calculation banner with well-spaced padding */}

@@ -55,6 +55,7 @@ export interface ProductItem {
   isSpecialOffer?: boolean;
   isMostSearched?: boolean;
   offerPercent?: number;
+  offerEndDate?: string;
   originalPrice?: number;
   currentPrice?: number;
   views?: number;

@@ -11,8 +11,16 @@ export async function fetchProducts(filter?: string): Promise<ProductItem[]> {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored);
+        const parsed = JSON.parse(stored).map((product: ProductItem) => {
+          const today = new Date().toISOString().slice(0, 10);
+          if (product.isSpecialOffer && product.offerEndDate && product.offerEndDate < today) {
+            const regularPrice = product.originalPrice || Number(product.price?.replace(/[^\d.]/g, '')) || 0;
+            return { ...product, isSpecialOffer: false, isNewArrival: false, currentPrice: regularPrice, price: `${regularPrice} SR`, oldPrice: undefined, discount: undefined, offerPercent: undefined, offerEndDate: undefined, badge: undefined, badgeClass: undefined };
+          }
+          return product;
+        });
         if (Array.isArray(parsed) && parsed.length > 0) {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
           if (!filter) return parsed;
           if (filter === 'new-arrival') {
             return parsed.filter((p: ProductItem) => p.isNewArrival !== false && p.isActive !== false);
