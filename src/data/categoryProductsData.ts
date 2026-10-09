@@ -44,6 +44,7 @@ export interface ProductItem {
   rating: string;
   reviews: string;
   image: string;
+  images?: string[]; // Multiple angle gallery images (Side, Back, Top, Detail)
   badge?: string;
   badgeClass?: 'new' | 'hot' | 'sale' | 'featured';
   location?: string;

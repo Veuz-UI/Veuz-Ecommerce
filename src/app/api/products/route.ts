@@ -181,7 +181,7 @@ export async function POST(req: Request) {
       const existing = products[targetIndex];
 
       const originalPrice = Number(updateData.originalPrice) || Number(updateData.price?.toString().replace(/[^\d.]/g, '')) || existing.originalPrice || 100;
-      const isSpecialOffer = Boolean(updateData.isSpecialOffer);
+      const isSpecialOffer = updateData.isSpecialOffer !== undefined ? Boolean(updateData.isSpecialOffer) : Boolean(existing.isSpecialOffer);
       const offerPercent = isSpecialOffer ? (Number(updateData.offerPercent) || 0) : undefined;
       
       let currentPrice = originalPrice;
@@ -203,19 +203,33 @@ export async function POST(req: Request) {
         desc: updateData.desc !== undefined ? updateData.desc?.trim() : existing.desc,
         category: updateData.category !== undefined ? updateData.category?.trim() : existing.category,
         categoryId: updateData.categoryId !== undefined ? updateData.categoryId : existing.categoryId,
-        price: (updateData.price || updateData.originalPrice) ? formattedPrice : existing.price,
-        oldPrice: updateData.isSpecialOffer !== undefined ? (isSpecialOffer ? oldPriceText : undefined) : existing.oldPrice,
-        discount: updateData.isSpecialOffer !== undefined ? (isSpecialOffer ? discountText : undefined) : existing.discount,
-        originalPrice: updateData.originalPrice !== undefined ? originalPrice : existing.originalPrice,
-        currentPrice: (updateData.price || updateData.originalPrice || updateData.offerPercent !== undefined) ? currentPrice : existing.currentPrice,
-        isSpecialOffer: updateData.isSpecialOffer !== undefined ? isSpecialOffer : existing.isSpecialOffer,
-        offerPercent: updateData.offerPercent !== undefined ? offerPercent : existing.offerPercent,
+        price: formattedPrice,
+        originalPrice: originalPrice,
+        currentPrice: currentPrice,
+        isSpecialOffer: isSpecialOffer,
         isNewArrival: updateData.isNewArrival !== undefined ? Boolean(updateData.isNewArrival) : existing.isNewArrival,
         isActive: updateData.isActive !== undefined ? Boolean(updateData.isActive) : existing.isActive,
         specifications: Array.isArray(updateData.specifications) ? updateData.specifications : (existing.specifications || []),
         sizes: Array.isArray(updateData.sizes) ? updateData.sizes : (existing.sizes || []),
         colors: Array.isArray(updateData.colors) ? updateData.colors : (existing.colors || []),
       };
+
+      if (isSpecialOffer) {
+        updatedProduct.oldPrice = oldPriceText;
+        updatedProduct.discount = discountText;
+        updatedProduct.offerPercent = offerPercent;
+        updatedProduct.badge = discountText || 'Special Offer';
+        updatedProduct.badgeClass = 'sale';
+      } else {
+        // Explicitly remove all offer fields when offer is turned off
+        delete updatedProduct.oldPrice;
+        delete updatedProduct.discount;
+        delete updatedProduct.offerPercent;
+        if (updatedProduct.badge === 'Special Offer' || updatedProduct.badgeClass === 'sale' || updatedProduct.badge?.includes('OFF')) {
+          updatedProduct.badge = 'New Arrival';
+          updatedProduct.badgeClass = 'new';
+        }
+      }
 
       products[targetIndex] = updatedProduct;
       writeStoredProducts(products);

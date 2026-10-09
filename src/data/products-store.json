@@ -1,5 +1,34 @@
 [
   {
+    "id": "prod-1791554914508",
+    "title": "New Product",
+    "desc": "Industrial grade safety equipment meeting national and international workplace compliance standards.",
+    "category": "HELMET",
+    "categoryId": "cat-1",
+    "price": "160 SR",
+    "rating": "5.0",
+    "reviews": "10",
+    "image": "/assets/imgs/shop/p1.jpg",
+    "badge": "New Arrival",
+    "badgeClass": "new",
+    "location": "Riyadh Central Warehouse",
+    "standard": "EN 397 & ANSI Z89.1",
+    "inStock": true,
+    "link": "/product-details",
+    "originalPrice": 160,
+    "currentPrice": 160,
+    "isSpecialOffer": false,
+    "isNewArrival": true,
+    "createdAt": 1791554933563,
+    "views": 1,
+    "clicks": 0,
+    "isActive": true,
+    "specifications": [],
+    "sizes": [],
+    "colors": [],
+    "images": []
+  },
+  {
     "id": "prod-1791048115355",
     "title": "Nabeel Mohammed Kothiyil",
     "desc": "Wink at trends! Orbix Studio's Wink fashion website delivers responsive grids, quick-add carts, and trend-spotting sections that make clothing shopping seamless across devices. This ecommerce powerhouse drives sales with vibrant visuals and personalized feeds.\n\nStyle your store. Fashion forward with Orbix Studio—build responsive sites that wink at success and captivate shoppers.",
@@ -7,9 +36,9 @@
     "price": "200 SR",
     "rating": "5.0",
     "reviews": "10",
-    "image": "/assets/imgs/shop/p1.jpg",
-    "badge": "Special Offer",
-    "badgeClass": "sale",
+    "image": "/uploads/img_1791547680306_64f068f6574b6c22b4e3d3e27d74adc5.png",
+    "badge": "New Arrival",
+    "badgeClass": "new",
     "location": "Riyadh Central Warehouse",
     "standard": "EN 397 & ANSI Z89.1 Type II",
     "inStock": true,
@@ -19,8 +48,8 @@
     "isSpecialOffer": false,
     "isNewArrival": true,
     "createdAt": 1791048115355,
-    "views": 3,
-    "clicks": 2,
+    "views": 5,
+    "clicks": 4,
     "isActive": true,
     "specifications": [
       {
@@ -34,7 +63,12 @@
     "colors": [
       "Yellow"
     ],
-    "categoryId": ""
+    "categoryId": "",
+    "images": [
+      "/uploads/img_1791545724649_eec24ecf8c116463e23b321fcdab15c7.png",
+      "/uploads/img_1791545725804_96aef9e7678e40108a2aeeb9da3d7760.png",
+      "/uploads/img_1791545726312_bfb8a5685a72f57e2d070e1158325f1b.png"
+    ]
   },
   {
     "id": "prod-helmet-1",
@@ -56,8 +90,8 @@
     "currentPrice": 180,
     "isSpecialOffer": false,
     "isNewArrival": true,
-    "views": 3386,
-    "clicks": 1087,
+    "views": 3388,
+    "clicks": 1089,
     "createdAt": 1791020142380,
     "isActive": true,
     "specifications": [],
@@ -95,8 +129,8 @@
     "isSpecialOffer": true,
     "offerPercent": 18,
     "isNewArrival": true,
-    "views": 3292,
-    "clicks": 1056,
+    "views": 3293,
+    "clicks": 1057,
     "createdAt": 1790998542380,
     "isActive": true,
     "sizes": [

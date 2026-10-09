@@ -54,6 +54,41 @@ export async function POST(req: Request) {
       );
     }
 
+    const allowedBadges = new Set(['NEW', 'OFFER', 'LIMITED SALE']);
+    const invalidMenuTitleOrBadge = body.mainMenu.find((menu: ShopSettingsData['mainMenu'][number]) => {
+      const existingMenu = readStoredSettings().mainMenu.find((storedMenu) => storedMenu.id === menu.id);
+      const title = menu.name?.trim() || '';
+      const wordCount = title ? title.split(/\s+/).length : 0;
+      const titleChanged = !existingMenu || existingMenu.name !== menu.name;
+      const badgeChanged = !existingMenu || existingMenu.badge !== menu.badge;
+      return (titleChanged && (wordCount < 2 || wordCount > 3 || title.length < 10 || title.length > 15)) ||
+        (badgeChanged && Boolean(menu.badge && !allowedBadges.has(menu.badge)));
+    });
+
+    if (invalidMenuTitleOrBadge) {
+      return NextResponse.json(
+        { success: false, message: 'Menu titles must be 2–3 words and 10–15 characters. Only NEW, OFFER, or LIMITED SALE badges are allowed.' },
+        { status: 400 }
+      );
+    }
+
+    const invalidMenu = body.mainMenu.find((menu: ShopSettingsData['mainMenu'][number]) => {
+      const columns = menu.columns || [];
+      if (columns.length > 3 || columns.some((column) => !Array.isArray(column.items) || column.items.length > 5)) {
+        return true;
+      }
+
+      const categoryIds = columns.map((column) => column.categoryId).filter(Boolean);
+      return new Set(categoryIds).size !== categoryIds.length;
+    });
+
+    if (invalidMenu) {
+      return NextResponse.json(
+        { success: false, message: 'Each mega menu supports up to 3 different categories and 5 products per category.' },
+        { status: 400 }
+      );
+    }
+
     const saved = writeStoredSettings({
       categories: body.categories,
       mainMenu: body.mainMenu,

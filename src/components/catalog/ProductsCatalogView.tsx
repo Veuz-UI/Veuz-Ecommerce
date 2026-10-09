@@ -9,6 +9,7 @@ import { fetchProducts, recordProductClick, PRODUCTS_EVENT } from '@/services/pr
 import { CATEGORY_PRODUCTS_DATA, ProductItem, SYSTEM_COLORS, PRESET_SIZES, SystemColor } from '@/data/categoryProductsData';
 import { fetchAttributes, ATTRIBUTES_EVENT } from '@/services/attributesService';
 import { useToast } from '@/context/ToastContext';
+import { ProductCardImageSlider } from '@/components/common/ProductCardImageSlider';
 
 export type CatalogPageMode = 'category' | 'products' | 'offers' | 'most-searched';
 type CollectionFilter = 'all' | 'new-arrival' | 'most-searched' | 'special-offers';
@@ -1555,8 +1556,21 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
             ) : (
               <div className="row g-3 g-lg-4">
                 {filteredAndSortedProducts.map((prod) => {
-                  const displayDiscount = prod.discount || (prod.offerPercent ? `${prod.offerPercent}% OFF` : '');
+                  const hasActiveOffer = prod.isSpecialOffer === true && Boolean(prod.discount || prod.offerPercent);
+                  const displayDiscount = hasActiveOffer
+                    ? (prod.discount || (prod.offerPercent ? `${prod.offerPercent}% OFF` : ''))
+                    : '';
                   const currentPrice = prod.price || (prod.currentPrice ? `${prod.currentPrice} SR` : '');
+
+                  // Determine clean card badge
+                  let cardBadge = 'New Arrival';
+                  if (hasActiveOffer) {
+                    cardBadge = displayDiscount || 'Special Offer';
+                  } else if (pageMode === 'products' || prod.isNewArrival !== false) {
+                    cardBadge = 'New Arrival';
+                  } else if (prod.badge && prod.badge !== 'Special Offer') {
+                    cardBadge = prod.badge;
+                  }
 
                   return (
                     <div
@@ -1569,7 +1583,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                         <div className="product-img-action-wrap position-relative">
                           {/* Top-Left Badge */}
                           <span className="ref-card-badge">
-                            {pageMode === 'products' ? 'New Arrival' : (prod.badge || (displayDiscount ? displayDiscount : 'New'))}
+                            {cardBadge}
                           </span>
 
                           {/* Top-Right Circular Wishlist Button */}
@@ -1587,12 +1601,15 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                             <i className={`fi-rs-heart ${wishlist[prod.id] ? 'fill-heart text-danger' : ''}`}></i>
                           </button>
 
-                          {/* Main Product Image (No color dots) */}
-                          <div className="product-img product-img-zoom">
-                            <Link href={prod.link} onClick={() => recordProductClick(prod.id)}>
-                              <img className="default-img" src={prod.image} alt={prod.title} />
-                            </Link>
-                          </div>
+                          {/* Main Product Image & Multi-Angle Slider with navigation */}
+                          <ProductCardImageSlider
+                            productId={prod.id}
+                            title={prod.title}
+                            link={prod.link}
+                            image={prod.image}
+                            images={prod.images}
+                            onProductClick={recordProductClick}
+                          />
                         </div>
 
                         {/* Product Content Wrap */}
@@ -1627,12 +1644,12 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                                 <span className="new-prod-current-price">
                                   {currentPrice}
                                 </span>
-                                {prod.oldPrice && (
+                                {hasActiveOffer && prod.oldPrice && (
                                   <span className="new-prod-old-price">
                                     {prod.oldPrice}
                                   </span>
                                 )}
-                                {displayDiscount && (
+                                {hasActiveOffer && displayDiscount && (
                                   <span className="ref-card-discount-black">
                                     {displayDiscount}
                                   </span>

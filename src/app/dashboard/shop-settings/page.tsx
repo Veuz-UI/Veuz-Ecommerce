@@ -802,11 +802,6 @@ export default function ShopSettingsPage() {
                                         {item.badge}
                                       </span>
                                     )}
-                                    {item.isHotDeal && (
-                                      <span className="badge bg-warning text-dark fs-11 fw-bold" style={{ padding: '3px 8px', borderRadius: '5px' }}>
-                                        HOT DEAL
-                                      </span>
-                                    )}
                                   </div>
                                   <span className="text-muted fs-12">Header Main Nav Link</span>
                                 </div>

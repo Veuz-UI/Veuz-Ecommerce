@@ -615,7 +615,7 @@ export default function AllProductsPage() {
                 </tr>
               ) : (
                 filteredProducts.map((item, idx) => {
-                  const isOffer = item.isSpecialOffer === true || Boolean(item.discount);
+                  const isOffer = item.isSpecialOffer === true;
                   const isNew = item.isNewArrival !== false;
 
                   return (
@@ -697,7 +697,7 @@ export default function AllProductsPage() {
                             <span className="fw-bold text-dark" style={{ fontSize: '14px' }}>
                               {item.price}
                             </span>
-                            {item.oldPrice && (
+                            {isOffer && item.oldPrice && (
                               <span className="text-muted text-decoration-line-through fs-11">
                                 {item.oldPrice}
                               </span>
@@ -742,46 +742,6 @@ export default function AllProductsPage() {
                       {/* Actions */}
                       <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                         <div className="d-flex align-items-center justify-content-end gap-1.5">
-                          <Link
-                            href={`/dashboard/all-products/sizes?id=${item.id}`}
-                            className="btn btn-sm btn-icon"
-                            title="Manage Sizes"
-                            style={{
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '6px',
-                              border: '1px solid #e2e8f0',
-                              backgroundColor: '#ffffff',
-                              color: '#334155',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              padding: 0,
-                            }}
-                          >
-                            <iconify-icon icon="solar:ruler-linear" class="fs-15 text-primary"></iconify-icon>
-                          </Link>
-
-                          <Link
-                            href={`/dashboard/all-products/colors?id=${item.id}`}
-                            className="btn btn-sm btn-icon"
-                            title="Manage Colors"
-                            style={{
-                              width: '32px',
-                              height: '32px',
-                              borderRadius: '6px',
-                              border: '1px solid #e2e8f0',
-                              backgroundColor: '#ffffff',
-                              color: '#334155',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              padding: 0,
-                            }}
-                          >
-                            <iconify-icon icon="solar:palette-linear" class="fs-15 text-success"></iconify-icon>
-                          </Link>
-
                           <Link
                             href={`/dashboard/all-products/edit?id=${item.id}`}
                             className="btn btn-sm btn-icon"

@@ -7,7 +7,7 @@
     {
       "id": "partner-1",
       "name": "3M Personal Safety",
-      "logo": "/assets/imgs/client/partner1.svg",
+      "logo": "/uploads/img_1791555156314_835ae65a7ea73e57d6d6bf268c2bf7fb.jpg",
       "link": "/products",
       "isActive": true,
       "order": 1
@@ -15,7 +15,7 @@
     {
       "id": "partner-2",
       "name": "Honeywell Safety Products",
-      "logo": "/assets/imgs/client/partner2.svg",
+      "logo": "/uploads/img_1791555161406_84c9e8b43822755dc948da31825c7736.jpg",
       "link": "/products",
       "isActive": true,
       "order": 2
@@ -23,7 +23,7 @@
     {
       "id": "partner-3",
       "name": "MSA Safety Equipment",
-      "logo": "/assets/imgs/client/partner3.svg",
+      "logo": "/uploads/img_1791555166566_bb31aa0e4762b652638f5ddc93e259ec.jpg",
       "link": "/products",
       "isActive": true,
       "order": 3
@@ -31,42 +31,10 @@
     {
       "id": "partner-4",
       "name": "Ansell Healthcare & PPE",
-      "logo": "/assets/imgs/client/partner4.svg",
+      "logo": "/uploads/img_1791555173765_c2dc10230e4a3ae0f75a2a196939ff88.jpg",
       "link": "/products",
       "isActive": true,
       "order": 4
-    },
-    {
-      "id": "partner-5",
-      "name": "DuPont Personal Protection",
-      "logo": "/assets/imgs/client/partner5.svg",
-      "link": "/products",
-      "isActive": true,
-      "order": 5
-    },
-    {
-      "id": "partner-6",
-      "name": "Delta Plus Safety Systems",
-      "logo": "/assets/imgs/client/partner1.svg",
-      "link": "/products",
-      "isActive": true,
-      "order": 6
-    },
-    {
-      "id": "partner-7",
-      "name": "Dräger Industrial Safety",
-      "logo": "/assets/imgs/client/partner2.svg",
-      "link": "/products",
-      "isActive": true,
-      "order": 7
-    },
-    {
-      "id": "partner-8",
-      "name": "Bollé Safety Eyewear",
-      "logo": "/assets/imgs/client/partner3.svg",
-      "link": "/products",
-      "isActive": true,
-      "order": 8
     }
   ]
 }

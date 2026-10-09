@@ -233,119 +233,112 @@
   "mainMenu": [
     {
       "id": "menu-1",
-      "name": "Nabeel Mohammed",
+      "name": "New Arrival",
       "link": "/products",
-      "isHotDeal": true,
       "hasMegaMenu": true,
       "isActive": true,
       "columns": [
         {
-          "id": "col-1",
-          "title": "Corporate Gifts",
-          "link": "/products",
+          "id": "col-1791553244473",
+          "categoryId": "cat-1",
+          "title": "HELMET",
+          "link": "/products?category=HELMET",
           "items": [
             {
-              "id": "item-1",
-              "name": "Custom Pens & Diaries",
-              "link": "/products"
+              "id": "item-1791553246998",
+              "productId": "prod-helmet-1",
+              "name": "GuardianPro Vented Hard Hat with Ratchet Suspension",
+              "link": "/product-details"
             },
             {
-              "id": "item-2",
-              "name": "Executive Gift Sets",
-              "link": "/products"
+              "id": "item-1791553248671",
+              "productId": "prod-helmet-2",
+              "name": "DeltaPlus Diamond V Ergonomic Baseball Hard Hat",
+              "link": "/product-details"
             },
             {
-              "id": "item-3",
-              "name": "Thermal Flasks",
-              "link": "/products"
+              "id": "item-1791553250128",
+              "productId": "prod-helmet-3",
+              "name": "MSA V-Gard 500 Vented Industrial Safety Helmet",
+              "link": "/product-details"
             },
             {
-              "id": "item-4",
-              "name": "Leather Wallets",
-              "link": "/products"
-            },
-            {
-              "id": "item-5",
-              "name": "Desk Organizers",
-              "link": "/products"
+              "id": "item-1791553253535",
+              "productId": "prod-helmet-4",
+              "name": "UltraBrim Full-Brim Heavy Dielectric Hard Hat",
+              "link": "/product-details"
             }
           ]
         },
         {
-          "id": "col-2",
-          "title": "Event Giveaways",
-          "link": "/products",
+          "id": "col-1791553697918",
+          "categoryId": "cat-2",
+          "title": "Bag Print",
+          "link": "/products?category=Bag%20Print",
           "items": [
             {
-              "id": "item-6",
-              "name": "Custom Mugs",
-              "link": "/products"
+              "id": "item-1791553700640",
+              "productId": "prod-shoes-1",
+              "name": "IronClad S3 Steel Toe Waterproof Work Safety Boots",
+              "link": "/product-details"
             },
             {
-              "id": "item-7",
-              "name": "Tote Bags",
-              "link": "/products"
+              "id": "item-1791553702095",
+              "productId": "prod-shoes-2",
+              "name": "Caterpillar Holton S3 Heavy Duty Leather Work Boots",
+              "link": "/product-details"
             },
             {
-              "id": "item-8",
-              "name": "Keychains",
-              "link": "/products"
+              "id": "item-1791553703295",
+              "productId": "prod-shoes-3",
+              "name": "VoltGuard 1000V Dielectric High-Voltage Safety Boots",
+              "link": "/product-details"
             },
             {
-              "id": "item-9",
-              "name": "Badges & Pins",
-              "link": "/products"
-            },
-            {
-              "id": "item-10",
-              "name": "Wristbands",
-              "link": "/products"
+              "id": "item-1791553704679",
+              "productId": "prod-shoes-4",
+              "name": "AirStep Composite Lightweight Safety Athletic Sneakers",
+              "link": "/product-details"
             }
           ]
         },
         {
-          "id": "col-3",
-          "title": "Celebration Packs",
-          "link": "/products",
+          "id": "col-1791553717343",
+          "categoryId": "cat-3",
+          "title": "Gift Pack",
+          "link": "/products?category=Gift%20Pack",
           "items": [
             {
-              "id": "item-11",
-              "name": "VIP Hampers",
-              "link": "/products"
+              "id": "item-1791553720183",
+              "productId": "prod-vest-1",
+              "name": "ProReflect Class 3 High-Visibility Weatherproof Jacket",
+              "link": "/product-details"
             },
             {
-              "id": "item-12",
-              "name": "Sweet Gift Boxes",
-              "link": "/products"
+              "id": "item-1791553721454",
+              "productId": "prod-vest-2",
+              "name": "Portwest Hi-Vis Multi-Pocket Executive Safety Vest",
+              "link": "/product-details"
             },
             {
-              "id": "item-13",
-              "name": "Festival Packages",
-              "link": "/products"
-            },
-            {
-              "id": "item-14",
-              "name": "Custom Trophies",
-              "link": "/products"
-            },
-            {
-              "id": "item-15",
-              "name": "Award Plaques",
-              "link": "/products"
+              "id": "item-1791553722679",
+              "productId": "prod-vest-3",
+              "name": "NeonShield Breathable Class 2 Mesh Zipper Vest",
+              "link": "/product-details"
             }
           ]
         }
       ],
       "banner": {
         "enabled": true,
-        "image": "/uploads/banner_1791012533482_DSC00848.JPG.jpeg",
+        "showBtn": false,
+        "image": "/uploads/img_1791553747483_a813e2f5491335268bd2ab0cd415bd3c.webp",
         "tag": "",
         "title": "",
         "priceNote": "",
         "discountBadge": "",
         "btnText": "Shop now",
-        "btnLink": "/products",
-        "showBtn": false
+        "btnLink": "/products"
       }
     },
     {
@@ -460,240 +453,6 @@
         "btnText": "Explore",
         "btnLink": "/products"
       }
-    },
-    {
-      "id": "menu-3",
-      "name": "Printing Product",
-      "link": "/products",
-      "hasMegaMenu": true,
-      "isActive": true,
-      "columns": [
-        {
-          "id": "col-7",
-          "title": "Stationery",
-          "link": "/products",
-          "items": [
-            {
-              "id": "item-31",
-              "name": "Business Cards",
-              "link": "/products"
-            },
-            {
-              "id": "item-32",
-              "name": "Letterheads",
-              "link": "/products"
-            },
-            {
-              "id": "item-33",
-              "name": "Envelopes",
-              "link": "/products"
-            },
-            {
-              "id": "item-34",
-              "name": "Invoices & Receipts",
-              "link": "/products"
-            },
-            {
-              "id": "item-35",
-              "name": "Notepads & Bill Books",
-              "link": "/products"
-            }
-          ]
-        },
-        {
-          "id": "col-8",
-          "title": "Marketing Material",
-          "link": "/products",
-          "items": [
-            {
-              "id": "item-36",
-              "name": "Flyers & Leaflets",
-              "link": "/products"
-            },
-            {
-              "id": "item-37",
-              "name": "Brochures & Catalogs",
-              "link": "/products"
-            },
-            {
-              "id": "item-38",
-              "name": "Roll-up Banners",
-              "link": "/products"
-            },
-            {
-              "id": "item-39",
-              "name": "Posters & Signage",
-              "link": "/products"
-            },
-            {
-              "id": "item-40",
-              "name": "Table Tents",
-              "link": "/products"
-            }
-          ]
-        },
-        {
-          "id": "col-9",
-          "title": "Packaging",
-          "link": "/products",
-          "items": [
-            {
-              "id": "item-41",
-              "name": "Product Boxes",
-              "link": "/products"
-            },
-            {
-              "id": "item-42",
-              "name": "Custom Stickers",
-              "link": "/products"
-            },
-            {
-              "id": "item-43",
-              "name": "Paper Bags",
-              "link": "/products"
-            },
-            {
-              "id": "item-44",
-              "name": "Hang Tags",
-              "link": "/products"
-            },
-            {
-              "id": "item-45",
-              "name": "Shipping Tape",
-              "link": "/products"
-            }
-          ]
-        }
-      ],
-      "banner": {
-        "enabled": true,
-        "image": "/assets/imgs/banner/banner-menu.png",
-        "tag": "Printing",
-        "title": "Custom Bulk Deals",
-        "btnText": "Order Now",
-        "btnLink": "/products"
-      }
-    },
-    {
-      "id": "menu-4",
-      "name": "Digital Cards",
-      "link": "/products",
-      "hasMegaMenu": true,
-      "isActive": true,
-      "columns": [
-        {
-          "id": "col-10",
-          "title": "Smart NFC Cards",
-          "link": "/products",
-          "items": [
-            {
-              "id": "item-46",
-              "name": "Metallic NFC Business Cards",
-              "link": "/products"
-            },
-            {
-              "id": "item-47",
-              "name": "Bamboo & Wooden Cards",
-              "link": "/products"
-            },
-            {
-              "id": "item-48",
-              "name": "Matte Black PVC Cards",
-              "link": "/products"
-            },
-            {
-              "id": "item-49",
-              "name": "Frosted Translucent Cards",
-              "link": "/products"
-            },
-            {
-              "id": "item-50",
-              "name": "Custom Epoxy NFC Tags",
-              "link": "/products"
-            }
-          ]
-        },
-        {
-          "id": "col-11",
-          "title": "Digital Profiles",
-          "link": "/products",
-          "items": [
-            {
-              "id": "item-51",
-              "name": "Dynamic QR Cards",
-              "link": "/products"
-            },
-            {
-              "id": "item-52",
-              "name": "Enterprise Team Portals",
-              "link": "/products"
-            },
-            {
-              "id": "item-53",
-              "name": "Contactless Tap & Share",
-              "link": "/products"
-            },
-            {
-              "id": "item-54",
-              "name": "Lead Capture Profiles",
-              "link": "/products"
-            },
-            {
-              "id": "item-55",
-              "name": "Analytics & Click Tracking",
-              "link": "/products"
-            }
-          ]
-        },
-        {
-          "id": "col-12",
-          "title": "Identity & Access",
-          "link": "/products",
-          "items": [
-            {
-              "id": "item-56",
-              "name": "RFID Key Fobs",
-              "link": "/products"
-            },
-            {
-              "id": "item-57",
-              "name": "Smart Event Badges",
-              "link": "/products"
-            },
-            {
-              "id": "item-58",
-              "name": "Access Control Cards",
-              "link": "/products"
-            },
-            {
-              "id": "item-59",
-              "name": "Membership VIP Cards",
-              "link": "/products"
-            },
-            {
-              "id": "item-60",
-              "name": "Digital Loyalty Cards",
-              "link": "/products"
-            }
-          ]
-        }
-      ],
-      "banner": {
-        "enabled": true,
-        "image": "/assets/imgs/banner/banner-menu.png",
-        "tag": "Digital Cards",
-        "title": "Next-Gen Networking",
-        "btnText": "Discover",
-        "btnLink": "/products"
-      }
-    },
-    {
-      "id": "menu-5",
-      "name": "Special Offers",
-      "link": "/offer",
-      "badge": "HOT",
-      "hasMegaMenu": false,
-      "isActive": true
     }
   ]
 }

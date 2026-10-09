@@ -4,8 +4,23 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { DEFAULT_SHOP_SETTINGS, ShopSettingsData, ShopCategory, MainMenuItem } from '@/data/defaultShopSettings';
+import { ShopSettingsData, ShopCategory, MainMenuItem } from '@/data/defaultShopSettings';
 import { fetchShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsService';
+
+const formatNavigationLabel = (label: string) =>
+  label.toLocaleLowerCase().replace(/\b\w/g, (letter) => letter.toLocaleUpperCase());
+
+const getMegaProductPreview = (label: string) => {
+  const words = label.trim().split(/\s+/);
+  return words.length > 4 ? `${words.slice(0, 4).join(' ')}…` : label;
+};
+
+const getMenuBadgeStyle = (badge?: string): React.CSSProperties => {
+  if (badge === 'NEW') return { backgroundColor: '#dcfce7', color: '#15803d', border: '1px solid #86efac' };
+  if (badge === 'OFFER') return { backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' };
+  if (badge === 'LIMITED SALE') return { backgroundColor: '#fef9c3', color: '#a16207', border: '1px solid #fde68a' };
+  return { backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' };
+};
 
 export const Header: React.FC = () => {
   const router = useRouter();
@@ -101,8 +116,9 @@ export const Header: React.FC = () => {
     setOpenAccordion(prev => (prev === id ? null : id));
   };
 
-  const [shopCategories, setShopCategories] = useState<ShopCategory[]>(DEFAULT_SHOP_SETTINGS.categories);
-  const [mainMenuItems, setMainMenuItems] = useState<MainMenuItem[]>(DEFAULT_SHOP_SETTINGS.mainMenu);
+  // Do not render demo/default navigation while the current dashboard settings load.
+  const [shopCategories, setShopCategories] = useState<ShopCategory[]>([]);
+  const [mainMenuItems, setMainMenuItems] = useState<MainMenuItem[]>([]);
 
   // Sync settings dynamically from local cache & server
   useEffect(() => {
@@ -917,12 +933,18 @@ export const Header: React.FC = () => {
                           return (
                             <li
                               key={menuItem.id}
-                              className={`position-static ${menuItem.isHotDeal ? 'hot-deals' : ''} ${isMenuOpen ? 'hover-active' : ''}`}
+                              className={`position-static ${isMenuOpen ? 'hover-active' : ''}`}
                               onMouseEnter={() => handleMegaMenuEnter(menuItem.id)}
                               onMouseLeave={handleMegaMenuLeave}
                             >
                               <Link href={menuItem.link} onClick={() => setActiveMegaMenu(null)}>
-                                {menuItem.name} <i className="fi-rs-plus"></i>
+                                {formatNavigationLabel(menuItem.name)}
+                                {menuItem.badge && (
+                                  <span className="badge ms-1" style={{ fontSize: '10px', ...getMenuBadgeStyle(menuItem.badge) }}>
+                                    {menuItem.badge}
+                                  </span>
+                                )}
+                                <i className="fi-rs-plus"></i>
                               </Link>
                               <ul
                                 className={`mega-menu ${isMenuOpen ? 'is-open' : ''}`}
@@ -936,7 +958,12 @@ export const Header: React.FC = () => {
                                     <ul>
                                       {col.items.map((subItem) => (
                                         <li key={subItem.id}>
-                                          <Link href={subItem.link}>{subItem.name}</Link>
+                                          <Link href={subItem.link} className="mega-product-link" aria-label={subItem.name}>
+                                            <span className="mega-product-label">
+                                              <span className="mega-product-preview">{getMegaProductPreview(subItem.name)}</span>
+                                              <span className="mega-product-full">{subItem.name}</span>
+                                            </span>
+                                          </Link>
                                         </li>
                                       ))}
                                       <li className="see-more-item">
@@ -1032,13 +1059,13 @@ export const Header: React.FC = () => {
                         return (
                           <li key={menuItem.id} onMouseEnter={() => handleMegaMenuEnter('')}>
                             <Link
-                              href={menuItem.link}
+                              href={menuItem.link || '/products'}
                               className={isSpecial ? 'spcl' : ''}
                               onClick={() => setActiveMegaMenu(null)}
                             >
-                              {menuItem.name}
+                              {formatNavigationLabel(menuItem.name)}
                               {menuItem.badge && (
-                                <span className="badge bg-danger ms-1" style={{ fontSize: '10px' }}>
+                                <span className="badge ms-1" style={{ fontSize: '10px', ...getMenuBadgeStyle(menuItem.badge) }}>
                                   {menuItem.badge}
                                 </span>
                               )}
@@ -1470,7 +1497,7 @@ export const Header: React.FC = () => {
                   const isAccordionOpen = openAccordion === menuItem.id;
 
                   if (hasSub) {
-                    const allSubItems = menuItem.columns!.flatMap(col => col.items);
+                    const menuCategories = menuItem.columns!;
                     return (
                       <li
                         key={menuItem.id}
@@ -1481,22 +1508,22 @@ export const Header: React.FC = () => {
                           onClick={() => toggleAccordion(menuItem.id)}
                           style={{ cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#253D4E' }}
                         >
-                          <span>{menuItem.name}</span>
+                          <span>{formatNavigationLabel(menuItem.name)}</span>
                           <span className="menu-expand"><i className="fi-rs-angle-small-down"></i></span>
                         </div>
                         <div className={`mobile-accordion-collapse ${isAccordionOpen ? 'is-open' : ''}`}>
                           <div className="mobile-accordion-inner">
                             <ul className="dropdown-menu-list">
-                              {allSubItems.slice(0, 4).map((subItem) => (
-                                <li key={subItem.id}>
-                                  <Link href={subItem.link} onClick={() => setMobileMenuOpen(false)}>
-                                    {subItem.name}
+                              {menuCategories.map((category) => (
+                                <li key={category.id}>
+                                  <Link href={category.link || menuItem.link} onClick={() => setMobileMenuOpen(false)}>
+                                    {formatNavigationLabel(category.title)}
                                   </Link>
                                 </li>
                               ))}
                               <li className="view-all-item">
                                 <Link href={menuItem.link} onClick={() => setMobileMenuOpen(false)} className="view-all-link">
-                                  View All {menuItem.name} <i className="fi-rs-arrow-small-right"></i>
+                                  View All {formatNavigationLabel(menuItem.name)} <i className="fi-rs-arrow-small-right"></i>
                                 </Link>
                               </li>
                             </ul>
@@ -1510,7 +1537,7 @@ export const Header: React.FC = () => {
                   return (
                     <li key={menuItem.id} className="py-2 border-bottom">
                       <Link
-                        href={menuItem.link}
+                        href={menuItem.link || '/products'}
                         onClick={() => setMobileMenuOpen(false)}
                         className={isOffer ? "d-flex align-items-center justify-content-between" : ""}
                         style={{
@@ -1519,8 +1546,8 @@ export const Header: React.FC = () => {
                           color: isOffer ? '#e11d48' : '#253D4E'
                         }}
                       >
-                        <span>{menuItem.name}</span>
-                        {menuItem.badge && <span className="badge bg-danger">{menuItem.badge}</span>}
+                        <span>{formatNavigationLabel(menuItem.name)}</span>
+                        {menuItem.badge && <span className="badge" style={getMenuBadgeStyle(menuItem.badge)}>{menuItem.badge}</span>}
                       </Link>
                     </li>
                   );

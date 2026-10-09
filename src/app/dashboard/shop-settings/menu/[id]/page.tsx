@@ -4,9 +4,20 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { fetchShopSettings, saveShopSettings } from '@/services/shopSettingsService';
-import { MainMenuItem, SubMenuColumn, SubMenuColumnItem, MenuBanner } from '@/data/defaultShopSettings';
+import { MainMenuItem, SubMenuColumn, SubMenuColumnItem, MenuBanner, ShopCategory } from '@/data/defaultShopSettings';
+import { fetchProducts } from '@/services/productsService';
+import { ProductItem } from '@/data/categoryProductsData';
 import { useToast } from '@/context/ToastContext';
 import { validateImageFile, compressImage } from '@/utils/imageSecurity';
+import { ClientPortal } from '@/components/common/ClientPortal';
+
+const ALLOWED_MENU_BADGES = ['NEW', 'OFFER', 'LIMITED SALE'];
+const BADGE_DESTINATIONS: Record<string, string> = {
+  NEW: '/products?filter=new-arrival',
+  OFFER: '/products?filter=special-offers',
+};
+
+const getWordCount = (value: string) => value.trim() ? value.trim().split(/\s+/).length : 0;
 
 export default function MenuEditPage() {
   const params = useParams();
@@ -19,6 +30,10 @@ export default function MenuEditPage() {
   const [isUploading, setIsUploading] = useState(false);
   const { showToast } = useToast();
 
+  // Catalog Sources for Pickers
+  const [availableCategories, setAvailableCategories] = useState<ShopCategory[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<ProductItem[]>([]);
+
   // Delete confirmation modal state
   const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<{
     type: 'column' | 'item';
@@ -29,45 +44,46 @@ export default function MenuEditPage() {
 
   // Form State
   const [name, setName] = useState('');
-  const [link, setLink] = useState('');
+  const [link, setLink] = useState('/products');
   const [hasMegaMenu, setHasMegaMenu] = useState(true);
-  const [isHotDeal, setIsHotDeal] = useState(false);
   const [badge, setBadge] = useState('');
   const [isActive, setIsActive] = useState(true);
 
-  // Columns & Banner
+  // Columns & Banner (Starts empty on create new)
   const [columns, setColumns] = useState<SubMenuColumn[]>([]);
   const [banner, setBanner] = useState<MenuBanner>({
-    enabled: true,
-    showBtn: true,
-    image: '/assets/imgs/banner/banner-menu.png',
-    tag: 'Hot deals',
-    title: "Don't miss Trending",
-    priceNote: 'Save up to 50%',
-    discountBadge: '25% off',
+    enabled: false,
+    showBtn: false,
+    image: '',
+    tag: '',
+    title: '',
+    priceNote: '',
+    discountBadge: '',
     btnText: 'Shop now',
     btnLink: '/products',
   });
-
-  // State for adding a new column
-  const [showAddColumn, setShowAddColumn] = useState(false);
-  const [newColTitle, setNewColTitle] = useState('');
-  const [newColLink, setNewColLink] = useState('');
-
-  // State for editing a column title/link
-  const [editingColId, setEditingColId] = useState<string | null>(null);
-  const [editColTitle, setEditColTitle] = useState('');
-  const [editColLink, setEditColLink] = useState('');
-
-  // State for adding item to a specific column
-  const [addingItemColId, setAddingItemColId] = useState<string | null>(null);
-  const [newItemName, setNewItemName] = useState('');
-  const [newItemLink, setNewItemLink] = useState('');
 
   // State for editing an item inside a column
   const [editingItemId, setEditingItemId] = useState<string | null>(null);
   const [editItemName, setEditItemName] = useState('');
   const [editItemLink, setEditItemLink] = useState('');
+
+  // ========================================================
+  // SLIDE-OVER DRAWER STATES (Right-to-Left Off-Canvas)
+  // ========================================================
+  // 1. Category Drawer for Sub-Menu Columns
+  const [showCategoryDrawer, setShowCategoryDrawer] = useState(false);
+  const [categorySearch, setCategorySearch] = useState('');
+  const [categoryPage, setCategoryPage] = useState(1);
+  const [targetColumnForCategory, setTargetColumnForCategory] = useState<string | null>(null);
+
+  // 2. Product Drawer for Column Sub-Items
+  const [showProductDrawer, setShowProductDrawer] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
+  const [productCategoryFilter, setProductCategoryFilter] = useState('all');
+  const [productPage, setProductPage] = useState(1);
+  const [targetColumnForProduct, setTargetColumnForProduct] = useState<string | null>(null);
+  const [targetItemForProduct, setTargetItemForProduct] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -75,15 +91,25 @@ export default function MenuEditPage() {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const settings = await fetchShopSettings();
+        const [settings, prods] = await Promise.all([
+          fetchShopSettings(),
+          fetchProducts().catch(() => []),
+        ]);
+
+        if (settings && Array.isArray(settings.categories)) {
+          setAvailableCategories(settings.categories);
+        }
+        if (Array.isArray(prods)) {
+          setAvailableProducts(prods);
+        }
+
         if (!isNew) {
           const found = settings.mainMenu.find((m) => m.id === menuId);
           if (found) {
             setName(found.name);
-            setLink(found.link);
-            setHasMegaMenu(found.hasMegaMenu);
-            setIsHotDeal(!!found.isHotDeal);
-            setBadge(found.badge || '');
+            setLink(found.link || '/products');
+            setHasMegaMenu(found.badge ? false : found.hasMegaMenu);
+            setBadge(ALLOWED_MENU_BADGES.includes(found.badge || '') ? found.badge || '' : '');
             setIsActive(found.isActive !== false);
             setColumns(found.columns ? JSON.parse(JSON.stringify(found.columns)) : []);
             if (found.banner) {
@@ -97,27 +123,27 @@ export default function MenuEditPage() {
             showToast('danger', 'Menu item not found.');
           }
         } else {
+          // CREATE NEW: Start completely empty (NO dummy items)
           if (settings.mainMenu.length >= 6) {
             showToast('danger', 'Maximum 6 main menu items allowed. Please remove or edit existing menus.');
           }
           setName('');
           setLink('/products');
           setHasMegaMenu(true);
-          setIsHotDeal(false);
           setBadge('');
           setIsActive(true);
-          setColumns([
-            {
-              id: `col-${Date.now()}-1`,
-              title: 'Featured Collection',
-              link: '/products',
-              items: [
-                { id: `item-1`, name: 'Sample Item 1', link: '/products' },
-                { id: `item-2`, name: 'Sample Item 2', link: '/products' },
-                { id: `item-3`, name: 'Sample Item 3', link: '/products' },
-              ],
-            },
-          ]);
+          setColumns([]);
+          setBanner({
+            enabled: false,
+            showBtn: false,
+            image: '',
+            tag: '',
+            title: '',
+            priceNote: '',
+            discountBadge: '',
+            btnText: 'Shop now',
+            btnLink: '/products',
+          });
         }
       } catch (err: any) {
         showToast('danger', err.message || 'Failed to load menu details.');
@@ -134,7 +160,6 @@ export default function MenuEditPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 1. Strict Validation (File Type, Extension, Max 5MB Size)
     const validation = validateImageFile(file, 5 * 1024 * 1024);
     if (!validation.valid) {
       showToast('danger', validation.error || 'Invalid image file.');
@@ -143,7 +168,6 @@ export default function MenuEditPage() {
 
     setIsUploading(true);
     try {
-      // 2. Client-side Canvas Compression (Max 1600px width/height, 0.85 quality WebP)
       const compressedFile = await compressImage(file, {
         maxWidth: 1600,
         maxHeight: 1600,
@@ -151,11 +175,9 @@ export default function MenuEditPage() {
         mimeType: 'image/webp',
       });
 
-      // Show immediate local preview
       const previewUrl = URL.createObjectURL(compressedFile);
       setBanner((prev) => ({ ...prev, image: previewUrl }));
 
-      // 3. Upload to secure backend API
       const formData = new FormData();
       formData.append('file', compressedFile);
 
@@ -176,51 +198,6 @@ export default function MenuEditPage() {
     } finally {
       setIsUploading(false);
     }
-  };
-
-  // Column Actions
-  const handleAddColumn = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newColTitle.trim()) {
-      showToast('danger', 'Please enter a column title.');
-      return;
-    }
-    if (columns.length >= 3) {
-      showToast('danger', 'Maximum 3 columns allowed for mega-menu.');
-      return;
-    }
-
-    const newCol: SubMenuColumn = {
-      id: `col-${Date.now()}`,
-      title: newColTitle.trim(),
-      link: newColLink.trim() || '/products',
-      items: [],
-    };
-
-    setColumns([...columns, newCol]);
-    setNewColTitle('');
-    setNewColLink('');
-    setShowAddColumn(false);
-    showToast('success', `Column "${newCol.title}" created.`);
-  };
-
-  const handleStartEditColumn = (col: SubMenuColumn) => {
-    setEditingColId(col.id);
-    setEditColTitle(col.title);
-    setEditColLink(col.link);
-  };
-
-  const handleSaveEditColumn = (colId: string) => {
-    if (!editColTitle.trim()) {
-      showToast('danger', 'Column title cannot be empty.');
-      return;
-    }
-
-    setColumns((prev) =>
-      prev.map((col) => (col.id === colId ? { ...col, title: editColTitle.trim(), link: editColLink.trim() || '/products' } : col))
-    );
-    setEditingColId(null);
-    showToast('success', 'Column title updated.');
   };
 
   // Execute deletion confirmed from modal
@@ -247,29 +224,6 @@ export default function MenuEditPage() {
     }
 
     setDeleteConfirmTarget(null);
-  };
-
-  // Item Actions inside Columns
-  const handleAddItemToCol = (colId: string) => {
-    if (!newItemName.trim()) {
-      showToast('danger', 'Please enter an item name.');
-      return;
-    }
-
-    const newItem: SubMenuColumnItem = {
-      id: `item-${Date.now()}`,
-      name: newItemName.trim(),
-      link: newItemLink.trim() || '/products',
-    };
-
-    setColumns((prev) =>
-      prev.map((col) => (col.id === colId ? { ...col, items: [...col.items, newItem] } : col))
-    );
-
-    setNewItemName('');
-    setNewItemLink('');
-    setAddingItemColId(null);
-    showToast('success', 'Sub-menu item added.');
   };
 
   const handleStartEditItem = (item: SubMenuColumnItem) => {
@@ -301,11 +255,128 @@ export default function MenuEditPage() {
     showToast('success', 'Item updated.');
   };
 
+  // ========================================================
+  // CATEGORY DRAWER HANDLERS (Select category for column)
+  // ========================================================
+  const handleOpenCategoryDrawer = (colId?: string) => {
+    setTargetColumnForCategory(colId || null);
+    setCategorySearch('');
+    setCategoryPage(1);
+    setShowCategoryDrawer(true);
+  };
+
+  const handleSelectCategory = (cat: ShopCategory) => {
+    const targetLink = `/products?category=${encodeURIComponent(cat.name)}`;
+    if (targetColumnForCategory) {
+      const existing = columns.find((col) => col.id === targetColumnForCategory);
+      const isSameCategory = existing?.categoryId === cat.id ||
+        (!existing?.categoryId && existing?.title.toLowerCase() === cat.name.toLowerCase());
+      if (columns.some((col) => col.id !== targetColumnForCategory && col.categoryId === cat.id)) {
+        showToast('danger', 'This category is already used by another column.');
+        return;
+      }
+      setColumns((prev) =>
+        prev.map((col) =>
+          col.id === targetColumnForCategory
+            ? { ...col, categoryId: cat.id, title: cat.name, link: targetLink, items: isSameCategory ? col.items : [] }
+            : col
+        )
+      );
+      showToast('success', isSameCategory ? `Column updated to "${cat.name}".` : `Category changed to "${cat.name}". Its selected products were cleared.`);
+    } else {
+      if (columns.length >= 3) {
+        showToast('danger', 'Maximum 3 columns allowed for mega-menu.');
+        setShowCategoryDrawer(false);
+        return;
+      }
+      const newCol: SubMenuColumn = {
+        id: `col-${Date.now()}`,
+        categoryId: cat.id,
+        title: cat.name,
+        link: targetLink,
+        items: [],
+      };
+      setColumns([...columns, newCol]);
+      showToast('success', `Added "${cat.name}" column.`);
+    }
+    setShowCategoryDrawer(false);
+  };
+
+  // ========================================================
+  // PRODUCT DRAWER HANDLERS (Select product for column item)
+  // ========================================================
+  const handleOpenProductDrawer = (colId: string, itemId?: string) => {
+    setTargetColumnForProduct(colId);
+    setTargetItemForProduct(itemId || null);
+    setProductSearch('');
+    setProductPage(1);
+
+    const col = columns.find((c) => c.id === colId);
+    const category = availableCategories.find((c) => c.id === col?.categoryId) || availableCategories.find((c) => c.name.toLowerCase() === col?.title.toLowerCase());
+    setProductCategoryFilter(category?.id || '');
+
+    setShowProductDrawer(true);
+  };
+
+  const handleSelectProduct = (prod: ProductItem) => {
+    if (!targetColumnForProduct) return;
+    const targetColumn = columns.find((col) => col.id === targetColumnForProduct);
+    if (!targetColumn) return;
+    const isDuplicate = targetColumn.items.some((item) =>
+      item.id !== targetItemForProduct &&
+      (item.productId === prod.id || (!item.productId && item.name === prod.title))
+    );
+    if (isDuplicate) {
+      showToast('danger', 'This product is already selected for this category.');
+      return;
+    }
+    if (!targetItemForProduct && targetColumn.items.length >= 5) {
+      showToast('danger', 'Each category can contain a maximum of 5 products.');
+      return;
+    }
+    const prodLink = prod.link || `/product-details?id=${prod.id}`;
+
+    if (targetItemForProduct) {
+      setColumns((prev) =>
+        prev.map((col) =>
+          col.id === targetColumnForProduct
+            ? {
+                ...col,
+                items: col.items.map((it) =>
+                  it.id === targetItemForProduct ? { ...it, productId: prod.id, name: prod.title, link: prodLink } : it
+                ),
+              }
+            : col
+        )
+      );
+      showToast('success', `Updated item to "${prod.title}".`);
+    } else {
+      const newItem: SubMenuColumnItem = {
+        id: `item-${Date.now()}`,
+        productId: prod.id,
+        name: prod.title,
+        link: prodLink,
+      };
+      setColumns((prev) =>
+        prev.map((col) => (col.id === targetColumnForProduct ? { ...col, items: [...col.items, newItem] } : col))
+      );
+      showToast('success', `Added "${prod.title}".`);
+    }
+
+    setShowProductDrawer(false);
+  };
+
   // Save Final Menu Configuration
   const handleSaveMenu = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       showToast('danger', 'Please enter a menu title.');
+      return;
+    }
+    const menuTitle = name.trim();
+    const wordCount = getWordCount(menuTitle);
+    if (wordCount < 2 || wordCount > 3 || menuTitle.length < 10 || menuTitle.length > 15) {
+      showToast('danger', 'Menu title must contain 2–3 words and 10–15 characters.');
       return;
     }
 
@@ -325,8 +396,7 @@ export default function MenuEditPage() {
           id: `menu-${Date.now()}`,
           name: name.trim(),
           link: link.trim() || '/products',
-          hasMegaMenu,
-          isHotDeal,
+          hasMegaMenu: badge ? false : hasMegaMenu,
           badge: badge.trim() || undefined,
           isActive,
           columns: hasMegaMenu ? columns : undefined,
@@ -340,8 +410,8 @@ export default function MenuEditPage() {
                 ...m,
                 name: name.trim(),
                 link: link.trim() || m.link,
-                hasMegaMenu,
-                isHotDeal,
+                hasMegaMenu: badge ? false : hasMegaMenu,
+                isHotDeal: undefined,
                 badge: badge.trim() || undefined,
                 isActive,
                 columns: hasMegaMenu ? columns : undefined,
@@ -351,30 +421,94 @@ export default function MenuEditPage() {
         );
       }
 
-      const res = await saveShopSettings({
-        ...settings,
+      const saveRes = await saveShopSettings({
+        categories: settings.categories,
         mainMenu: updatedMenu,
       });
 
-      if (res.success) {
-        showToast('success', 'Main menu and mega-menu settings saved successfully! Storefront updated.');
-        setTimeout(() => {
-          router.push('/dashboard/shop-settings');
-        }, 900);
+      if (saveRes.success) {
+        showToast('success', isNew ? 'Menu created successfully!' : 'Menu changes saved successfully!', 'Saved');
+        router.push('/dashboard/shop-settings');
       } else {
-        showToast('danger', res.message || 'Failed to save menu settings.');
+        showToast('danger', saveRes.message || 'Failed to save menu changes.');
       }
     } catch (err: any) {
-      showToast('danger', err.message || 'An error occurred while saving.');
+      showToast('danger', err.message || 'Error occurred while saving menu.');
     } finally {
       setIsSaving(false);
     }
   };
 
+  const handleBadgeChange = (nextBadge: string) => {
+    setBadge(nextBadge);
+    if (nextBadge) {
+      setHasMegaMenu(false);
+    } else {
+      setHasMegaMenu(true);
+      setLink('/products');
+    }
+    if (BADGE_DESTINATIONS[nextBadge]) {
+      setLink(BADGE_DESTINATIONS[nextBadge]);
+    }
+  };
+
+  const destinationFilteredProducts = availableProducts.filter((product) => {
+    if (link === '/products?filter=new-arrival') return product.isNewArrival === true;
+    if (link === '/products?filter=special-offers') return product.isSpecialOffer === true;
+    if (link === '/products?filter=most-searched') return product.isMostSearched === true;
+    return true;
+  });
+
+  const productBelongsToCategory = (product: ProductItem, category: ShopCategory) =>
+    product.categoryId === category.id || product.category?.toLowerCase() === category.name.toLowerCase();
+
+  // All Products exposes every category. Other destinations expose only categories with matching products.
+  const destinationCategories = link === '/products'
+    ? availableCategories
+    : availableCategories.filter((category) =>
+      destinationFilteredProducts.some((product) => productBelongsToCategory(product, category))
+    );
+
+  // Filtering for Category Drawer
+  const filteredCategories = destinationCategories.filter((c) =>
+    c.name.toLowerCase().includes(categorySearch.toLowerCase())
+  );
+  const catItemsPerPage = 10;
+  const totalCatPages = Math.ceil(filteredCategories.length / catItemsPerPage) || 1;
+  const currentCategories = filteredCategories.slice(
+    (categoryPage - 1) * catItemsPerPage,
+    categoryPage * catItemsPerPage
+  );
+
+  // Filtering for Product Drawer
+  const selectedProductCategory = availableCategories.find((category) => category.id === productCategoryFilter);
+  const filteredProducts = destinationFilteredProducts.filter((p) => {
+    const matchesSearch =
+      p.title.toLowerCase().includes(productSearch.toLowerCase()) ||
+      (p.category && p.category.toLowerCase().includes(productSearch.toLowerCase())) ||
+      (p.standard && p.standard.toLowerCase().includes(productSearch.toLowerCase()));
+
+    const matchesCategory = !!selectedProductCategory && productBelongsToCategory(p, selectedProductCategory);
+
+    return matchesSearch && matchesCategory;
+  });
+  const prodItemsPerPage = 10;
+  const totalProdPages = Math.ceil(filteredProducts.length / prodItemsPerPage) || 1;
+  const currentProducts = filteredProducts.slice(
+    (productPage - 1) * prodItemsPerPage,
+    productPage * prodItemsPerPage
+  );
+
+  const activeColumnForProduct = columns.find((c) => c.id === targetColumnForProduct);
+  const selectedProductIds = new Set(
+    (activeColumnForProduct?.items || [])
+      .filter((item) => item.id !== targetItemForProduct)
+      .map((item) => item.productId || availableProducts.find((product) => product.title === item.name)?.id)
+      .filter((id): id is string => Boolean(id))
+  );
+
   return (
     <>
-
-      {/* Main Full Width White Card (Classic White Look) */}
       <div
         className="card border-0 mb-4"
         style={{
@@ -385,7 +519,6 @@ export default function MenuEditPage() {
         }}
       >
         <div className="card-body p-4 p-md-4">
-
           {/* Breadcrumb & Navigation Bar */}
           <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4 pb-3 border-bottom" style={{ borderColor: '#e2e8f0' }}>
             <div>
@@ -406,7 +539,7 @@ export default function MenuEditPage() {
                 {isNew ? 'Create Main Navigation Menu' : `Configure Menu & Sub-Menu: ${name}`}
               </h2>
               <p className="text-muted fs-14 mb-0" style={{ color: '#64748b' }}>
-                Manage mega menu columns (Col 1, 2, 3), add/edit/delete sub-items, and upload promotional banner images.
+                Manage mega menu columns, select categories and products from catalog, and configure promo banner.
               </p>
             </div>
 
@@ -435,8 +568,7 @@ export default function MenuEditPage() {
             </div>
           ) : (
             <form onSubmit={handleSaveMenu}>
-              
-              {/* Section 1: Basic Menu Configuration (White Card, Classic Look) */}
+              {/* Section 1: Basic Menu Configuration */}
               <div
                 className="p-4 mb-4 rounded-3"
                 style={{
@@ -463,59 +595,84 @@ export default function MenuEditPage() {
                     <label className="form-label fs-13 fw-semibold text-dark mb-2">
                       Menu Title <span className="text-danger">*</span>
                     </label>
-                    <input
-                      type="text"
-                      className="form-control fs-14"
-                      placeholder="e.g. Gift Products, Accessories"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
+                      <input
+                        type="text"
+                        className="form-control fs-14"
+                        placeholder="e.g. Gift Products, Accessories"
+                        value={name}
+                        onChange={(e) => {
+                          const nextName = e.target.value;
+                          if (getWordCount(nextName) <= 3) {
+                            setName(nextName);
+                          }
+                        }}
+                        minLength={10}
+                        maxLength={15}
+                        required
                       style={{
                         borderRadius: '8px',
                         padding: '10px 16px',
                         borderColor: '#cbd5e1',
                         height: '46px',
                       }}
-                    />
+                      />
+                    <div className={`fs-11 mt-1 ${getWordCount(name) >= 2 && getWordCount(name) <= 3 && name.trim().length >= 10 ? 'text-success' : 'text-muted'}`}>
+                      Use 2–3 words and 10–15 characters ({getWordCount(name)} words, {name.trim().length}/15 characters).
+                    </div>
                   </div>
 
-                  <div className="col-md-4">
-                    <label className="form-label fs-13 fw-semibold text-dark mb-2">
-                      Target Destination URL <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control fs-14"
-                      placeholder="e.g. /products or /offer"
-                      value={link}
-                      onChange={(e) => setLink(e.target.value)}
-                      required
-                      style={{
-                        borderRadius: '8px',
-                        padding: '10px 16px',
-                        borderColor: '#cbd5e1',
-                        height: '46px',
-                      }}
-                    />
+                  {/* Target Destination URL (system store pages only) */}
+                  <div className="col-md-5">
+                    <div className="d-flex align-items-center mb-2">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-0">
+                        Target Destination URL <span className="text-danger">*</span>
+                      </label>
+                    </div>
+
+                    <div className="input-group">
+                      <select
+                        className="form-select fs-13 fw-medium"
+                        value={['/products', '/products?filter=new-arrival', '/products?filter=special-offers', '/products?filter=most-searched'].includes(link) ? link : '/products'}
+                        onChange={(e) => setLink(e.target.value)}
+                        style={{
+                          borderRadius: '8px',
+                          borderColor: '#cbd5e1',
+                          height: '46px',
+                          maxWidth: '185px',
+                          backgroundColor: '#f8fafc',
+                          fontSize: '13px',
+                        }}
+                      >
+                        <optgroup label="System Store Pages">
+                          <option value="/products">All Products</option>
+                          <option value="/products?filter=new-arrival">New Arrivals</option>
+                          <option value="/products?filter=special-offers">Offer Products</option>
+                          <option value="/products?filter=most-searched">Most Searched</option>
+                        </optgroup>
+                      </select>
+                    </div>
                   </div>
 
-                  <div className="col-md-4">
+                  <div className="col-md-3">
                     <label className="form-label fs-13 fw-semibold text-dark mb-2">
                       Badge Text (Optional)
                     </label>
-                    <input
-                      type="text"
-                      className="form-control fs-14"
-                      placeholder="e.g. HOT, NEW, 20% OFF"
+                    <select
+                      className="form-select fs-14"
                       value={badge}
-                      onChange={(e) => setBadge(e.target.value)}
+                      onChange={(e) => handleBadgeChange(e.target.value)}
                       style={{
                         borderRadius: '8px',
                         padding: '10px 16px',
                         borderColor: '#cbd5e1',
                         height: '46px',
                       }}
-                    />
+                    >
+                      <option value="">No Badge</option>
+                      <option value="NEW">New</option>
+                      <option value="OFFER">Offer</option>
+                      <option value="LIMITED SALE">Limited Sale</option>
+                    </select>
                   </div>
 
                   {/* 1. Enable Mega Menu */}
@@ -544,16 +701,17 @@ export default function MenuEditPage() {
                             {hasMegaMenu ? 'Enabled' : 'Disabled'}
                           </span>
                         </div>
-                        <p className="text-muted fs-12 mb-0">Expandable 3-column dropdown & banner</p>
+                        <p className="text-muted fs-12 mb-0">{badge ? 'Disabled while a navigation badge is active' : 'Expandable 3-column dropdown & banner'}</p>
                       </div>
                       <div className="form-check form-switch m-0 flex-shrink-0">
                         <input
                           className="form-check-input"
                           type="checkbox"
                           checked={hasMegaMenu}
+                          disabled={Boolean(badge)}
                           onChange={(e) => setHasMegaMenu(e.target.checked)}
                           style={{
-                            cursor: 'pointer',
+                            cursor: badge ? 'not-allowed' : 'pointer',
                             width: '2.8em',
                             height: '1.4em',
                             backgroundColor: hasMegaMenu ? '#16a34a' : '#cbd5e1',
@@ -564,53 +722,7 @@ export default function MenuEditPage() {
                     </div>
                   </div>
 
-                  {/* 2. Hot Deal Highlight */}
-                  <div className="col-md-4 pt-1">
-                    <div
-                      className="d-flex align-items-center justify-content-between p-3.5 p-md-4 rounded-3 border h-100"
-                      style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0', boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)' }}
-                    >
-                      <div className="pe-3">
-                        <div className="d-flex align-items-center gap-2 mb-1">
-                          <span
-                            className="d-inline-block rounded-circle"
-                            style={{ width: '8px', height: '8px', backgroundColor: isHotDeal ? '#f97316' : '#94a3b8' }}
-                          ></span>
-                          <span className="fs-14 fw-bold text-dark">Hot Deal Highlight</span>
-                          <span
-                            className="badge fs-11 fw-semibold ms-1"
-                            style={{
-                              padding: '3px 8px',
-                              borderRadius: '4px',
-                              backgroundColor: isHotDeal ? '#fff7ed' : '#f1f5f9',
-                              color: isHotDeal ? '#ea580c' : '#64748b',
-                              border: isHotDeal ? '1px solid #fed7aa' : '1px solid #e2e8f0',
-                            }}
-                          >
-                            {isHotDeal ? 'Hot Deal' : 'Standard'}
-                          </span>
-                        </div>
-                        <p className="text-muted fs-12 mb-0">Orange flame icon & highlight in nav</p>
-                      </div>
-                      <div className="form-check form-switch m-0 flex-shrink-0">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          checked={isHotDeal}
-                          onChange={(e) => setIsHotDeal(e.target.checked)}
-                          style={{
-                            cursor: 'pointer',
-                            width: '2.8em',
-                            height: '1.4em',
-                            backgroundColor: isHotDeal ? '#f97316' : '#cbd5e1',
-                            borderColor: isHotDeal ? '#f97316' : '#cbd5e1',
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 3. Active Status */}
+                  {/* Active Status */}
                   <div className="col-md-4 pt-1">
                     <div
                       className="d-flex align-items-center justify-content-between p-3.5 p-md-4 rounded-3 border h-100"
@@ -658,11 +770,10 @@ export default function MenuEditPage() {
                 </div>
               </div>
 
-              {/* Section 2: Mega Menu Columns & Promotional Banner (when Mega Menu is active) */}
+              {/* Section 2: Mega Menu Columns & Promotional Banner */}
               {hasMegaMenu && (
                 <div className="row g-4">
-                  
-                  {/* Left: Columns Section (Col 1, Col 2, Col 3) (White Background & Classic Look) */}
+                  {/* Left: Columns Section (Col 1, Col 2, Col 3) */}
                   <div className="col-lg-7">
                     <div
                       className="p-4 rounded-3 h-100"
@@ -672,7 +783,7 @@ export default function MenuEditPage() {
                         boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
                       }}
                     >
-                      <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style={{ borderColor: '#f1f5f9' }}>
+                      <div className="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom" style={{ borderColor: '#f1f5f9' }}>
                         <div className="d-flex align-items-center" style={{ gap: '16px' }}>
                           <span
                             className="rounded-3 d-flex align-items-center justify-content-center text-dark flex-shrink-0"
@@ -682,7 +793,9 @@ export default function MenuEditPage() {
                           </span>
                           <div>
                             <h4 className="fw-bold text-dark fs-15 mb-0">Sub-Menu Columns</h4>
-                            <p className="text-muted fs-12 mb-0" style={{ marginTop: '2px' }}>Max 3 columns. Each column contains a group of links.</p>
+                            <p className="text-muted fs-12 mb-0" style={{ marginTop: '2px' }}>
+                              Select categories for each column, then pick products from that category.
+                            </p>
                           </div>
                         </div>
                         <span
@@ -693,12 +806,37 @@ export default function MenuEditPage() {
                         </span>
                       </div>
 
+                      {/* Empty state when no columns exist */}
+                      {columns.length === 0 && (
+                        <div
+                          className="text-center py-5 rounded-3 border border-dashed mb-4"
+                          style={{ borderColor: '#cbd5e1', backgroundColor: '#f8fafc', padding: '40px 20px' }}
+                        >
+                          <div
+                            className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3 text-muted"
+                            style={{ width: '56px', height: '56px', backgroundColor: '#f1f5f9' }}
+                          >
+                            <iconify-icon icon="solar:folder-with-files-bold" class="fs-28 text-muted"></iconify-icon>
+                          </div>
+                          <h6 className="fw-bold text-dark mb-1">No Sub-Menu Columns Configured</h6>
+                          <p className="text-muted fs-13 mb-3" style={{ maxWidth: '420px', margin: '0 auto' }}>
+                            Add up to 3 columns representing featured categories. Click below to pick from your category catalog.
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCategoryDrawer()}
+                            className="btn btn-dark btn-sm d-inline-flex align-items-center gap-2 px-3 py-2 text-white"
+                            style={{ borderRadius: '7px', fontSize: '13px' }}
+                          >
+                            <iconify-icon icon="solar:folder-with-files-bold" class="fs-16"></iconify-icon>
+                            <span>+ Select Category for Column 1</span>
+                          </button>
+                        </div>
+                      )}
+
                       {/* Columns List */}
                       <div className="d-flex flex-column gap-3 mb-4">
                         {columns.map((col, cIdx) => {
-                          const isEditingCol = editingColId === col.id;
-                          const isAddingItem = addingItemColId === col.id;
-
                           return (
                             <div
                               key={col.id}
@@ -708,477 +846,219 @@ export default function MenuEditPage() {
                                 boxShadow: '0 2px 5px rgba(0, 0, 0, 0.02)',
                               }}
                             >
-                              
-                              {/* Column Header */}
-                              {isEditingCol ? (
-                                <div
-                                  className="p-4 bg-white rounded-3 border mb-3.5 shadow-sm"
-                                  style={{
-                                    borderColor: '#cbd5e1',
-                                    backgroundColor: '#ffffff',
-                                  }}
-                                >
-                                  <div className="d-flex align-items-center justify-content-between mb-3 pb-2.5 border-bottom" style={{ borderColor: '#f1f5f9' }}>
-                                    <div className="d-flex align-items-center gap-2">
-                                      <span className="badge bg-dark text-white fs-11 fw-bold" style={{ padding: '5px 10px', borderRadius: '6px' }}>
-                                        Editing
-                                      </span>
-                                      <h6 className="fs-14 fw-bold text-dark mb-0">Edit Column #{cIdx + 1}: {col.title}</h6>
-                                    </div>
-                                    <span className="text-muted fs-12">Update column title &amp; navigation target</span>
-                                  </div>
-                                  <div className="row g-3 align-items-end">
-                                    <div className="col-md-5">
-                                      <label className="form-label fs-13 fw-semibold text-dark mb-2">
-                                        Column Title <span className="text-danger">*</span>
-                                      </label>
-                                      <input
-                                        type="text"
-                                        className="form-control fs-13"
-                                        value={editColTitle}
-                                        onChange={(e) => setEditColTitle(e.target.value)}
-                                        placeholder="e.g. Corporate Gifts"
-                                        style={{ height: '44px', borderRadius: '7px', borderColor: '#cbd5e1', padding: '10px 14px' }}
-                                      />
-                                    </div>
-                                    <div className="col-md-5">
-                                      <label className="form-label fs-13 fw-semibold text-dark mb-2">
-                                        Header Target Link <span className="text-danger">*</span>
-                                      </label>
-                                      <input
-                                        type="text"
-                                        className="form-control fs-13"
-                                        value={editColLink}
-                                        onChange={(e) => setEditColLink(e.target.value)}
-                                        placeholder="e.g. /products"
-                                        style={{ height: '44px', borderRadius: '7px', borderColor: '#cbd5e1', padding: '10px 14px' }}
-                                      />
-                                    </div>
-                                    <div className="col-md-2 d-flex gap-2 justify-content-end align-items-center pb-1">
-                                      <button
-                                        type="button"
-                                        className="btn btn-sm d-flex align-items-center justify-content-center"
-                                        onClick={() => handleSaveEditColumn(col.id)}
-                                        title="Save Title"
-                                        style={{
-                                          borderRadius: '7px',
-                                          width: '40px',
-                                          height: '40px',
-                                          backgroundColor: '#16a34a',
-                                          borderColor: '#16a34a',
-                                          color: '#ffffff',
-                                          boxShadow: '0 2px 4px rgba(22, 163, 74, 0.25)',
-                                        }}
-                                      >
-                                        <iconify-icon icon="solar:check-circle-bold" class="fs-20 text-white"></iconify-icon>
-                                      </button>
-                                      <button
-                                        type="button"
-                                        className="btn btn-sm d-flex align-items-center justify-content-center"
-                                        onClick={() => setEditingColId(null)}
-                                        title="Cancel"
-                                        style={{
-                                          borderRadius: '7px',
-                                          width: '40px',
-                                          height: '40px',
-                                          backgroundColor: '#dc2626',
-                                          borderColor: '#dc2626',
-                                          color: '#ffffff',
-                                          boxShadow: '0 2px 4px rgba(220, 38, 38, 0.25)',
-                                        }}
-                                      >
-                                        <iconify-icon icon="solar:close-circle-bold" class="fs-20 text-white"></iconify-icon>
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div
-                                  className="d-flex align-items-center justify-content-between p-3 rounded-3 mb-3 border"
-                                  style={{
-                                    backgroundColor: '#f8fafc',
-                                    borderColor: '#e2e8f0',
-                                  }}
-                                >
-                                  <div className="d-flex align-items-center gap-3">
+                              {/* Category-only column header */}
+                              <div className="d-flex align-items-center justify-content-between mb-3 pb-2.5 border-bottom" style={{ borderColor: '#f1f5f9' }}>
+                                  <div className="d-flex align-items-center gap-2.5">
                                     <span
-                                      className="badge bg-dark text-white fs-12 fw-bold"
-                                      style={{ padding: '6px 11px', borderRadius: '6px' }}
+                                      className="badge bg-dark text-white fs-11 fw-bold"
+                                      style={{ padding: '6px 12px', borderRadius: '6px', letterSpacing: '0.3px' }}
                                     >
                                       Col {cIdx + 1}
                                     </span>
                                     <div>
                                       <div className="d-flex align-items-center gap-2">
-                                        <span className="fs-14 fw-bold text-dark">{col.title}</span>
-                                        <span className="badge bg-white text-secondary border fs-11 fw-normal" style={{ padding: '3px 8px', borderRadius: '5px' }}>
-                                          {col.items.length} sub-items
+                                        <h5 className="fs-15 fw-bold text-dark mb-0">{col.title}</h5>
+                                        <span className="badge bg-light text-secondary border fs-11 fw-normal">
+                                          {col.items.length} {col.items.length === 1 ? 'sub-item' : 'sub-items'}
                                         </span>
                                       </div>
-                                      <div className="text-muted fs-12 mt-0.5">{col.link}</div>
+                                      <span className="text-muted fs-11 font-monospace">{col.link}</span>
                                     </div>
                                   </div>
 
-                                  {/* Actions: Edit always yellow background icon-only, Delete light red icon-only on exact same vertical line */}
-                                  <div className="d-flex align-items-center gap-2 flex-shrink-0">
+                                  <div className="d-flex align-items-center gap-1.5">
                                     <button
                                       type="button"
-                                      className="btn btn-sm d-flex align-items-center justify-content-center"
-                                      onClick={() => handleStartEditColumn(col)}
-                                      title="Edit Column Title"
-                                      style={{
-                                        borderRadius: '7px',
-                                        width: '34px',
-                                        height: '34px',
-                                        backgroundColor: '#fef3c7',
-                                        color: '#b45309',
-                                        border: '1px solid #fde68a',
-                                        transition: 'all 0.15s ease',
-                                      }}
+                                      className="btn btn-sm btn-light border text-primary d-flex align-items-center gap-1 px-2.5 py-1"
+                                      style={{ borderRadius: '6px', fontSize: '12px' }}
+                                      onClick={() => handleOpenCategoryDrawer(col.id)}
+                                      title="Select/Change Category"
                                     >
-                                      <iconify-icon icon="solar:pen-new-square-linear" class="fs-16"></iconify-icon>
+                                      <iconify-icon icon="solar:folder-with-files-bold" class="fs-14"></iconify-icon>
+                                      <span>Category</span>
                                     </button>
-
                                     <button
                                       type="button"
-                                      className="btn btn-sm d-flex align-items-center justify-content-center text-danger"
-                                      onClick={() => setDeleteConfirmTarget({ type: 'column', colId: col.id, name: col.title })}
+                                      className="btn btn-sm btn-light border text-danger d-flex align-items-center justify-content-center"
+                                      style={{ width: '32px', height: '32px', borderRadius: '6px' }}
+                                      onClick={() =>
+                                        setDeleteConfirmTarget({
+                                          type: 'column',
+                                          colId: col.id,
+                                          name: col.title,
+                                        })
+                                      }
                                       title="Delete Column"
-                                      style={{
-                                        borderRadius: '7px',
-                                        width: '34px',
-                                        height: '34px',
-                                        backgroundColor: '#fee2e2',
-                                        color: '#dc2626',
-                                        border: '1px solid #fecaca',
-                                        transition: 'all 0.15s ease',
-                                      }}
                                     >
-                                      <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-16"></iconify-icon>
+                                      <iconify-icon icon="solar:trash-bin-trash-linear" class="fs-15"></iconify-icon>
                                     </button>
                                   </div>
-                                </div>
-                              )}
+                              </div>
 
-                              {/* Items Inside Column */}
-                              <div className="d-flex flex-column gap-2.5 mb-3">
-                                {col.items.length === 0 ? (
-                                  <div className="text-muted fs-13 text-center py-3.5 bg-white rounded-3 border" style={{ borderColor: '#e2e8f0' }}>
-                                    No sub-menu links yet. Add one below.
+                              {/* Column Items List */}
+                              <div className="d-flex flex-column gap-2 mb-2">
+                                {col.items.length === 0 && (
+                                  <div className="p-3 rounded-2 text-center border border-dashed mb-1" style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}>
+                                    <span className="text-muted fs-12">No products in this category yet. Use the Add Product button below.</span>
                                   </div>
-                                ) : (
-                                  col.items.map((it, itIdx) => {
-                                    const isEditingThisItem = editingItemId === it.id;
+                                )}
 
-                                    if (isEditingThisItem) {
-                                      return (
-                                        <div
-                                          key={it.id}
-                                          className="p-3.5 p-md-4 bg-white rounded-3 border shadow-sm"
-                                          style={{ borderColor: '#cbd5e1' }}
-                                        >
-                                          <div className="d-flex align-items-center justify-content-between mb-2.5 pb-2 border-bottom" style={{ borderColor: '#f1f5f9' }}>
-                                            <div className="d-flex align-items-center gap-2">
-                                              <span className="badge bg-light text-secondary border fs-11 fw-normal" style={{ padding: '3px 8px', borderRadius: '4px' }}>
-                                                Editing Link #{itIdx + 1}
-                                              </span>
-                                              <h6 className="fs-13 fw-bold text-dark mb-0">{it.name}</h6>
-                                            </div>
-                                            <span className="text-muted fs-12">Edit name &amp; destination</span>
-                                          </div>
-                                          <div className="row g-3 align-items-end">
-                                            <div className="col-md-5">
-                                              <label className="form-label fs-13 fw-semibold text-dark mb-1.5">
-                                                Item Title <span className="text-danger">*</span>
-                                              </label>
-                                              <input
-                                                type="text"
-                                                className="form-control fs-13"
-                                                value={editItemName}
-                                                onChange={(e) => setEditItemName(e.target.value)}
-                                                placeholder="e.g. Executive Pens"
-                                                style={{ height: '42px', borderRadius: '7px', borderColor: '#cbd5e1', padding: '10px 14px' }}
-                                              />
-                                            </div>
-                                            <div className="col-md-5">
-                                              <label className="form-label fs-13 fw-semibold text-dark mb-1.5">
-                                                Target Link <span className="text-danger">*</span>
-                                              </label>
-                                              <input
-                                                type="text"
-                                                className="form-control fs-13"
-                                                value={editItemLink}
-                                                onChange={(e) => setEditItemLink(e.target.value)}
-                                                placeholder="e.g. /products"
-                                                style={{ height: '42px', borderRadius: '7px', borderColor: '#cbd5e1', padding: '10px 14px' }}
-                                              />
-                                            </div>
-                                            <div className="col-md-2 d-flex gap-2 justify-content-end align-items-center pb-1">
-                                              <button
-                                                type="button"
-                                                className="btn btn-sm d-flex align-items-center justify-content-center"
-                                                onClick={() => handleSaveEditItem(col.id, it.id)}
-                                                title="Save Item"
-                                                style={{
-                                                  borderRadius: '7px',
-                                                  width: '38px',
-                                                  height: '38px',
-                                                  backgroundColor: '#16a34a',
-                                                  borderColor: '#16a34a',
-                                                  color: '#ffffff',
-                                                  boxShadow: '0 1px 2px rgba(22, 163, 74, 0.2)',
-                                                }}
-                                              >
-                                                <iconify-icon icon="solar:check-circle-bold" class="fs-18 text-white"></iconify-icon>
-                                              </button>
-                                              <button
-                                                type="button"
-                                                className="btn btn-sm d-flex align-items-center justify-content-center"
-                                                onClick={() => setEditingItemId(null)}
-                                                title="Cancel"
-                                                style={{
-                                                  borderRadius: '7px',
-                                                  width: '38px',
-                                                  height: '38px',
-                                                  backgroundColor: '#dc2626',
-                                                  borderColor: '#dc2626',
-                                                  color: '#ffffff',
-                                                  boxShadow: '0 1px 2px rgba(220, 38, 38, 0.2)',
-                                                }}
-                                              >
-                                                <iconify-icon icon="solar:close-circle-bold" class="fs-18 text-white"></iconify-icon>
-                                              </button>
-                                            </div>
-                                          </div>
-                                        </div>
-                                      );
-                                    }
+                                {col.items.map((item, iIdx) => {
+                                  const isEditingItem = editingItemId === item.id;
 
+                                  if (isEditingItem) {
                                     return (
                                       <div
-                                        key={it.id}
-                                        className="d-flex align-items-center justify-content-between p-3 rounded-3 bg-white border"
-                                        style={{ borderColor: '#e2e8f0', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)', transition: 'all 0.15s ease' }}
+                                        key={item.id}
+                                        className="p-3 bg-white rounded-3 border mb-2 shadow-sm"
+                                        style={{ borderColor: '#cbd5e1' }}
                                       >
-                                        <div className="d-flex align-items-center gap-3">
-                                          <span
-                                            className="rounded-circle text-muted border d-flex align-items-center justify-content-center fs-12 fw-bold flex-shrink-0"
-                                            style={{ width: '28px', height: '28px', backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
-                                          >
-                                            {itIdx + 1}
+                                        <div className="d-flex align-items-center justify-content-between mb-2">
+                                          <span className="badge bg-light text-dark border fs-11 fw-semibold">
+                                            Editing Item #{iIdx + 1}
                                           </span>
-                                          <div>
-                                            <div className="fs-14 fw-bold text-dark">{it.name}</div>
-                                            <div className="text-muted fs-12 mt-0.5">{it.link}</div>
-                                          </div>
+                                          <button
+                                            type="button"
+                                            className="btn btn-sm btn-light border fs-11 d-flex align-items-center gap-1"
+                                            onClick={() => handleOpenProductDrawer(col.id, item.id)}
+                                          >
+                                            <iconify-icon icon="solar:box-minimalistic-bold" class="fs-13 text-primary"></iconify-icon>
+                                            <span>Pick from Catalog</span>
+                                          </button>
                                         </div>
-
-                                        {/* Actions: Edit always yellow background icon-only, Delete light red icon-only on exact same level */}
-                                        <div className="d-flex align-items-center gap-2 flex-shrink-0">
-                                          <button
-                                            type="button"
-                                            className="btn btn-sm d-flex align-items-center justify-content-center"
-                                            onClick={() => handleStartEditItem(it)}
-                                            title="Edit Item"
-                                            style={{
-                                              borderRadius: '7px',
-                                              width: '34px',
-                                              height: '34px',
-                                              backgroundColor: '#fef3c7',
-                                              color: '#b45309',
-                                              border: '1px solid #fde68a',
-                                              transition: 'all 0.15s ease',
-                                            }}
-                                          >
-                                            <iconify-icon icon="solar:pen-new-square-linear" class="fs-16"></iconify-icon>
-                                          </button>
-                                          <button
-                                            type="button"
-                                            className="btn btn-sm d-flex align-items-center justify-content-center text-danger"
-                                            onClick={() => setDeleteConfirmTarget({ type: 'item', colId: col.id, itemId: it.id, name: it.name })}
-                                            title="Delete Item"
-                                            style={{
-                                              borderRadius: '7px',
-                                              width: '34px',
-                                              height: '34px',
-                                              backgroundColor: '#fee2e2',
-                                              color: '#dc2626',
-                                              border: '1px solid #fecaca',
-                                              transition: 'all 0.15s ease',
-                                            }}
-                                          >
-                                            <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-16"></iconify-icon>
-                                          </button>
+                                        <div className="row g-2 align-items-center">
+                                          <div className="col-md-5">
+                                            <input
+                                              type="text"
+                                              className="form-control form-control-sm fs-13"
+                                              value={editItemName}
+                                              onChange={(e) => setEditItemName(e.target.value)}
+                                              placeholder="Item Title"
+                                              style={{ height: '38px', borderRadius: '6px', borderColor: '#cbd5e1' }}
+                                            />
+                                          </div>
+                                          <div className="col-md-5">
+                                            <input
+                                              type="text"
+                                              className="form-control form-control-sm fs-13"
+                                              value={editItemLink}
+                                              onChange={(e) => setEditItemLink(e.target.value)}
+                                              placeholder="Target Link"
+                                              style={{ height: '38px', borderRadius: '6px', borderColor: '#cbd5e1' }}
+                                            />
+                                          </div>
+                                          <div className="col-md-2 d-flex gap-1.5 justify-content-end">
+                                            <button
+                                              type="button"
+                                              className="btn btn-sm text-white d-flex align-items-center justify-content-center"
+                                              style={{ width: '36px', height: '36px', borderRadius: '6px', backgroundColor: '#0f172a' }}
+                                              onClick={() => handleSaveEditItem(col.id, item.id)}
+                                              title="Save"
+                                            >
+                                              <iconify-icon icon="solar:check-read-bold" class="fs-16"></iconify-icon>
+                                            </button>
+                                            <button
+                                              type="button"
+                                              className="btn btn-sm btn-light border d-flex align-items-center justify-content-center"
+                                              style={{ width: '36px', height: '36px', borderRadius: '6px', color: '#64748b' }}
+                                              onClick={() => setEditingItemId(null)}
+                                              title="Cancel"
+                                            >
+                                              <iconify-icon icon="solar:close-circle-linear" class="fs-16"></iconify-icon>
+                                            </button>
+                                          </div>
                                         </div>
                                       </div>
                                     );
-                                  })
-                                )}
+                                  }
+
+                                  return (
+                                    <div
+                                      key={item.id}
+                                      className="d-flex align-items-center justify-content-between p-2.5 rounded-2 border bg-white"
+                                      style={{ borderColor: '#f1f5f9' }}
+                                    >
+                                      <div className="d-flex align-items-center gap-2">
+                                        <span
+                                          className="rounded-circle d-flex align-items-center justify-content-center text-muted"
+                                          style={{ width: '22px', height: '22px', backgroundColor: '#f8fafc', fontSize: '11px', border: '1px solid #e2e8f0' }}
+                                        >
+                                          {iIdx + 1}
+                                        </span>
+                                        <div>
+                                          <span className="fs-13 fw-semibold text-dark d-block" style={{ lineHeight: '1.3' }}>
+                                            {item.name}
+                                          </span>
+                                          <span className="text-muted fs-11 font-monospace">{item.link}</span>
+                                        </div>
+                                      </div>
+
+                                      <div className="d-flex align-items-center gap-1">
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm btn-icon text-warning p-1"
+                                          onClick={() => handleOpenProductDrawer(col.id, item.id)}
+                                          title="Edit Item"
+                                        >
+                                          <iconify-icon icon="solar:pen-linear" class="fs-14"></iconify-icon>
+                                        </button>
+                                        <button
+                                          type="button"
+                                          className="btn btn-sm btn-icon text-danger p-1"
+                                          onClick={() =>
+                                            setDeleteConfirmTarget({
+                                              type: 'item',
+                                              colId: col.id,
+                                              itemId: item.id,
+                                              name: item.name,
+                                            })
+                                          }
+                                          title="Delete Item"
+                                        >
+                                          <iconify-icon icon="solar:trash-bin-trash-linear" class="fs-14"></iconify-icon>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
 
-                              {/* Add Item Form in this Column */}
-                              {isAddingItem ? (
-                                <div className="p-3.5 p-md-4 bg-white rounded-3 border border-dashed border-2 mt-3" style={{ borderColor: '#0f172a' }}>
-                                  <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style={{ borderColor: '#f1f5f9' }}>
-                                    <h6 className="fs-13 fw-bold text-dark mb-0">Add Item to &quot;{col.title}&quot;</h6>
-                                    <span className="text-muted fs-12">New link entry</span>
-                                  </div>
-                                  <div className="row g-3 mb-3">
-                                    <div className="col-md-6">
-                                      <label className="form-label fs-12 fw-semibold text-dark mb-1">Item Title <span className="text-danger">*</span></label>
-                                      <input
-                                        type="text"
-                                        className="form-control fs-13"
-                                        placeholder="e.g. Executive Pens"
-                                        value={newItemName}
-                                        onChange={(e) => setNewItemName(e.target.value)}
-                                        style={{ height: '42px', borderRadius: '7px', borderColor: '#cbd5e1' }}
-                                      />
-                                    </div>
-                                    <div className="col-md-6">
-                                      <label className="form-label fs-12 fw-semibold text-dark mb-1">Target URL <span className="text-danger">*</span></label>
-                                      <input
-                                        type="text"
-                                        className="form-control fs-13"
-                                        placeholder="e.g. /products?cat=pens"
-                                        value={newItemLink}
-                                        onChange={(e) => setNewItemLink(e.target.value)}
-                                        style={{ height: '42px', borderRadius: '7px', borderColor: '#cbd5e1' }}
-                                      />
-                                    </div>
-                                  </div>
-                                  <div className="d-flex align-items-center gap-2.5">
-                                    <button
-                                      type="button"
-                                      className="btn btn-sm fs-13 px-4 py-2 fw-semibold text-white"
-                                      style={{ backgroundColor: '#0f172a', borderRadius: '7px' }}
-                                      onClick={() => handleAddItemToCol(col.id)}
-                                    >
-                                      Add Item
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className="btn btn-sm btn-light border fs-13 px-3 py-2"
-                                      style={{ borderRadius: '7px', borderColor: '#d1d5db' }}
-                                      onClick={() => {
-                                        setAddingItemColId(null);
-                                        setNewItemName('');
-                                        setNewItemLink('');
-                                      }}
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <button
-                                  type="button"
-                                  className="btn btn-sm d-flex align-items-center justify-content-center gap-2 w-100 py-2.5 mt-2 fs-13 fw-semibold text-dark"
-                                  style={{
-                                    borderRadius: '7px',
-                                    border: '1.5px dashed #cbd5e1',
-                                    backgroundColor: '#ffffff',
-                                    transition: 'all 0.2s ease',
-                                  }}
-                                  onClick={() => {
-                                    setAddingItemColId(col.id);
-                                    setNewItemName('');
-                                    setNewItemLink('');
-                                  }}
-                                >
-                                  <iconify-icon icon="solar:add-circle-bold" class="fs-17"></iconify-icon>
-                                  <span>+ Add Item to &quot;{col.title}&quot;</span>
-                                </button>
-                              )}
+                              {/* Products are always chosen from the selected category. */}
+                              <div className="d-flex align-items-center gap-2 mt-2">
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-dark d-flex align-items-center justify-content-center gap-1.5 flex-grow-1 py-2 text-white"
+                                    style={{ borderRadius: '7px', fontSize: '12.5px' }}
+                                    onClick={() => handleOpenProductDrawer(col.id)}
+                                    disabled={col.items.length >= 5}
+                                  >
+                                    <iconify-icon icon="solar:box-minimalistic-bold" class="fs-15"></iconify-icon>
+                                    <span>{col.items.length >= 5 ? 'Maximum 5 Products Selected' : `+ Add Product (${col.items.length}/5)`}</span>
+                                  </button>
+                              </div>
                             </div>
                           );
                         })}
                       </div>
 
-                      {/* Add Column Button / Form */}
+                      {/* Add Column Options */}
                       {columns.length < 3 ? (
-                        showAddColumn ? (
-                          <div className="p-4 bg-white rounded-3 border border-dashed border-2" style={{ borderColor: '#0f172a' }}>
-                            <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom" style={{ borderColor: '#f1f5f9' }}>
-                              <div className="d-flex align-items-center gap-2">
-                                <span className="badge bg-dark text-white fs-11 fw-bold" style={{ padding: '5px 9px', borderRadius: '5px' }}>
-                                  New Column
-                                </span>
-                                <h6 className="fs-14 fw-bold text-dark mb-0">
-                                  Mega Menu Column (#{columns.length + 1} of 3)
-                                </h6>
-                              </div>
-                              <span className="text-muted fs-12">Slot {columns.length + 1} of 3</span>
-                            </div>
-
-                            <div className="row g-3 mb-3.5">
-                              <div className="col-md-6">
-                                <label className="form-label fs-13 fw-semibold text-dark mb-1.5">
-                                  Column Title <span className="text-danger">*</span>
-                                </label>
-                                <input
-                                  type="text"
-                                  className="form-control fs-13"
-                                  placeholder="e.g. Corporate Gifts"
-                                  value={newColTitle}
-                                  onChange={(e) => setNewColTitle(e.target.value)}
-                                  style={{ height: '44px', borderRadius: '7px', borderColor: '#cbd5e1', padding: '10px 14px' }}
-                                />
-                              </div>
-                              <div className="col-md-6">
-                                <label className="form-label fs-13 fw-semibold text-dark mb-1.5">
-                                  Header Link <span className="text-danger">*</span>
-                                </label>
-                                <input
-                                  type="text"
-                                  className="form-control fs-13"
-                                  placeholder="e.g. /products"
-                                  value={newColLink}
-                                  onChange={(e) => setNewColLink(e.target.value)}
-                                  style={{ height: '44px', borderRadius: '7px', borderColor: '#cbd5e1', padding: '10px 14px' }}
-                                />
-                              </div>
-                            </div>
-                            <div className="d-flex align-items-center gap-3">
-                              <button
-                                type="button"
-                                className="btn btn-sm fs-13 px-4 py-2 fw-semibold text-white"
-                                style={{ backgroundColor: '#0f172a', borderRadius: '7px', padding: '10px 22px' }}
-                                onClick={handleAddColumn}
-                              >
-                                Create Column
-                              </button>
-                              <button
-                                type="button"
-                                className="btn btn-sm btn-light border fs-13 px-3 py-2"
-                                style={{ borderRadius: '7px', borderColor: '#d1d5db', padding: '10px 18px' }}
-                                onClick={() => {
-                                  setShowAddColumn(false);
-                                  setNewColTitle('');
-                                  setNewColLink('');
-                                }}
-                              >
-                                Cancel
-                              </button>
-                            </div>
+                          <div className="d-flex align-items-center gap-2">
+                            <button
+                              type="button"
+                              className="btn btn-dark btn-sm d-flex align-items-center justify-content-center gap-2 flex-grow-1 py-3 fs-13 fw-bold text-white"
+                              style={{
+                                borderRadius: '8px',
+                                backgroundColor: '#0f172a',
+                                boxShadow: '0 2px 4px rgba(15, 23, 42, 0.15)',
+                                transition: 'all 0.2s ease',
+                              }}
+                              onClick={() => handleOpenCategoryDrawer()}
+                            >
+                              <iconify-icon icon="solar:folder-with-files-bold" class="fs-17"></iconify-icon>
+                              <span>+ Add Column {columns.length + 1} from Categories</span>
+                            </button>
                           </div>
-                        ) : (
-                          <button
-                            type="button"
-                            className="btn btn-sm d-flex align-items-center justify-content-center gap-2 w-100 py-3 fs-13 fw-bold text-dark"
-                            style={{
-                              borderRadius: '8px',
-                              border: '1.5px dashed #0f172a',
-                              backgroundColor: '#ffffff',
-                              color: '#0f172a',
-                              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
-                              transition: 'all 0.2s ease',
-                            }}
-                            onClick={() => setShowAddColumn(true)}
-                          >
-                            <iconify-icon icon="solar:add-circle-bold" class="fs-18"></iconify-icon>
-                            <span>+ Add Sub-Menu Column (Slot {columns.length + 1} of 3)</span>
-                          </button>
-                        )
                       ) : (
                         <div
                           className="alert alert-info py-2.5 px-3.5 fs-13 mb-0 d-flex align-items-center"
@@ -1191,7 +1071,7 @@ export default function MenuEditPage() {
                     </div>
                   </div>
 
-                  {/* Right: Promotional Banner Configuration & Upload (White Background & Classic Look) */}
+                  {/* Right: Promotional Banner Configuration & Upload */}
                   <div className="col-lg-5">
                     <div
                       className="p-4 rounded-3 h-100"
@@ -1214,7 +1094,8 @@ export default function MenuEditPage() {
                             <p className="text-muted fs-12 mb-0" style={{ marginTop: '2px' }}>Upload banner file and adjust offer text</p>
                           </div>
                         </div>
-                        <div className="form-check form-switch m-0">
+
+                        <div className="form-check form-switch m-0 flex-shrink-0">
                           <input
                             className="form-check-input"
                             type="checkbox"
@@ -1233,18 +1114,17 @@ export default function MenuEditPage() {
 
                       {banner.enabled ? (
                         <>
-                          {/* 1. Image Upload Box */}
                           <div className="mb-4">
                             <label className="form-label fs-13 fw-semibold text-dark mb-2">
                               Banner Image (Upload File) <span className="text-danger">*</span>
                             </label>
-                            
+
                             <input
                               type="file"
                               ref={fileInputRef}
-                              accept="image/*"
+                              className="d-none"
+                              accept="image/png,image/jpeg,image/webp"
                               onChange={handleImageFileChange}
-                              style={{ display: 'none' }}
                             />
 
                             <div
@@ -1291,15 +1171,14 @@ export default function MenuEditPage() {
                                   type="button"
                                   className="btn btn-sm fs-12 py-1.5 px-3 text-danger fw-semibold"
                                   style={{ borderRadius: '7px', backgroundColor: '#fee2e2', border: '1px solid #fecaca' }}
-                                  onClick={() => setBanner((prev) => ({ ...prev, image: '/assets/imgs/banner/banner-menu.png' }))}
+                                  onClick={() => setBanner((prev) => ({ ...prev, image: '' }))}
                                 >
-                                  Reset Default
+                                  Remove
                                 </button>
                               </div>
                             )}
                           </div>
 
-                          {/* 2. Text Content Fields with standard gap-3 */}
                           <div className="row g-3 mb-4">
                             <div className="col-6">
                               <label className="form-label fs-13 fw-semibold text-dark mb-1.5">Tagline</label>
@@ -1311,7 +1190,6 @@ export default function MenuEditPage() {
                                 onChange={(e) => setBanner((prev) => ({ ...prev, tag: e.target.value }))}
                                 style={{ height: '44px', borderRadius: '7px', borderColor: '#cbd5e1' }}
                               />
-                              <div className="text-muted fs-11 mt-1">Single line max (truncated with ...)</div>
                             </div>
                             <div className="col-6">
                               <label className="form-label fs-13 fw-semibold text-dark mb-1.5">Discount Badge</label>
@@ -1335,7 +1213,6 @@ export default function MenuEditPage() {
                                 onChange={(e) => setBanner((prev) => ({ ...prev, title: e.target.value }))}
                                 style={{ height: '44px', borderRadius: '7px', borderColor: '#cbd5e1' }}
                               />
-                              <div className="text-muted fs-11 mt-1">Max 2 lines in storefront (truncated with ...)</div>
                             </div>
 
                             <div className="col-12">
@@ -1348,194 +1225,29 @@ export default function MenuEditPage() {
                                 onChange={(e) => setBanner((prev) => ({ ...prev, priceNote: e.target.value }))}
                                 style={{ height: '44px', borderRadius: '7px', borderColor: '#cbd5e1' }}
                               />
-                              <div className="text-muted fs-11 mt-1">Max 2 lines in storefront (truncated with ...)</div>
                             </div>
 
-                            {/* Option to show or hide button */}
-                            <div className="col-12">
-                              <div
-                                className="d-flex align-items-center justify-content-between p-3 rounded-3 border"
-                                style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
-                              >
-                                <div className="d-flex align-items-center gap-2.5">
-                                  <span
-                                    className="rounded-circle d-flex align-items-center justify-content-center text-dark flex-shrink-0"
-                                    style={{ width: '32px', height: '32px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0' }}
-                                  >
-                                    <iconify-icon icon="solar:cursor-square-bold" class="fs-16"></iconify-icon>
-                                  </span>
-                                  <div>
-                                    <div className="fs-13 fw-bold text-dark">Call-to-Action Button</div>
-                                    <div className="fs-11 text-muted">Show or hide the action button on the banner</div>
-                                  </div>
-                                </div>
-                                <div className="form-check form-switch m-0 flex-shrink-0">
-                                  <input
-                                    className="form-check-input"
-                                    type="checkbox"
-                                    checked={banner.showBtn !== false}
-                                    onChange={(e) => setBanner((prev) => ({ ...prev, showBtn: e.target.checked }))}
-                                    style={{
-                                      cursor: 'pointer',
-                                      width: '2.5em',
-                                      height: '1.25em',
-                                      backgroundColor: banner.showBtn !== false ? '#16a34a' : '#cbd5e1',
-                                      borderColor: banner.showBtn !== false ? '#16a34a' : '#cbd5e1',
-                                    }}
-                                  />
-                                </div>
-                              </div>
-                            </div>
-
-                            {banner.showBtn !== false && (
-                              <>
-                                <div className="col-6">
-                                  <label className="form-label fs-13 fw-semibold text-dark mb-1.5">Button Text</label>
-                                  <input
-                                    type="text"
-                                    className="form-control fs-13"
-                                    placeholder="e.g. Shop now"
-                                    value={banner.btnText}
-                                    onChange={(e) => setBanner((prev) => ({ ...prev, btnText: e.target.value }))}
-                                    style={{ height: '44px', borderRadius: '7px', borderColor: '#cbd5e1' }}
-                                  />
-                                </div>
-
-                                <div className="col-6">
-                                  <label className="form-label fs-13 fw-semibold text-dark mb-1.5">Button Target Link</label>
-                                  <input
-                                    type="text"
-                                    className="form-control fs-13"
-                                    placeholder="e.g. /products"
-                                    value={banner.btnLink}
-                                    onChange={(e) => setBanner((prev) => ({ ...prev, btnLink: e.target.value }))}
-                                    style={{ height: '44px', borderRadius: '7px', borderColor: '#cbd5e1' }}
-                                  />
-                                </div>
-                              </>
-                            )}
-                          </div>
-
-                          {/* 3. Live Visual Banner Preview */}
-                          <div className="border rounded-3 p-3.5 bg-white" style={{ borderColor: '#e2e8f0', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)' }}>
-                            <div className="d-flex align-items-center justify-content-between mb-2.5">
-                              <span className="fs-12 fw-bold text-muted text-uppercase" style={{ letterSpacing: '0.6px' }}>
-                                Live Storefront Preview
-                              </span>
-                              <span className="badge bg-light text-secondary border fs-11 fw-normal" style={{ padding: '3px 8px', borderRadius: '4px' }}>
-                                Preview
-                              </span>
-                            </div>
-                            <div
-                              style={{
-                                position: 'relative',
-                                borderRadius: '10px',
-                                overflow: 'hidden',
-                                height: '185px',
-                                backgroundColor: '#f1f5f9',
-                                boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
-                              }}
-                            >
-                              <img
-                                src={banner.image || '/assets/imgs/banner/banner-menu.png'}
-                                alt="Banner"
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            <div className="col-6">
+                              <label className="form-label fs-13 fw-semibold text-dark mb-1.5">Button Text</label>
+                              <input
+                                type="text"
+                                className="form-control fs-13"
+                                placeholder="Shop now"
+                                value={banner.btnText}
+                                onChange={(e) => setBanner((prev) => ({ ...prev, btnText: e.target.value }))}
+                                style={{ height: '44px', borderRadius: '7px', borderColor: '#cbd5e1' }}
                               />
-                              <div
-                                style={{
-                                  position: 'absolute',
-                                  top: '14px',
-                                  left: '16px',
-                                  color: '#253D4E',
-                                  maxWidth: '70%',
-                                }}
-                              >
-                                {banner.tag && (
-                                  <div
-                                    style={{
-                                      fontSize: '12px',
-                                      color: '#ff7518',
-                                      fontWeight: 'bold',
-                                      whiteSpace: 'nowrap',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      maxWidth: '100%',
-                                      display: 'block',
-                                    }}
-                                    title={banner.tag}
-                                  >
-                                    {banner.tag}
-                                  </div>
-                                )}
-                                <div
-                                  style={{
-                                    fontSize: '15px',
-                                    fontWeight: '800',
-                                    lineHeight: 1.25,
-                                    display: '-webkit-box',
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: 'vertical',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    wordBreak: 'break-word',
-                                  }}
-                                  title={banner.title}
-                                >
-                                  {banner.title}
-                                </div>
-                                {banner.priceNote && (
-                                  <div
-                                    style={{
-                                      fontSize: '13px',
-                                      color: '#3BB77E',
-                                      fontWeight: '700',
-                                      marginTop: '3px',
-                                      display: '-webkit-box',
-                                      WebkitLineClamp: 2,
-                                      WebkitBoxOrient: 'vertical',
-                                      overflow: 'hidden',
-                                      textOverflow: 'ellipsis',
-                                      wordBreak: 'break-word',
-                                    }}
-                                    title={banner.priceNote}
-                                  >
-                                    {banner.priceNote}
-                                  </div>
-                                )}
-                                {banner.showBtn !== false && (
-                                  <div
-                                    style={{
-                                      display: 'inline-block',
-                                      marginTop: '10px',
-                                      padding: '5px 12px',
-                                      fontSize: '12px',
-                                      fontWeight: 'bold',
-                                      backgroundColor: '#3BB77E',
-                                      color: '#ffffff',
-                                      borderRadius: '5px',
-                                    }}
-                                  >
-                                    {banner.btnText || 'Shop now'}
-                                  </div>
-                                )}
-                              </div>
-                              {banner.discountBadge && (
-                                <div
-                                  style={{
-                                    position: 'absolute',
-                                    top: '12px',
-                                    right: '12px',
-                                    backgroundColor: '#FDC839',
-                                    color: '#253D4E',
-                                    padding: '4px 10px',
-                                    borderRadius: '20px',
-                                    fontSize: '11px',
-                                    fontWeight: '800',
-                                  }}
-                                >
-                                  {banner.discountBadge}
-                                </div>
-                              )}
+                            </div>
+                            <div className="col-6">
+                              <label className="form-label fs-13 fw-semibold text-dark mb-1.5">Button URL</label>
+                              <input
+                                type="text"
+                                className="form-control fs-13"
+                                placeholder="/products"
+                                value={banner.btnLink}
+                                onChange={(e) => setBanner((prev) => ({ ...prev, btnLink: e.target.value }))}
+                                style={{ height: '44px', borderRadius: '7px', borderColor: '#cbd5e1' }}
+                              />
                             </div>
                           </div>
                         </>
@@ -1552,17 +1264,16 @@ export default function MenuEditPage() {
                           </span>
                           <h6 className="fs-14 fw-bold text-dark mb-1">Promo Banner is Disabled</h6>
                           <p className="text-muted fs-13 mb-0" style={{ maxWidth: '300px' }}>
-                            Toggle the switch above to display an image banner and promotional offer on the right side of the storefront dropdown.
+                            Toggle the switch above to display an image banner on the right side of the storefront mega-menu dropdown.
                           </p>
                         </div>
                       )}
                     </div>
                   </div>
-
                 </div>
               )}
 
-              {/* Bottom Actions Bar: Cancel and Save Changes Together on Right Side */}
+              {/* Bottom Actions Bar */}
               <div className="d-flex align-items-center justify-content-end gap-3 pt-4 mt-4 border-top" style={{ borderColor: '#e2e8f0' }}>
                 <Link
                   href="/dashboard/shop-settings"
@@ -1595,68 +1306,500 @@ export default function MenuEditPage() {
                   <span>{isNew ? 'Create Main Menu' : 'Save Menu Changes'}</span>
                 </button>
               </div>
-
             </form>
           )}
-
         </div>
       </div>
 
+      {/* ========================================================
+          SLIDE-OVER DRAWER 1: CATEGORY SELECTOR (Right-to-Left)
+         ======================================================== */}
+      {showCategoryDrawer && (
+        <ClientPortal>
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(15, 23, 42, 0.55)',
+              backdropFilter: 'blur(3px)',
+              zIndex: 10400,
+              transition: 'opacity 0.25s ease',
+            }}
+            onClick={() => setShowCategoryDrawer(false)}
+          />
+
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: '100%',
+              maxWidth: '660px',
+              backgroundColor: '#ffffff',
+              zIndex: 10500,
+              boxShadow: '-10px 0 35px rgba(0, 0, 0, 0.18)',
+              display: 'flex',
+              flexDirection: 'column',
+              animation: 'drawerSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
+            {/* Drawer Header */}
+            <div className="p-4 border-bottom d-flex align-items-center justify-content-between" style={{ borderColor: '#e2e8f0' }}>
+              <div className="d-flex align-items-center gap-2.5">
+                <span
+                  className="rounded-3 d-flex align-items-center justify-content-center text-primary"
+                  style={{ width: '42px', height: '42px', backgroundColor: '#eff6ff', border: '1px solid #bfdbfe' }}
+                >
+                  <iconify-icon icon="solar:folder-with-files-bold" class="fs-22"></iconify-icon>
+                </span>
+                <div>
+                    <h4 className="fw-bold text-dark mb-0 fs-17">
+                      {targetColumnForCategory ? 'Change Column Category' : 'Select Category for Column'}
+                    </h4>
+                  <p className="text-muted fs-12 mb-0">
+                    Choose up to 3 different categories available for this menu destination. Changing a column category clears its selected products.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm btn-icon border rounded-circle d-flex align-items-center justify-content-center"
+                style={{ width: '36px', height: '36px', backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
+                onClick={() => setShowCategoryDrawer(false)}
+                aria-label="Close"
+              >
+                <iconify-icon icon="solar:close-circle-linear" class="fs-20 text-muted"></iconify-icon>
+              </button>
+            </div>
+
+            {/* Search Bar */}
+            <div className="p-3 border-bottom bg-light" style={{ borderColor: '#e2e8f0' }}>
+              <div className="position-relative">
+                <iconify-icon
+                  icon="solar:magnifer-linear"
+                  class="fs-18 position-absolute text-muted"
+                  style={{ left: '14px', top: '50%', transform: 'translateY(-50%)' }}
+                ></iconify-icon>
+                <input
+                  type="text"
+                  className="form-control fs-13 ps-5"
+                  placeholder="Search categories by name..."
+                  value={categorySearch}
+                  onChange={(e) => {
+                    setCategorySearch(e.target.value);
+                    setCategoryPage(1);
+                  }}
+                  style={{ height: '42px', borderRadius: '8px', borderColor: '#cbd5e1' }}
+                />
+              </div>
+            </div>
+
+            {/* Table View */}
+            <div className="flex-grow-1 overflow-auto p-3">
+              {filteredCategories.length === 0 ? (
+                <div className="text-center py-5 text-muted">
+                  <iconify-icon icon="solar:folder-error-linear" class="fs-36 mb-2"></iconify-icon>
+                  <p className="fs-13 mb-0">No categories found matching your search.</p>
+                </div>
+              ) : (
+                <div className="table-responsive border rounded-3 overflow-hidden">
+                  <table className="table table-hover align-middle mb-0 fs-13">
+                    <thead style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}>
+                      <tr>
+                        <th style={{ width: '40px', padding: '12px 14px' }}>#</th>
+                        <th style={{ padding: '12px 14px' }}>Category</th>
+                        <th style={{ padding: '12px 14px' }}>Target URL</th>
+                        <th style={{ width: '100px', padding: '12px 14px', textAlign: 'right' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentCategories.map((cat, idx) => {
+                        const rowNum = (categoryPage - 1) * catItemsPerPage + idx + 1;
+                        const isUsedByAnotherColumn = columns.some((col) => col.id !== targetColumnForCategory && col.categoryId === cat.id);
+                        return (
+                          <tr key={cat.id}>
+                            <td className="text-muted fw-semibold" style={{ padding: '12px 14px' }}>
+                              {rowNum}
+                            </td>
+                            <td style={{ padding: '12px 14px' }}>
+                              <div className="d-flex align-items-center gap-2.5">
+                                <img
+                                  src={cat.image || '/assets/imgs/shop/p1.jpg'}
+                                  alt={cat.name}
+                                  style={{
+                                    width: '38px',
+                                    height: '38px',
+                                    objectFit: 'contain',
+                                    borderRadius: '6px',
+                                    border: '1px solid #e2e8f0',
+                                    padding: '2px',
+                                    backgroundColor: '#ffffff',
+                                  }}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = '/assets/imgs/shop/p1.jpg';
+                                  }}
+                                />
+                                <div>
+                                  <strong className="text-dark d-block fs-13">{cat.name}</strong>
+                                  <span className="text-muted fs-11">
+                                    {cat.subItems?.length || 0} sub-items configured
+                                  </span>
+                                </div>
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px 14px' }}>
+                              <span className="text-muted font-monospace fs-11">
+                                {cat.link || `/products?category=${encodeURIComponent(cat.name)}`}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                              <button
+                                type="button"
+                                className="btn btn-dark btn-sm d-inline-flex align-items-center gap-1.5 px-3 py-1.5 text-white"
+                                style={{ borderRadius: '6px', fontSize: '12px' }}
+                                onClick={() => handleSelectCategory(cat)}
+                                disabled={isUsedByAnotherColumn}
+                              >
+                                <iconify-icon icon="solar:check-circle-bold" class="fs-14"></iconify-icon>
+                                <span>{isUsedByAnotherColumn ? 'Already Used' : 'Select'}</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="p-3 border-top bg-light d-flex align-items-center justify-content-between" style={{ borderColor: '#e2e8f0' }}>
+              <span className="text-muted fs-12">
+                Showing {filteredCategories.length > 0 ? (categoryPage - 1) * catItemsPerPage + 1 : 0} to{' '}
+                {Math.min(categoryPage * catItemsPerPage, filteredCategories.length)} of {filteredCategories.length} categories
+              </span>
+
+              {totalCatPages > 1 && (
+                <div className="d-flex align-items-center gap-1">
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-light border px-2 py-1"
+                    disabled={categoryPage === 1}
+                    onClick={() => setCategoryPage((p) => Math.max(1, p - 1))}
+                  >
+                    Prev
+                  </button>
+                  {Array.from({ length: totalCatPages }).map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`btn btn-sm ${categoryPage === i + 1 ? 'btn-dark text-white' : 'btn-light border'} px-2.5 py-1`}
+                      style={{ minWidth: '32px' }}
+                      onClick={() => setCategoryPage(i + 1)}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-light border px-2 py-1"
+                    disabled={categoryPage === totalCatPages}
+                    onClick={() => setCategoryPage((p) => Math.min(totalCatPages, p + 1))}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </ClientPortal>
+      )}
+
+      {/* ========================================================
+          SLIDE-OVER DRAWER 2: PRODUCT SELECTOR (Right-to-Left)
+         ======================================================== */}
+      {showProductDrawer && (
+        <ClientPortal>
+          <div
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(15, 23, 42, 0.55)',
+              backdropFilter: 'blur(3px)',
+              zIndex: 10400,
+              transition: 'opacity 0.25s ease',
+            }}
+            onClick={() => setShowProductDrawer(false)}
+          />
+
+          <div
+            style={{
+              position: 'fixed',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: '100%',
+              maxWidth: '720px',
+              backgroundColor: '#ffffff',
+              zIndex: 10500,
+              boxShadow: '-10px 0 35px rgba(0, 0, 0, 0.18)',
+              display: 'flex',
+              flexDirection: 'column',
+              animation: 'drawerSlideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+            }}
+          >
+            {/* Drawer Header */}
+            <div className="p-4 border-bottom d-flex align-items-center justify-content-between" style={{ borderColor: '#e2e8f0' }}>
+              <div className="d-flex align-items-center gap-2.5">
+                <span
+                  className="rounded-3 d-flex align-items-center justify-content-center text-success"
+                  style={{ width: '42px', height: '42px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0' }}
+                >
+                  <iconify-icon icon="solar:box-minimalistic-bold" class="fs-22"></iconify-icon>
+                </span>
+                <div>
+                  <h4 className="fw-bold text-dark mb-0 fs-17">
+                    Select Product for &quot;{activeColumnForProduct?.title || 'Column'}&quot;
+                  </h4>
+                  <p className="text-muted fs-12 mb-0">
+                    Showing products in this category that are available for this menu destination. Each category can contain up to 5 products.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm btn-icon border rounded-circle d-flex align-items-center justify-content-center"
+                style={{ width: '36px', height: '36px', backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
+                onClick={() => setShowProductDrawer(false)}
+                aria-label="Close"
+              >
+                <iconify-icon icon="solar:close-circle-linear" class="fs-20 text-muted"></iconify-icon>
+              </button>
+            </div>
+
+            {/* Filter Bar */}
+            <div className="p-3 border-bottom bg-light" style={{ borderColor: '#e2e8f0' }}>
+              <div className="row g-2">
+                <div className="col-md-7">
+                  <div className="position-relative">
+                    <iconify-icon
+                      icon="solar:magnifer-linear"
+                      class="fs-18 position-absolute text-muted"
+                      style={{ left: '14px', top: '50%', transform: 'translateY(-50%)' }}
+                    ></iconify-icon>
+                    <input
+                      type="text"
+                      className="form-control fs-13 ps-5"
+                      placeholder="Search by title, cert, keyword..."
+                      value={productSearch}
+                      onChange={(e) => {
+                        setProductSearch(e.target.value);
+                        setProductPage(1);
+                      }}
+                      style={{ height: '40px', borderRadius: '8px', borderColor: '#cbd5e1' }}
+                    />
+                  </div>
+                </div>
+
+                <div className="col-md-5">
+                  <div className="form-control d-flex align-items-center fs-13 fw-semibold bg-white" style={{ height: '40px', borderRadius: '8px', borderColor: '#cbd5e1' }}>
+                    <iconify-icon icon="solar:folder-with-files-bold" class="fs-16 me-2 text-primary"></iconify-icon>
+                    {selectedProductCategory?.name || activeColumnForProduct?.title || 'Selected category'}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Table View */}
+            <div className="flex-grow-1 overflow-auto p-3">
+              {filteredProducts.length === 0 ? (
+                <div className="text-center py-5 text-muted">
+                  <iconify-icon icon="solar:box-linear" class="fs-36 mb-2"></iconify-icon>
+                  <p className="fs-13 mb-0">No products found matching your filter.</p>
+                </div>
+              ) : (
+                <div className="table-responsive border rounded-3 overflow-hidden">
+                  <table className="table table-hover align-middle mb-0 fs-13">
+                    <thead style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}>
+                      <tr>
+                        <th style={{ width: '40px', padding: '12px 14px' }}>#</th>
+                        <th style={{ padding: '12px 14px' }}>Product</th>
+                        <th style={{ padding: '12px 14px' }}>Category</th>
+                        <th style={{ padding: '12px 14px' }}>Price</th>
+                        <th style={{ width: '100px', padding: '12px 14px', textAlign: 'right' }}>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentProducts.map((prod, idx) => {
+                        const rowNum = (productPage - 1) * prodItemsPerPage + idx + 1;
+                        const isAlreadySelected = selectedProductIds.has(prod.id);
+                        return (
+                          <tr key={prod.id}>
+                            <td className="text-muted fw-semibold" style={{ padding: '12px 14px' }}>
+                              {rowNum}
+                            </td>
+                            <td style={{ padding: '12px 14px' }}>
+                              <div className="d-flex align-items-center gap-2.5">
+                                <img
+                                  src={prod.image || '/assets/imgs/shop/p1.jpg'}
+                                  alt={prod.title}
+                                  style={{
+                                    width: '42px',
+                                    height: '42px',
+                                    objectFit: 'contain',
+                                    borderRadius: '6px',
+                                    border: '1px solid #e2e8f0',
+                                    padding: '2px',
+                                    backgroundColor: '#ffffff',
+                                    flexShrink: 0,
+                                  }}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = '/assets/imgs/shop/p1.jpg';
+                                  }}
+                                />
+                                <div style={{ maxWidth: '240px' }}>
+                                  <strong className="text-dark d-block fs-13 text-truncate" title={prod.title}>
+                                    {prod.title}
+                                  </strong>
+                                  {prod.standard && (
+                                    <span className="text-muted fs-11 text-truncate d-block">
+                                      {prod.standard}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </td>
+                            <td style={{ padding: '12px 14px' }}>
+                              <span className="badge bg-light text-dark border fs-11 fw-normal">
+                                {prod.category}
+                              </span>
+                            </td>
+                            <td style={{ padding: '12px 14px' }}>
+                              <span className="fw-bold text-success fs-13">{prod.price}</span>
+                            </td>
+                            <td style={{ padding: '12px 14px', textAlign: 'right' }}>
+                              <button
+                                type="button"
+                                className="btn btn-dark btn-sm d-inline-flex align-items-center gap-1.5 px-3 py-1.5 text-white"
+                                style={{ borderRadius: '6px', fontSize: '12px' }}
+                                onClick={() => handleSelectProduct(prod)}
+                                disabled={isAlreadySelected || (!targetItemForProduct && (activeColumnForProduct?.items.length || 0) >= 5)}
+                              >
+                                <iconify-icon icon="solar:check-circle-bold" class="fs-14"></iconify-icon>
+                                <span>{isAlreadySelected ? 'Selected' : 'Select'}</span>
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="p-3 border-top bg-light d-flex align-items-center justify-content-between" style={{ borderColor: '#e2e8f0' }}>
+              <span className="text-muted fs-12">
+                Showing {filteredProducts.length > 0 ? (productPage - 1) * prodItemsPerPage + 1 : 0} to{' '}
+                {Math.min(productPage * prodItemsPerPage, filteredProducts.length)} of {filteredProducts.length} products
+              </span>
+
+              {totalProdPages > 1 && (
+                <div className="d-flex align-items-center gap-1">
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-light border px-2 py-1"
+                    disabled={productPage === 1}
+                    onClick={() => setProductPage((p) => Math.max(1, p - 1))}
+                  >
+                    Prev
+                  </button>
+                  {Array.from({ length: totalProdPages }).map((_, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      className={`btn btn-sm ${productPage === i + 1 ? 'btn-dark text-white' : 'btn-light border'} px-2.5 py-1`}
+                      style={{ minWidth: '32px' }}
+                      onClick={() => setProductPage(i + 1)}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-light border px-2 py-1"
+                    disabled={productPage === totalProdPages}
+                    onClick={() => setProductPage((p) => Math.min(totalProdPages, p + 1))}
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </ClientPortal>
+      )}
+
       {/* Delete Confirmation Modal for Column or Item */}
       {deleteConfirmTarget && (
-        <div
-          className="modal fade show d-block"
-          style={{ backgroundColor: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', zIndex: 1060 }}
-          tabIndex={-1}
-        >
-          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '440px' }}>
-            <div
-              className="modal-content border-0 shadow-lg"
-              style={{
-                borderRadius: '14px',
-                border: '1px solid #e2e8f0',
-                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-              }}
-            >
-              <div className="modal-body p-4 text-center">
-                <div
-                  className="rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center mx-auto mb-3"
-                  style={{ width: '56px', height: '56px' }}
-                >
-                  <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-28"></iconify-icon>
-                </div>
-                <h4 className="fw-bold text-dark mb-1.5" style={{ fontSize: '18px' }}>
-                  Delete {deleteConfirmTarget.type === 'column' ? 'Mega Menu Column' : 'Sub-Menu Item'}?
-                </h4>
-                <p className="text-muted fs-14 mb-4">
-                  Are you sure you want to remove &quot;{deleteConfirmTarget.name}&quot;?
-                  {deleteConfirmTarget.type === 'column'
-                    ? ' All items in this column will also be removed.'
-                    : ' This item will be removed from the column.'}
-                </p>
-                <div className="d-flex align-items-center justify-content-center gap-3">
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-light border px-4 py-2 fs-14 fw-semibold text-secondary"
-                    onClick={() => setDeleteConfirmTarget(null)}
-                    style={{ borderRadius: '8px', minWidth: '110px' }}
+        <ClientPortal>
+          <div
+            className="modal fade show d-block"
+            style={{ backgroundColor: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', zIndex: 10600 }}
+            tabIndex={-1}
+          >
+            <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '440px' }}>
+              <div
+                className="modal-content border-0 shadow-lg"
+                style={{
+                  borderRadius: '14px',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                }}
+              >
+                <div className="modal-body p-4 text-center">
+                  <div
+                    className="rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center mx-auto mb-3"
+                    style={{ width: '56px', height: '56px' }}
                   >
-                    No, Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-sm btn-danger px-4 py-2 fs-14 fw-semibold d-flex align-items-center gap-2"
-                    onClick={handleExecuteDelete}
-                    style={{ borderRadius: '8px', minWidth: '130px' }}
-                  >
-                    <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-16"></iconify-icon>
-                    <span>Yes, Delete</span>
-                  </button>
+                    <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-28"></iconify-icon>
+                  </div>
+                  <h4 className="fw-bold text-dark mb-1.5" style={{ fontSize: '18px' }}>
+                    Delete {deleteConfirmTarget.type === 'column' ? 'Mega Menu Column' : 'Sub-Menu Item'}?
+                  </h4>
+                  <p className="text-muted fs-14 mb-4">
+                    Are you sure you want to remove &quot;{deleteConfirmTarget.name}&quot;?
+                    {deleteConfirmTarget.type === 'column'
+                      ? ' All items in this column will also be removed.'
+                      : ' This item will be removed from the column.'}
+                  </p>
+                  <div className="d-flex align-items-center justify-content-center gap-3">
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-light border px-4 py-2 fs-14 fw-semibold text-secondary"
+                      onClick={() => setDeleteConfirmTarget(null)}
+                      style={{ borderRadius: '8px', minWidth: '110px' }}
+                    >
+                      No, Cancel
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-danger px-4 py-2 fs-14 fw-semibold d-flex align-items-center gap-2"
+                      onClick={handleExecuteDelete}
+                      style={{ borderRadius: '8px', minWidth: '130px' }}
+                    >
+                      <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-16"></iconify-icon>
+                      <span>Yes, Delete</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
+        </ClientPortal>
       )}
     </>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { DEFAULT_SHOP_SETTINGS, ShopSettingsData } from '@/data/defaultShopSettings';
+import { ShopSettingsData } from '@/data/defaultShopSettings';
 
 const STORAGE_KEY = 'veuz_shop_settings_cache';
 export const SHOP_SETTINGS_EVENT = 'veuz:shop-settings-updated';
@@ -38,7 +38,8 @@ export async function fetchShopSettings(): Promise<ShopSettingsData> {
     console.warn('Could not fetch shop settings from API, using cached/default:', error);
   }
 
-  return cached || DEFAULT_SHOP_SETTINGS;
+  // Never replace the storefront with demo/default navigation if current settings are unavailable.
+  return cached || { categories: [], mainMenu: [] };
 }
 
 export async function saveShopSettings(data: ShopSettingsData): Promise<{ success: boolean; message?: string }> {

@@ -11,6 +11,7 @@ import { fetchProducts, recordProductClick, PRODUCTS_EVENT } from '@/services/pr
 import { ProductItem } from '@/data/categoryProductsData';
 import { fetchPartners, PARTNERS_EVENT } from '@/services/partnersService';
 import { DEFAULT_PARTNERS_DATA, PartnersData } from '@/data/defaultPartners';
+import { ProductCardImageSlider } from '@/components/common/ProductCardImageSlider';
 
 export default function HomePage() {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -24,17 +25,70 @@ export default function HomePage() {
   const partnersScrollRef = useRef<HTMLDivElement>(null);
 
   // Dynamic Catalog Products from Products Service
-  const [catalogProducts, setCatalogProducts] = useState<ProductItem[]>([]);
+  const [catalogProducts, setCatalogProducts] = useState<ProductItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('veuz_products_cache');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+      } catch (e) {}
+    }
+    return [];
+  });
 
   // Dynamic Partners Logos from Partners Service
   const [partnersData, setPartnersData] = useState<PartnersData>(DEFAULT_PARTNERS_DATA);
 
   // Dynamic Banners from Banner Settings
-  const [heroSlides, setHeroSlides] = useState<MainBannerItem[]>(DEFAULT_BANNER_SETTINGS.mainBanners);
-  const [sideBannerSlides, setSideBannerSlides] = useState<PromoBannerItem[]>(DEFAULT_BANNER_SETTINGS.promoBanners);
+  const [heroSlides, setHeroSlides] = useState<MainBannerItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('veuz_banner_settings_cache');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && Array.isArray(parsed.mainBanners)) {
+            const active = parsed.mainBanners.filter((b: any) => b.isActive !== false);
+            if (active.length > 0) return active;
+          }
+        }
+      } catch (e) {}
+    }
+    return DEFAULT_BANNER_SETTINGS.mainBanners;
+  });
+
+  const [sideBannerSlides, setSideBannerSlides] = useState<PromoBannerItem[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('veuz_banner_settings_cache');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && Array.isArray(parsed.promoBanners)) {
+            const active = parsed.promoBanners.filter((b: any) => b.isActive !== false);
+            if (active.length > 0) return active;
+          }
+        }
+      } catch (e) {}
+    }
+    return DEFAULT_BANNER_SETTINGS.promoBanners;
+  });
 
   // Dynamic Categories from Shop Settings (Shop by Categories)
-  const [shopCategories, setShopCategories] = useState<ShopCategory[]>(DEFAULT_SHOP_SETTINGS.categories);
+  const [shopCategories, setShopCategories] = useState<ShopCategory[]>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('veuz_shop_settings_cache');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && Array.isArray(parsed.categories) && parsed.categories.length > 0) {
+            return parsed.categories;
+          }
+        }
+      } catch (e) {}
+    }
+    return DEFAULT_SHOP_SETTINGS.categories;
+  });
 
   // Guarantee that the home page always starts at the very top (0, 0)
   useEffect(() => {
@@ -844,7 +898,7 @@ export default function HomePage() {
   // 1. New Arrivals: ONLY show new products (strictly NO offers/discounts, and ONLY 'New Arrival' label)
   const dynamicNewProducts = catalogProducts.length > 0
     ? catalogProducts
-        .filter((p) => p.isNewArrival !== false && p.isActive !== false && !p.discount && !p.offerPercent && !p.isSpecialOffer && (!p.oldPrice || p.oldPrice === p.price))
+        .filter((p) => p.isNewArrival !== false && p.isActive !== false && p.isSpecialOffer !== true && !p.discount)
         .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
         .map((p) => ({
           id: p.id,
@@ -862,12 +916,9 @@ export default function HomePage() {
 
   const fallbackNewProducts = newProducts.map((p) => ({ ...p, badge: 'New Arrival' }));
 
-  const displayedNewProducts = dynamicNewProducts.length >= 8
+  const displayedNewProducts = dynamicNewProducts.length > 0
     ? dynamicNewProducts
-    : [
-        ...dynamicNewProducts,
-        ...fallbackNewProducts.filter((fp) => !dynamicNewProducts.some((dp) => dp.id === fp.id)),
-      ];
+    : fallbackNewProducts;
 
   // 2. Most Searched: ONLY show most searched products
   const displayedMostSearched = catalogProducts.length > 0
@@ -890,10 +941,10 @@ export default function HomePage() {
         }))
     : mostSearchedProducts;
 
-  // 3. Special Offers: ONLY show products that have an active discount / deal
+  // 3. Special Offers: ONLY show products where isSpecialOffer is explicitly TRUE
   const dynamicOnsale = catalogProducts.length > 0
     ? catalogProducts
-        .filter((p) => (p.isSpecialOffer === true || Boolean(p.discount) || Boolean(p.offerPercent) || (Boolean(p.oldPrice) && p.oldPrice !== p.price)) && p.isActive !== false)
+        .filter((p) => p.isSpecialOffer === true && p.isActive !== false)
         .map((p) => {
           const discountText = p.discount || (p.offerPercent ? `${p.offerPercent}% OFF` : '');
           return {
@@ -913,12 +964,9 @@ export default function HomePage() {
         })
     : [];
 
-  const displayedOnsale = dynamicOnsale.length >= 8
+  const displayedOnsale = dynamicOnsale.length > 0
     ? dynamicOnsale
-    : [
-        ...dynamicOnsale,
-        ...onsaleProducts.filter((op) => !dynamicOnsale.some((dp) => dp.id === op.id)),
-      ];
+    : onsaleProducts;
 
   const newProductPairs: any[] = [];
   const halfCount = Math.ceil(displayedNewProducts.length / 2);
@@ -1049,7 +1097,14 @@ export default function HomePage() {
   // Reusable 2-Row Product Card Renderer (Reference Shoe Card Layout)
   const renderProductCard = (prod: any, colClass: string) => {
     const isWishlisted = Boolean(wishlist[prod.id]);
-    const badgeText = prod.discount || prod.badge || 'New';
+    const hasOffer = prod.isSpecialOffer === true && Boolean(prod.discount);
+    
+    let badgeText = 'New Arrival';
+    if (hasOffer) {
+      badgeText = prod.discount || 'Special Offer';
+    } else if (prod.badge && prod.badge !== 'Special Offer') {
+      badgeText = prod.badge;
+    }
 
     return (
       <div key={prod.id} className={colClass}>
@@ -1074,16 +1129,15 @@ export default function HomePage() {
               <i className={`fi-rs-heart ${isWishlisted ? 'fill-heart text-danger' : ''}`}></i>
             </button>
 
-            {/* Main Image */}
-            <div className="product-img product-img-zoom">
-              <Link href={prod.link || '/product-details'} onClick={() => recordProductClick(prod.id)}>
-                <img
-                  className="default-img"
-                  src={prod.img || prod.image || '/assets/imgs/shop/pr1.jpg'}
-                  alt={prod.title}
-                />
-              </Link>
-            </div>
+            {/* Main Image & Multi-Angle Slider with navigation */}
+            <ProductCardImageSlider
+              productId={prod.id}
+              title={prod.title}
+              link={prod.link || '/product-details'}
+              image={prod.img || prod.image || '/assets/imgs/shop/pr1.jpg'}
+              images={prod.images}
+              onProductClick={recordProductClick}
+            />
           </div>
 
           {/* Product Content Wrap */}
@@ -1113,10 +1167,10 @@ export default function HomePage() {
               <div className="new-prod-price-box mb-2">
                 <div className="d-flex align-items-center" style={{ gap: '8px', flexWrap: 'wrap' }}>
                   <span className="new-prod-current-price">{prod.price}</span>
-                  {prod.oldPrice && (
+                  {hasOffer && prod.oldPrice && (
                     <span className="new-prod-old-price">{prod.oldPrice}</span>
                   )}
-                  {prod.discount && (
+                  {hasOffer && prod.discount && (
                     <span className="ref-card-discount-black">{prod.discount}</span>
                   )}
                 </div>
