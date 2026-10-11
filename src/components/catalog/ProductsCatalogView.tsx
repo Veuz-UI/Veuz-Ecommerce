@@ -1553,7 +1553,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                             {/* Product Title (20px bold) */}
                             <h2 className="new-prod-title">
                               <Link
-                                href={prod.link}
+                                href={prod.link && prod.link.includes('?id=') ? prod.link : `/product-details?id=${prod.id}`}
                                 onClick={() => recordProductClick(prod.id)}
                               >
                                 {prod.title}

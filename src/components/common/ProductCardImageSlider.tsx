@@ -64,6 +64,9 @@ export function ProductCardImageSlider({
   };
 
   const currentImg = allImages[activeIdx] || image || '/assets/imgs/shop/p1.jpg';
+  const computedLink = link
+    ? (link.includes('?id=') ? link : (link.startsWith('/product-details') ? `/product-details?id=${productId}` : `${link}${link.includes('?') ? '&' : '?'}id=${productId}`))
+    : `/product-details?id=${productId}`;
 
   return (
     <div
@@ -74,7 +77,7 @@ export function ProductCardImageSlider({
       {/* Main Image View */}
       <div className="product-img product-img-zoom position-relative">
         <Link
-          href={link || '/product-details'}
+          href={computedLink}
           onClick={() => onProductClick && onProductClick(productId)}
           className="d-flex align-items-center justify-content-center w-100"
           style={{ height: '220px', backgroundColor: 'transparent' }}

@@ -4451,6 +4451,21 @@ iconify-icon {
   color: #ffffff !important;
 }
 
+/* Product editor: all image work is handled by the Variant drawer. */
+.product-studio-legacy > div:not(:first-child):not(.variant-launcher) {
+  display: none !important;
+}
+
+.product-studio-legacy > div:first-child .badge {
+  display: none !important;
+}
+
+.product-studio-legacy {
+  display: none !important;
+}
+
+.product-management-card { display: none !important; }
+
 /* Reference Card Top Right Heart Wishlist Icon */
 .ref-card-top-wishlist {
   position: absolute !important;
@@ -6011,4 +6026,20 @@ body.modal-open .main-nav {
   color: #ffffff !important;
   border-color: #0f172a !important;
   transform: translateY(-50%) scale(1.08);
+}
+
+/* Ensure product titles, categories, badges and breadcrumbs are always capitalized */
+.product-cart-wrap h2,
+.product-cart-wrap h3,
+.product-cart-wrap h4,
+.product-cart-wrap h5,
+.product-cart-wrap h6,
+.product-cart-wrap .product-category,
+.product-title,
+.product-details-page-wrapper h1,
+.product-details-page-wrapper .badge,
+.product-details-page-wrapper .breadcrumb,
+.product-card-hover h6,
+.product-card-hover span {
+  text-transform: capitalize !important;
 }

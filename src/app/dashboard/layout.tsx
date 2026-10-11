@@ -1267,18 +1267,6 @@ export default function DashboardLayout({
           <div className="container-fluid py-3">
             {children}
           </div>
-
-          {/* ========== Footer Start ========== */}
-          <footer className="footer">
-            <div className="container-fluid">
-              <div className="row">
-                <div className="col-12 text-center text-muted fs-13">
-                  {new Date().getFullYear()} &copy; Veuz Safety &amp; PPE Dashboard.
-                </div>
-              </div>
-            </div>
-          </footer>
-          {/* ========== Footer End ========== */}
         </div>
       </div>
 

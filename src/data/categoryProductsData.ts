@@ -65,6 +65,8 @@ export interface ProductItem {
   specifications?: ProductDetailSection[];
   sizes?: string[];
   colors?: string[];
+  colorImages?: Record<string, string[]>; // Each color mapped to up to 5 photos: [Front, Side, Top, Back, Detail]
+  colorSizes?: Record<string, string[]>; // Sizes available for each individual color variant
 }
 
 export const CATEGORY_PRODUCTS_DATA: ProductItem[] = [

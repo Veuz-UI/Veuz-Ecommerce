@@ -14,7 +14,7 @@ export interface StudioOptions {
   quality?: number; // 0.1 to 1.0 (default 1.0 for lossless alpha)
 }
 
-export type AnglePerspective = 'side' | 'top' | 'back';
+export type AnglePerspective = 'side' | 'top' | 'back' | 'detail';
 
 export interface AnglePreset {
   id: AnglePerspective;
@@ -41,6 +41,12 @@ export const ANGLE_PRESETS: AnglePreset[] = [
     label: 'Back View',
     description: 'Rear perspective highlighting back closures, straps, or finish.',
     icon: 'solar:refresh-square-bold',
+  },
+  {
+    id: 'detail',
+    label: '45° Detail View',
+    description: 'Quarter perspective highlighting craftsmanship and finish.',
+    icon: 'solar:magic-stick-3-bold',
   },
 ];
 
@@ -447,6 +453,10 @@ export async function generateSimulatedAngleCanvas(
     // Back / Rear View: Horizontally mirrored with subtle contrast
     ctx.scale(-0.95, 0.98);
     ctx.filter = 'contrast(1.05) brightness(0.98)';
+    ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
+  } else if (angle === 'detail') {
+    // 45-degree angle / close-up detail perspective
+    ctx.transform(0.96, 0.05, -0.05, 0.96, 0, 0);
     ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
   }
 

@@ -127,7 +127,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 export function useStore() {
   const context = useContext(StoreContext);
   if (!context) {
-    throw new Error('useStore must be used within a StoreProvider');
+    return {
+      cart: [],
+      wishlist: [],
+      quickViewProduct: null,
+      isCartOpen: false,
+      isMobileNavOpen: false,
+      addToCart: () => {},
+      removeFromCart: () => {},
+      updateQuantity: () => {},
+      toggleWishlist: () => {},
+      isInWishlist: () => false,
+      openQuickView: () => {},
+      closeQuickView: () => {},
+      setIsCartOpen: () => {},
+      setIsMobileNavOpen: () => {},
+      totalCartPrice: 0,
+      totalCartItems: 0,
+    };
   }
   return context;
 }

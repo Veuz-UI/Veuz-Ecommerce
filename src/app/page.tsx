@@ -910,11 +910,11 @@ export default function HomePage() {
           price: p.price,
           rating: p.rating ? `${p.rating}/5` : '5.0/5',
           reviews: p.reviews ? `${p.reviews} - Reviews` : '120 - Reviews',
-          link: p.link || '/product-details',
+          link: `/product-details?id=${p.id}`,
         }))
     : [];
 
-  const fallbackNewProducts = newProducts.map((p) => ({ ...p, badge: 'New Arrival' }));
+  const fallbackNewProducts = newProducts.map((p) => ({ ...p, badge: 'New Arrival', link: `/product-details?id=${p.id}` }));
 
   const displayedNewProducts = dynamicNewProducts.length > 0
     ? dynamicNewProducts
@@ -941,13 +941,14 @@ export default function HomePage() {
           discount: p.discount,
           rating: p.rating ? `${p.rating}/5` : '4.9/5',
           reviews: p.reviews ? `${p.reviews} - Reviews` : '200 - Reviews',
-          link: p.link || '/product-details',
+          link: `/product-details?id=${p.id}`,
         }))
     : mostSearchedProducts.map((p) => ({
         ...p,
         badge: 'Top Searched',
         badgeClass: 'top-searched' as const,
         collectionStatus: p.discount ? 'offer' : p.badgeClass === 'new' ? 'new' : undefined,
+        link: `/product-details?id=${p.id}`,
       }));
 
   // 3. Special Offers: ONLY show products where isSpecialOffer is explicitly TRUE
@@ -969,14 +970,14 @@ export default function HomePage() {
             discount: discountText,
             rating: p.rating ? `${p.rating}/5` : '5.0/5',
             reviews: p.reviews ? `${p.reviews} - Reviews` : '150 - Reviews',
-            link: p.link || '/product-details',
+            link: `/product-details?id=${p.id}`,
           };
         })
     : [];
 
   const displayedOnsale = dynamicOnsale.length > 0
     ? dynamicOnsale
-    : onsaleProducts;
+    : onsaleProducts.map((p) => ({ ...p, link: `/product-details?id=${p.id}` }));
 
   const newProductPairs: any[] = [];
   const halfCount = Math.ceil(displayedNewProducts.length / 2);
@@ -1163,7 +1164,10 @@ export default function HomePage() {
             <div>
               {/* Product Title (20px bold) */}
               <h2 className="new-prod-title">
-                <Link href={prod.link || '/product-details'} onClick={() => recordProductClick(prod.id)}>
+                <Link
+                  href={prod.link && prod.link.includes('?id=') ? prod.link : `/product-details?id=${prod.id}`}
+                  onClick={() => recordProductClick(prod.id)}
+                >
                   {prod.title}
                 </Link>
               </h2>

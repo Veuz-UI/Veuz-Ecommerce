@@ -571,7 +571,6 @@ function SpecificationsEditor() {
                             Section #{index + 1}
                           </span>
 
-                          <span className="text-muted fs-12 fw-medium">Display Format:</span>
                           <div className="btn-group btn-group-sm" style={{ borderRadius: '8px', overflow: 'hidden' }}>
                             <button
                               type="button"

@@ -181,6 +181,9 @@ export async function POST(req: Request) {
         specifications: Array.isArray(newProductData.specifications) ? newProductData.specifications : [],
         sizes: Array.isArray(newProductData.sizes) ? newProductData.sizes : [],
         colors: Array.isArray(newProductData.colors) ? newProductData.colors : [],
+        colorImages: typeof newProductData.colorImages === 'object' && newProductData.colorImages !== null ? newProductData.colorImages : {},
+        colorSizes: typeof newProductData.colorSizes === 'object' && newProductData.colorSizes !== null ? newProductData.colorSizes : {},
+        images: Array.isArray(newProductData.images) ? newProductData.images : [],
       };
 
       // Prepend to array so it always shows 1st!
@@ -238,6 +241,9 @@ export async function POST(req: Request) {
         specifications: Array.isArray(updateData.specifications) ? updateData.specifications : (existing.specifications || []),
         sizes: Array.isArray(updateData.sizes) ? updateData.sizes : (existing.sizes || []),
         colors: Array.isArray(updateData.colors) ? updateData.colors : (existing.colors || []),
+        colorImages: updateData.colorImages !== undefined ? updateData.colorImages : (existing.colorImages || {}),
+        colorSizes: updateData.colorSizes !== undefined ? updateData.colorSizes : (existing.colorSizes || {}),
+        images: Array.isArray(updateData.images) ? updateData.images : (existing.images || []),
       };
 
       if (isSpecialOffer) {
