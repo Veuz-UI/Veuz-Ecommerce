@@ -57,12 +57,12 @@ function ProductEditForm() {
   const [categoryId, setCategoryId] = useState<string>('');
   const [desc, setDesc] = useState<string>('');
   const [image, setImage] = useState<string>('');
-  const [standard, setStandard] = useState<string>('EN 397 & ANSI Z89.1');
+  const [standard, setStandard] = useState<string>('');
   const [location, setLocation] = useState<string>('Riyadh Central Warehouse');
   const [link, setLink] = useState<string>('/product-details');
 
   // Pricing & Special Offer
-  const [originalPrice, setOriginalPrice] = useState<number>(150);
+  const [originalPrice, setOriginalPrice] = useState<number>(0);
   const [isSpecialOffer, setIsSpecialOffer] = useState<boolean>(false);
   const [offerPercent, setOfferPercent] = useState<number>(15);
   const [offerEndDate, setOfferEndDate] = useState('');
@@ -174,15 +174,15 @@ function ProductEditForm() {
   const initCreateDefaults = () => {
     setId(`prod-${Date.now()}`);
     setTitle('');
-    setDesc('Industrial grade safety equipment meeting national and international workplace compliance standards.');
+    setDesc('');
     setImage('');
     setGalleryImages([]);
     setColorImages({});
-    setOriginalPrice(160);
+    setOriginalPrice(0);
     setIsSpecialOffer(false);
     setOfferPercent(15);
     setOfferEndDate('');
-    setStandard('EN 397 & ANSI Z89.1');
+    setStandard('');
     setLocation('Riyadh Central Warehouse');
     setExistingViews(0);
     setExistingClicks(0);
@@ -406,17 +406,28 @@ function ProductEditForm() {
       return;
     }
 
+    if (!desc.trim()) {
+      showToast('danger', 'Please add a product description.');
+      return;
+    }
+
+    if (specifications.length === 0) {
+      showToast('danger', 'Please add at least one product specification section.');
+      return;
+    }
+
     if (originalPrice <= 0) {
       showToast('danger', 'Please enter a valid price greater than 0.');
       return;
     }
 
-    // Minimum 4 photos mandatory validation for main product (Cover + 4 Angles = 5 Total, Min 4)
+    // Products without color variants use the main gallery (up to 5 photos, minimum 4).
+    // Products with colors are validated per color below instead.
     const validCover = Boolean(image && image.trim());
     const validAnglesCount = galleryImages.filter((img) => Boolean(img && img.trim())).length;
     const mainPhotosCount = (validCover ? 1 : 0) + validAnglesCount;
 
-    if (mainPhotosCount < 4) {
+    if (colors.length === 0 && mainPhotosCount < 4) {
       showToast(
         'warning',
         `Minimum 4 photos are mandatory for the main product! Currently uploaded: ${mainPhotosCount}/5. Please provide Front View and at least 3 other angles.`
@@ -440,6 +451,14 @@ function ProductEditForm() {
       }
     }
 
+    // For products with color variants, the first selected color is the
+    // storefront default. Its first photo becomes the product-card image.
+    const firstColorPhotos = colors.length > 0
+      ? (colorImages[colors[0]] || []).filter((photo) => Boolean(photo && photo.trim()))
+      : [];
+    const storefrontImage = colors.length > 0 ? firstColorPhotos[0] : image;
+    const storefrontImages = colors.length > 0 ? firstColorPhotos.slice(1) : galleryImages;
+
     setIsSaving(true);
     try {
       const payload: Partial<ProductItem> = {
@@ -448,8 +467,8 @@ function ProductEditForm() {
         category: category || 'Safety Equipment',
         categoryId: categoryId,
         desc: desc.trim(),
-        image,
-        images: galleryImages,
+        image: storefrontImage,
+        images: storefrontImages,
         colorImages: colorImages,
         colorSizes: colorSizes,
         originalPrice: originalPrice,
@@ -1107,7 +1126,8 @@ function ProductEditForm() {
                         type="number"
                         min={1}
                         className="form-control"
-                        value={originalPrice}
+                        placeholder="e.g. 160"
+                        value={originalPrice || ''}
                         onChange={(e) => setOriginalPrice(Number(e.target.value))}
                         style={{ borderRadius: '0 8px 8px 0', borderColor: '#cbd5e1', fontSize: '14px', height: '42px' }}
                         required

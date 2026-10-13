@@ -72,7 +72,7 @@ function ProductDetailsContent() {
             if (found.colors && found.colors.length > 0) {
               setSelectedColor(found.colors[0]);
             } else {
-              setSelectedColor('Sand / Orange');
+              setSelectedColor('');
             }
 
             if (found.sizes && found.sizes.length > 0) {
@@ -111,20 +111,6 @@ function ProductDetailsContent() {
     const baseImgs = [product.image, ...(Array.isArray(product.images) ? product.images : [])].filter(Boolean);
     const unique = Array.from(new Set(baseImgs));
 
-    if (unique.length < 5) {
-      const fallbackAngles = [
-        '/assets/imgs/shop/p1.jpg',
-        '/assets/imgs/shop/p2.jpg',
-        '/assets/imgs/shop/p3.jpg',
-        '/assets/imgs/shop/p4.jpg',
-        '/assets/imgs/shop/p5.jpg',
-      ];
-      for (const fb of fallbackAngles) {
-        if (!unique.includes(fb) && unique.length < 5) {
-          unique.push(fb);
-        }
-      }
-    }
     return unique;
   }, [product, selectedColor]);
 
@@ -136,14 +122,14 @@ function ProductDetailsContent() {
   // Colors available for this product
   const colorOptions = useMemo(() => {
     if (!product) return [];
-    const colors = product.colors && product.colors.length > 0 ? product.colors : ['Sand / Orange', 'Black', 'Olive', 'White'];
+    const colors = product.colors || [];
 
     return colors.map((name, idx) => {
       // Find 1st photo of this color if merchant uploaded color-specific photos
       const colorSpecific = product.colorImages?.[name]?.filter((u) => Boolean(u && u.trim()));
       const preview = (colorSpecific && colorSpecific.length > 0)
         ? colorSpecific[0]
-        : (galleryImages[idx % galleryImages.length] || product.image || '/assets/imgs/shop/p1.jpg');
+        : (galleryImages[idx % galleryImages.length] || product.image || '');
 
       return {
         name,
@@ -227,9 +213,17 @@ function ProductDetailsContent() {
     );
   }
 
-  const currentPriceNum = product.currentPrice || product.originalPrice || parseFloat(product.price?.replace(/[^\d.]/g, '') || '129');
-  const oldPriceVal = product.oldPrice ? product.oldPrice.replace(/[^\d.]/g, '') : Math.round(currentPriceNum * 1.25);
-  const discountVal = product.discount || '-19%';
+  const currentPriceNum = product.currentPrice ?? product.originalPrice ?? parseFloat(product.price?.replace(/[^\d.]/g, '') || '0');
+  const oldPriceVal = product.oldPrice?.replace(/[^\d.]/g, '') || '';
+  const hasOffer = Boolean(product.isSpecialOffer || product.discount || product.offerPercent || product.oldPrice);
+  const statusLabel = hasOffer
+    ? (product.offerEndDate ? 'LIMITED SALE' : 'OFFER')
+    : (product.isNewArrival ? 'NEW' : '');
+  const statusStyle = product.offerEndDate
+    ? { backgroundColor: '#d99400', color: '#ffffff' }
+    : hasOffer
+      ? { backgroundColor: '#e11d48', color: '#ffffff' }
+      : { backgroundColor: '#16a34a', color: '#ffffff' };
 
   return (
     <div className="product-details-page-wrapper" style={{ backgroundColor: '#ffffff', minHeight: '100vh', paddingBottom: '90px' }}>
@@ -257,20 +251,22 @@ function ProductDetailsContent() {
 
       {/* 2. MAIN HERO SECTION */}
       <div className="container py-2">
-        <div className="row g-4 g-xl-5">
+        <div className="row g-4 g-xl-5 align-items-stretch">
           
           {/* ========================================================
               LEFT COLUMN: THUMBNAILS + MAIN IMAGE + FEATURE TILES
               ======================================================== */}
-          <div className="col-12 col-lg-7">
+          <div className="col-12 col-lg-6">
             
             {/* Gallery Wrapper */}
             <div className="d-flex flex-row gap-3">
               
               {/* Vertical Thumbnails List (Left side, 5 items) */}
               <div 
-                className="d-flex flex-column gap-2 flex-shrink-0"
-                style={{ width: '76px' }}
+                className="d-flex flex-column gap-2.5 flex-shrink-0"
+                style={{
+                  width: '76px',
+                }}
               >
                 {galleryImages.slice(0, 5).map((imgUrl, idx) => {
                   const isActive = activeImageIdx === idx;
@@ -282,20 +278,20 @@ function ProductDetailsContent() {
                       key={`${imgUrl}-${idx}`}
                       type="button"
                       onClick={() => setActiveImageIdx(idx)}
-                      className="p-1 rounded-3 position-relative text-start border-0 transition-all"
+                      className="p-1 position-relative text-start transition-all"
                       style={{
                         width: '74px',
                         height: '74px',
-                        borderRadius: '14px',
-                        border: isActive ? '2px solid #ea580c' : '1px solid #e2e8f0',
-                        backgroundColor: '#f8fafc',
+                        borderRadius: '3px',
+                        border: isActive ? '2px solid #0f172a' : '1px solid #e2e8f0',
+                        backgroundColor: 'transparent',
                         cursor: 'pointer',
                         padding: '6px',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         transform: isActive ? 'scale(1.02)' : 'none',
-                        transition: 'all 0.2s ease',
+                        transition: 'opacity 0.2s ease, border-color 0.2s ease, transform 0.2s ease',
                       }}
                       title={`View perspective ${idx + 1}`}
                     >
@@ -306,6 +302,8 @@ function ProductDetailsContent() {
                           width: '100%',
                           height: '100%',
                           objectFit: 'contain',
+                          opacity: isActive ? 1 : 0.45,
+                          transition: 'opacity 0.2s ease',
                         }}
                         onError={(e) => {
                           (e.target as HTMLImageElement).src = '/assets/imgs/shop/p1.jpg';
@@ -334,19 +332,23 @@ function ProductDetailsContent() {
                 style={{
                   backgroundColor: '#f8fafc',
                   border: '1px solid #edf2f7',
-                  borderRadius: '28px',
-                  minHeight: '480px',
-                  height: '520px',
+                  borderRadius: '5px',
+                  minHeight: '580px',
+                  height: '580px',
                 }}
               >
                 {/* Fullscreen Expand Button (Top Right) */}
                 <button
                   type="button"
                   onClick={() => setIsZoomOpen(true)}
-                  className="position-absolute top-0 end-0 m-4 btn btn-light rounded-circle shadow-sm border-0 d-flex align-items-center justify-content-center"
+                  className="position-absolute top-0 end-0 m-4 btn border-0 d-flex align-items-center justify-content-center"
                   style={{
                     width: '42px',
+                    minWidth: '42px',
                     height: '42px',
+                    padding: 0,
+                    aspectRatio: '1 / 1',
+                    borderRadius: '50%',
                     zIndex: 10,
                     backgroundColor: '#ffffff',
                     boxShadow: '0 4px 14px rgba(0, 0, 0, 0.08)',
@@ -354,12 +356,7 @@ function ProductDetailsContent() {
                   }}
                   title="Fullscreen Zoom"
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="15 3 21 3 21 9"></polyline>
-                    <polyline points="9 21 3 21 3 15"></polyline>
-                    <line x1="21" y1="3" x2="14" y2="10"></line>
-                    <line x1="3" y1="21" x2="10" y2="14"></line>
-                  </svg>
+                  <span aria-hidden="true" style={{ color: '#0f172a', fontSize: '24px', fontWeight: 700, lineHeight: 1 }}>⤢</span>
                 </button>
 
                 {/* Main Hero Product Image */}
@@ -400,7 +397,7 @@ function ProductDetailsContent() {
                         width: activeImageIdx === dotIdx ? '22px' : '7px',
                         height: '7px',
                         borderRadius: '4px',
-                        backgroundColor: activeImageIdx === dotIdx ? '#ea580c' : '#cbd5e1',
+                        backgroundColor: activeImageIdx === dotIdx ? '#0f172a' : '#cbd5e1',
                         cursor: 'pointer',
                       }}
                       title={`Slide ${dotIdx + 1}`}
@@ -416,23 +413,22 @@ function ProductDetailsContent() {
           {/* ========================================================
               RIGHT COLUMN: PRODUCT DETAILS & BUY BOX
               ======================================================== */}
-          <div className="col-12 col-lg-5">
-            <div className="d-flex flex-column gap-3 ps-lg-1">
+          <div className="col-12 col-lg-6">
+            <div className="d-flex flex-column gap-3 ps-lg-1 h-100" style={{ minHeight: '580px' }}>
               
               {/* Badge: New Arrival or Discount */}
               <div>
                 <span
                   className="badge px-3 py-1.5 rounded-pill fw-bold text-capitalize"
                   style={{
-                    backgroundColor: '#fff7ed',
-                    color: '#ea580c',
-                    border: '1px solid #ffedd5',
-                    fontSize: '12px',
-                    letterSpacing: '0.2px',
+                    ...(statusLabel ? statusStyle : { backgroundColor: '#0f172a', color: '#ffffff' }),
+                    border: 'none',
+                    fontSize: '13px',
+                    letterSpacing: '0.35px',
                     textTransform: 'capitalize',
                   }}
                 >
-                  {toCapitalCase(product.badge || 'New Arrival')}
+                  {statusLabel || toCapitalCase(product.badge || 'Product')}
                 </span>
               </div>
 
@@ -456,63 +452,47 @@ function ProductDetailsContent() {
 
               {/* Star Rating Row */}
               <div className="d-flex align-items-center gap-2">
-                <div className="d-flex text-warning" style={{ fontSize: '16px', letterSpacing: '2px' }}>
+                <div className="d-flex text-warning" style={{ fontSize: '18px', letterSpacing: '2px' }}>
                   ★★★★★
                 </div>
-                <span className="fw-bold text-dark" style={{ fontSize: '14px' }}>
+                <span className="fw-bold text-dark" style={{ fontSize: '15px' }}>
                   {product.rating || '4.8'}
                 </span>
-                <span className="text-muted" style={{ fontSize: '13px' }}>
+                <span className="text-muted" style={{ fontSize: '14px' }}>
                   ({product.reviews || '128'} reviews)
                 </span>
               </div>
 
-              {/* Price Row: $129.00  $159.00  -19% */}
-              <div className="d-flex align-items-baseline gap-3 my-1">
+              {/* Product price and its actual collection status */}
+              <div className="d-flex flex-wrap align-items-center gap-3 my-1">
                 <span
                   className="fw-bold text-dark"
                   style={{
-                    fontSize: '34px',
+                    fontSize: '40px',
                     letterSpacing: '-0.5px',
                   }}
                 >
-                  ${currentPriceNum}.00
+                  {currentPriceNum} SR
                 </span>
-                <span
-                  className="text-muted text-decoration-line-through"
-                  style={{ fontSize: '19px', color: '#94a3b8' }}
-                >
-                  ${oldPriceVal}.00
-                </span>
-                <span
-                  className="badge rounded-pill px-2.5 py-1 fw-bold"
-                  style={{
-                    backgroundColor: '#fff1eb',
-                    color: '#ea580c',
-                    fontSize: '13px',
-                  }}
-                >
-                  {discountVal.startsWith('-') ? discountVal : `-${discountVal}`}
-                </span>
+                {hasOffer && oldPriceVal && (
+                  <span className="text-muted text-decoration-line-through" style={{ fontSize: '19px', color: '#94a3b8' }}>
+                    {oldPriceVal} SR
+                  </span>
+                )}
+                {statusLabel && (
+                  <span className="badge px-3 py-2 fw-bold" style={{ ...statusStyle, fontSize: '13px', borderRadius: '5px', lineHeight: 1 }}>
+                    {statusLabel}
+                  </span>
+                )}
+                {hasOffer && product.discount && (
+                  <span className="badge bg-dark text-white px-2 py-1 fw-bold" style={{ fontSize: '11px', borderRadius: '4px' }}>
+                    {product.discount}
+                  </span>
+                )}
               </div>
 
-              {/* Description Paragraph */}
-              <p
-                className="mb-1"
-                style={{
-                  fontSize: '14.5px',
-                  lineHeight: '1.6',
-                  color: '#475569',
-                }}
-              >
-                {product.desc || `Engineered for comfort. Designed to perform. ${product.title} delivers lightweight support, superior cushioning, and modern street-ready style.`}
-              </p>
-
-              {/* Divider */}
-              <hr className="my-1" style={{ borderColor: '#f1f5f9' }} />
-
-              {/* Color Selection (Cards matching reference) */}
-              <div className="d-flex flex-column gap-2">
+              {/* Color Selection — shown only for products with color variants */}
+              {colorOptions.length > 0 && <div className="d-flex flex-column gap-2">
                 <div className="d-flex align-items-center justify-content-between">
                   <span style={{ fontSize: '14px', color: '#0f172a' }}>
                     Color: <span className="fw-bold text-capitalize">{toCapitalCase(selectedColor)}</span>
@@ -533,9 +513,9 @@ function ProductDetailsContent() {
                           width: '64px',
                           height: '56px',
                           backgroundColor: '#f8fafc',
-                          border: isSelected ? '2px solid #ea580c' : '1px solid #e2e8f0',
-                          borderRadius: '12px',
-                          boxShadow: isSelected ? '0 2px 8px rgba(234, 88, 12, 0.18)' : 'none',
+                          border: isSelected ? '2px solid #0f172a' : '1px solid #e2e8f0',
+                          borderRadius: '3px',
+                          boxShadow: isSelected ? '0 2px 8px rgba(15, 23, 42, 0.14)' : 'none',
                           cursor: 'pointer',
                         }}
                         title={`Select color: ${c.name}`}
@@ -548,37 +528,19 @@ function ProductDetailsContent() {
                             maxHeight: '100%',
                             objectFit: 'contain',
                           }}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/assets/imgs/shop/p1.jpg';
-                          }}
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                         />
                       </button>
                     );
                   })}
                 </div>
-              </div>
+              </div>}
 
-              {/* Size Selection (Buttons + Size Guide link) */}
+              {/* Size Selection */}
               <div className="d-flex flex-column gap-2 mt-1">
-                <div className="d-flex align-items-center justify-content-between">
-                  <span style={{ fontSize: '14px', color: '#0f172a' }}>
-                    Size: <span className="fw-bold text-uppercase">{toCapitalCase(selectedSize)}</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setIsSizeGuideOpen(true)}
-                    className="btn btn-link p-0 text-decoration-none d-flex align-items-center gap-1.5"
-                    style={{ fontSize: '13px', color: '#64748b' }}
-                  >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21.3 8.7 8.7 21.3c-1 1-2.6 1-3.6 0l-1.4-1.4c-1-1-1-2.6 0-3.6L16.3 3.7c1-1 2.6-1 3.6 0l1.4 1.4c1 1 1 2.6 0 3.6z"></path>
-                      <path d="m7.5 10.5 2 2"></path>
-                      <path d="m10.5 7.5 2 2"></path>
-                      <path d="m13.5 4.5 2 2"></path>
-                    </svg>
-                    Size Guide
-                  </button>
-                </div>
+                <span style={{ fontSize: '14px', color: '#0f172a' }}>
+                  Size: <span className="fw-bold text-uppercase">{toCapitalCase(selectedSize)}</span>
+                </span>
 
                 {/* Size Buttons Grid (Clean rounded boxes) */}
                 <div className="d-flex flex-wrap gap-2">
@@ -592,14 +554,16 @@ function ProductDetailsContent() {
                         onClick={() => setSelectedSize(s)}
                         className="btn fw-semibold transition-all"
                         style={{
-                          minWidth: '50px',
-                          height: '46px',
-                          borderRadius: '10px',
+                          width: '48px',
+                          minWidth: '48px',
+                          height: '40px',
+                          padding: 0,
+                          borderRadius: '3px',
                           fontSize: '14px',
-                          backgroundColor: isSelected ? '#ea580c' : '#ffffff',
+                          backgroundColor: isSelected ? '#16a34a' : '#ffffff',
                           color: isSelected ? '#ffffff' : '#0f172a',
                           border: isSelected ? 'none' : '1px solid #e2e8f0',
-                          boxShadow: isSelected ? '0 4px 12px rgba(234, 88, 12, 0.28)' : 'none',
+                          boxShadow: isSelected ? '0 4px 12px rgba(22, 163, 74, 0.28)' : 'none',
                         }}
                       >
                         {s}
@@ -610,20 +574,20 @@ function ProductDetailsContent() {
               </div>
 
               {/* Action Buttons: Add to Cart + Add to Wishlist */}
-              <div className="d-flex align-items-center gap-3 pt-3">
-                {/* Big Orange Add to Cart Button */}
+              <div className="d-flex align-items-center gap-3 pt-3 mt-auto">
+                {/* Add to Cart */}
                 <button
                   type="button"
                   onClick={handleAddToCart}
                   className="btn flex-grow-1 fw-bold d-flex align-items-center justify-content-center gap-2 rounded-3 shadow-sm"
                   style={{
                     height: '54px',
-                    backgroundColor: '#ea580c',
+                    backgroundColor: '#0f172a',
                     border: 'none',
                     color: '#ffffff',
                     fontSize: '16px',
                     borderRadius: '14px',
-                    boxShadow: '0 6px 18px rgba(234, 88, 12, 0.26)',
+                    boxShadow: '0 6px 18px rgba(15, 23, 42, 0.24)',
                     transition: 'all 0.2s ease',
                   }}
                 >
@@ -667,47 +631,6 @@ function ProductDetailsContent() {
                 </button>
               </div>
 
-              {/* Trust Badges Row (Free Shipping, Easy Returns, Secure Payment) */}
-              <div
-                className="mt-4 pt-3 border-top d-flex flex-wrap align-items-center justify-content-between gap-3 text-secondary"
-                style={{ fontSize: '13px' }}
-              >
-                <div className="d-flex align-items-center gap-2.5">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="1" y="3" width="15" height="13"></rect>
-                    <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon>
-                    <circle cx="5.5" cy="18.5" r="2.5"></circle>
-                    <circle cx="18.5" cy="18.5" r="2.5"></circle>
-                  </svg>
-                  <div>
-                    <span className="fw-bold text-dark d-block" style={{ fontSize: '13px' }}>Free Shipping</span>
-                    <span className="text-muted" style={{ fontSize: '11.5px' }}>On orders over $99</span>
-                  </div>
-                </div>
-
-                <div className="d-flex align-items-center gap-2.5">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                  </svg>
-                  <div>
-                    <span className="fw-bold text-dark d-block" style={{ fontSize: '13px' }}>Easy Returns</span>
-                    <span className="text-muted" style={{ fontSize: '11.5px' }}>30-day returns</span>
-                  </div>
-                </div>
-
-                <div className="d-flex align-items-center gap-2.5">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                  </svg>
-                  <div>
-                    <span className="fw-bold text-dark d-block" style={{ fontSize: '13px' }}>Secure Payment</span>
-                    <span className="text-muted" style={{ fontSize: '11.5px' }}>100% secure checkout</span>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </div>
 
@@ -716,122 +639,52 @@ function ProductDetailsContent() {
 
       {/* 3. ADDITIONAL DETAILS TABS */}
       <div className="container mt-5 pt-4">
-        <div className="card border-0 rounded-4 shadow-sm p-4" style={{ backgroundColor: '#ffffff', border: '1px solid #f1f5f9' }}>
+        <div className="card border-0 rounded-4 p-3 p-md-4" style={{ backgroundColor: '#ffffff', border: '1px solid #f1f5f9', boxShadow: 'none' }}>
           
-          <div className="d-flex flex-wrap gap-2 border-bottom pb-3 mb-4">
-            <button
-              type="button"
-              onClick={() => setActiveTab('overview')}
-              className={`btn fw-bold px-4 py-2 rounded-pill transition-all ${
-                activeTab === 'overview' ? 'btn-dark' : 'btn-light text-muted'
-              }`}
-              style={{ fontSize: '14px' }}
-            >
-              Product Overview
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('specifications')}
-              className={`btn fw-bold px-4 py-2 rounded-pill transition-all ${
-                activeTab === 'specifications' ? 'btn-dark' : 'btn-light text-muted'
-              }`}
-              style={{ fontSize: '14px' }}
-            >
-              Specifications & Standards
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('reviews')}
-              className={`btn fw-bold px-4 py-2 rounded-pill transition-all ${
-                activeTab === 'reviews' ? 'btn-dark' : 'btn-light text-muted'
-              }`}
-              style={{ fontSize: '14px' }}
-            >
-              Reviews ({product.reviews || '128'})
-            </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab('shipping')}
-              className={`btn fw-bold px-4 py-2 rounded-pill transition-all ${
-                activeTab === 'shipping' ? 'btn-dark' : 'btn-light text-muted'
-              }`}
-              style={{ fontSize: '14px' }}
-            >
-              Shipping & Delivery
-            </button>
-          </div>
-
-          <div className="tab-content py-2">
-            {activeTab === 'overview' && (
+          <div>
               <div>
-                <h4 className="fw-bold text-dark mb-3">About {product.title}</h4>
-                <p className="text-secondary" style={{ lineHeight: '1.8', fontSize: '15px' }}>
-                  {product.desc || 'High-performance equipment engineered to provide superior protection, comfort, and compliance for professional environments.'}
-                </p>
-                <div className="row g-4 mt-2">
-                  <div className="col-12 col-md-6">
-                    <div className="p-3 rounded-3" style={{ backgroundColor: '#f8fafc' }}>
-                      <h6 className="fw-bold text-dark mb-2">Key Highlights</h6>
-                      <ul className="mb-0 text-secondary ps-3" style={{ fontSize: '14px', lineHeight: '1.7' }}>
-                        <li>Engineered specifically for workplace and everyday innovators</li>
-                        <li>High impact cushioning conforming to certified safety standards</li>
-                        <li>Ergonomic contouring to minimize fatigue during extended wear</li>
-                        <li>Reinforced stitching and abrasion-resistant compound materials</li>
-                      </ul>
-                    </div>
-                  </div>
-                  <div className="col-12 col-md-6">
-                    <div className="p-3 rounded-3" style={{ backgroundColor: '#f8fafc' }}>
-                      <h6 className="fw-bold text-dark mb-2">Compliance & Certifications</h6>
-                      <ul className="mb-0 text-secondary ps-3" style={{ fontSize: '14px', lineHeight: '1.7' }}>
-                        <li>Official Standard: <strong>{product.standard || 'OSHA / ISO Certified'}</strong></li>
-                        <li>Category Classification: <strong>{product.category}</strong></li>
-                        <li>Quality Assurance: 100% factory inspected and batch-tested</li>
-                        <li>Warehouse Dispatch Location: <strong>{product.location || 'Central Distribution Hub'}</strong></li>
-                      </ul>
-                    </div>
-                  </div>
+                <div className="border-top mb-4" style={{ borderColor: '#e2e8f0' }}></div>
+                <div className="mb-4 pb-4 border-bottom">
+                  <h3 className="fw-bold text-dark mb-3" style={{ fontSize: '18px', lineHeight: '1.3' }}>Product Description</h3>
+                  <p className="text-secondary fs-14 mb-0" style={{ lineHeight: '1.7', whiteSpace: 'pre-line' }}>
+                    {product.desc}
+                  </p>
                 </div>
-              </div>
-            )}
 
-            {activeTab === 'specifications' && (
-              <div>
-                <h4 className="fw-bold text-dark mb-3">Technical Specifications</h4>
-                <div className="table-responsive">
-                  <table className="table table-bordered mb-0" style={{ fontSize: '14px' }}>
-                    <tbody>
-                      <tr>
-                        <th style={{ width: '220px', backgroundColor: '#f8fafc' }}>Product Model</th>
-                        <td>{product.title}</td>
-                      </tr>
-                      <tr>
-                        <th style={{ backgroundColor: '#f8fafc' }}>Category</th>
-                        <td>{product.category}</td>
-                      </tr>
-                      <tr>
-                        <th style={{ backgroundColor: '#f8fafc' }}>Standard / Certification</th>
-                        <td>{product.standard || 'EN 397 & ANSI Z89.1 Compliance'}</td>
-                      </tr>
-                      <tr>
-                        <th style={{ backgroundColor: '#f8fafc' }}>Available Sizes</th>
-                        <td>{sizeOptions.join(', ')}</td>
-                      </tr>
-                      <tr>
-                        <th style={{ backgroundColor: '#f8fafc' }}>Available Colors</th>
-                        <td>{colorOptions.map((c) => c.name).join(', ')}</td>
-                      </tr>
-                      <tr>
-                        <th style={{ backgroundColor: '#f8fafc' }}>Stock Status</th>
-                        <td>
-                          <span className="badge bg-success-subtle text-success">In Stock (Ready to Ship)</span>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
+                {(product.specifications || []).length === 0 ? (
+                  <p className="text-muted fs-14 mb-0">No technical specifications have been added for this product.</p>
+                ) : (
+                  <div className="d-flex flex-column gap-4">
+                    {product.specifications?.map((section) => (
+                      <div key={section.id} className="pb-3 border-bottom">
+                        <h3 className="fw-bold text-dark mb-3" style={{ fontSize: '18px', lineHeight: '1.3' }}>Product Specification</h3>
+
+                        {section.type === 'description' ? (
+                          <p className="text-muted fs-14 mb-0" style={{ lineHeight: '1.7', whiteSpace: 'pre-line' }}>
+                            {section.description}
+                          </p>
+                        ) : (
+                          <div className="row g-3 mt-1">
+                            {section.points?.map((point) => (
+                              <div key={point.id} className="col-12 col-md-6">
+                                <div className="rounded-3 border h-100 d-flex align-items-start gap-2.5" style={{ padding: '14px 16px', backgroundColor: 'transparent', borderColor: '#e2e8f0' }}>
+                                  <div className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-white" style={{ width: '22px', height: '22px', backgroundColor: '#0f172a', marginTop: '2px' }}>
+                                    <iconify-icon icon="solar:check-circle-bold" class="fs-14"></iconify-icon>
+                                  </div>
+                                  <div>
+                                    {point.heading && <strong className="d-block text-dark fs-13 mb-0.5">{point.heading}</strong>}
+                                    <span className="fs-13" style={{ lineHeight: '1.45', color: '#0f172a' }}>{point.text}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
 
             {activeTab === 'reviews' && (
               <div>
@@ -898,50 +751,73 @@ function ProductDetailsContent() {
                 More items from {toCapitalCase(product.category)}
               </p>
             </div>
-            <Link href={`/products?category=${encodeURIComponent(product.category)}`} className="btn btn-outline-dark rounded-pill px-4 btn-sm fw-semibold text-capitalize">
-              View All in {toCapitalCase(product.category)} →
+            <Link
+              href={`/products?category=${encodeURIComponent(product.category)}`}
+              className="btn px-4 btn-sm fw-semibold"
+              style={{ borderRadius: '5px', backgroundColor: '#0f172a', borderColor: '#0f172a', color: '#ffffff' }}
+            >
+              View All {toCapitalCase(product.category)}
             </Link>
           </div>
 
           <div className="row g-3 g-md-4">
-            {relatedProducts.map((rel) => (
-              <div key={rel.id} className="col-6 col-md-3">
-                <div className="card h-100 border rounded-4 overflow-hidden shadow-sm product-card-hover" style={{ borderColor: '#e2e8f0' }}>
-                  <ProductCardImageSlider
-                    productId={rel.id}
-                    title={toCapitalCase(rel.title)}
-                    link={`/product-details?id=${rel.id}`}
-                    image={rel.image}
-                    images={rel.images}
-                    onProductClick={recordProductClick}
-                  />
-                  <div className="card-body p-3 d-flex flex-column justify-content-between">
+            {relatedProducts.map((rel) => {
+              const relCurrentPrice = rel.currentPrice ?? rel.originalPrice ?? parseFloat(rel.price?.replace(/[^\d.]/g, '') || '0');
+              const relHasOffer = Boolean(rel.isSpecialOffer || rel.discount || rel.offerPercent || rel.oldPrice);
+              const relIsLimited = Boolean(rel.offerEndDate);
+              const relIsNew = !relHasOffer && Boolean(rel.isNewArrival || rel.badgeClass === 'new' || rel.badge === 'New Arrival');
+              const relStatus = relIsLimited ? 'LIMITED SALE' : relHasOffer ? 'OFFER' : relIsNew ? 'NEW' : '';
+              const relStatusStyle = relIsLimited
+                ? { backgroundColor: '#d99400', color: '#ffffff' }
+                : relHasOffer
+                  ? { backgroundColor: '#e11d48', color: '#ffffff' }
+                  : { backgroundColor: '#16a34a', color: '#ffffff' };
+
+              return <div key={rel.id} className="col-12 col-sm-6 col-lg-3">
+                <div className="product-cart-wrap uniform-product-card w-100 d-flex flex-column">
+                  <div className="product-img-action-wrap position-relative">
+                    {relStatus && <span className="ref-card-badge" style={relStatusStyle}>{relStatus}</span>}
+                    <ProductCardImageSlider
+                      productId={rel.id}
+                      title={toCapitalCase(rel.title)}
+                      link={`/product-details?id=${rel.id}`}
+                      image={rel.image}
+                      images={rel.images}
+                      onProductClick={recordProductClick}
+                    />
+                  </div>
+                  <div className="product-content-wrap d-flex flex-column flex-grow-1 justify-content-between">
                     <div>
-                      <span className="text-muted d-block mb-1 text-capitalize" style={{ fontSize: '11px', textTransform: 'capitalize' }}>
-                        {toCapitalCase(rel.category)}
-                      </span>
-                      <h6 className="fw-bold text-dark mb-2 text-capitalize" style={{ fontSize: '14px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textTransform: 'capitalize' }}>
-                        <Link href={`/product-details?id=${rel.id}`} className="text-dark text-decoration-none hover-orange">
+                      <h2 className="new-prod-title">
+                        <Link href={`/product-details?id=${rel.id}`} className="text-dark text-decoration-none">
                           {toCapitalCase(rel.title)}
                         </Link>
-                      </h6>
+                      </h2>
+                      <div className="product-rate d-flex align-items-center mb-2">
+                        <span style={{ color: '#0f172a', fontSize: '13px', letterSpacing: '1px' }}>★★★★★</span>
+                        <span className="rating-score fw-bold ms-2" style={{ fontSize: '13px', color: '#0f172a' }}>{rel.rating}</span>
+                        <span className="rating-reviews ms-2" style={{ fontSize: '13px', color: '#64748b' }}>({rel.reviews})</span>
+                      </div>
+                      <div className="new-prod-price-box mb-2">
+                        <div className="d-flex align-items-center gap-2 flex-wrap">
+                          <span className="new-prod-current-price">{relCurrentPrice} SR</span>
+                          {relHasOffer && rel.oldPrice && <span className="new-prod-old-price">{rel.oldPrice}</span>}
+                          {relStatus && <span className="badge" style={{ ...relStatusStyle, fontSize: '11px', padding: '4px 7px' }}>{relStatus}</span>}
+                          {relHasOffer && rel.discount && <span className="badge bg-dark text-white" style={{ fontSize: '11px', padding: '4px 7px' }}>{rel.discount}</span>}
+                        </div>
+                        <div className="new-prod-vat-label">Inclusive of VAT</div>
+                      </div>
+                      <p className="new-prod-desc">{rel.desc}</p>
+                      <div className="mb-2"><span className="express-delivery-badge"><i className="fi-rs-bolt"></i>Express Delivery</span></div>
                     </div>
-                    <div className="d-flex align-items-center justify-content-between pt-2">
-                      <span className="fw-bold text-dark" style={{ fontSize: '15px' }}>
-                        {rel.currentPrice || rel.price}
-                      </span>
-                      <Link
-                        href={`/product-details?id=${rel.id}`}
-                        className="btn btn-sm btn-outline-dark rounded-pill px-2.5 py-1"
-                        style={{ fontSize: '12px' }}
-                      >
-                        View
-                      </Link>
+                    <div className="product-card-bottom d-flex align-items-center gap-2 mt-auto">
+                      <Link href="/cart" className="btn-add-cart-wide">Add to Cart</Link>
+                      <button type="button" aria-label="Add to wishlist" className="btn-wishlist-square"><i className="fi-rs-heart"></i></button>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              </div>;
+            })}
           </div>
         </div>
       )}
@@ -952,7 +828,7 @@ function ProductDetailsContent() {
           className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
           style={{
             zIndex: 9999,
-            backgroundColor: 'rgba(15, 23, 42, 0.92)',
+            backgroundColor: 'rgb(0 0 0 / 53%)',
             backdropFilter: 'blur(6px)',
           }}
           onClick={() => {
@@ -966,8 +842,17 @@ function ProductDetailsContent() {
               setIsZoomOpen(false);
               setZoomScale(1);
             }}
-            className="position-absolute top-0 end-0 m-4 btn btn-light rounded-circle shadow"
-            style={{ width: '44px', height: '44px', zIndex: 10001 }}
+            className="position-absolute top-0 end-0 m-4 btn border-0 d-flex align-items-center justify-content-center"
+            style={{
+              width: '44px',
+              minWidth: '44px',
+              height: '44px',
+              padding: 0,
+              borderRadius: '50%',
+              backgroundColor: '#0f172a',
+              color: '#ffffff',
+              zIndex: 10001,
+            }}
             title="Close Zoom View"
           >
             ✕

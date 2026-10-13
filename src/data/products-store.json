@@ -1,34 +1,95 @@
 [
   {
     "id": "prod-1791741285775",
-    "title": "New Product",
-    "desc": "Industrial grade safety equipment meeting national and international workplace compliance standards.",
+    "title": "Safety Shoes Steel Toe Shoes, Lightweight Mesh Breathable Work, Rotating Button Laces, Safety Work Shoes, Industrial Construction Safety Footwear",
+    "desc": "Step into comfort and safety with these innovative work boots featuring a unique rotating button lacing system. These versatile safety shoes, available in sleek black and stylish grey colours, are designed for both men who demand reliable footwear in demanding environments. The non-slip soles provide excellent traction on various surfaces, while the breathable mesh upper construction ensures all-day comfort. The robust design incorporates protective elements to shield your feet during work activities, whilst the ergonomic shape supports natural movement. The convenient rotating button system makes securing and adjusting your laces quick and effortless - no more stopping to retie loose laces. The durable construction combines with modern athletic styling, making these shoes suitable for various workplace settings. The cushioned insole provides lasting comfort during long shifts, while the reinforced toe area offers additional protection. Whether you're in industrial settings, retail, or service industries, these safety shoes deliver the perfect blend of functionality and comfort.",
     "category": "HELMET",
     "categoryId": "cat-1",
-    "price": "160 SR",
+    "price": "300 SR",
     "rating": "5.0",
     "reviews": "10",
-    "image": "/assets/imgs/shop/p1.jpg",
+    "image": "/uploads/img_1791910868376_9c87aaa4d7708ba4fb26b45b42e1c19e.jpg",
     "badge": "New Arrival",
     "badgeClass": "new",
     "location": "Riyadh Central Warehouse",
     "standard": "EN 397 & ANSI Z89.1",
     "inStock": true,
     "link": "/product-details?id=prod-1791741285775",
-    "originalPrice": 160,
-    "currentPrice": 160,
+    "originalPrice": 300,
+    "currentPrice": 300,
     "isSpecialOffer": false,
     "isNewArrival": true,
     "createdAt": 1791741314174,
-    "views": 1,
-    "clicks": 0,
+    "views": 49,
+    "clicks": 48,
     "isActive": true,
-    "specifications": [],
-    "sizes": [],
-    "colors": [],
-    "colorImages": {},
+    "specifications": [
+      {
+        "id": "sec-1791910659041",
+        "heading": "About this item",
+        "type": "points",
+        "points": [
+          {
+            "id": "pt-1791910659041-1",
+            "heading": "",
+            "text": "Safety Design: These safety shoes feature a standard steel toe with an impact resistance of 200±4J, providing robust protection against falling and rolling objects, ensuring your feet are safe."
+          },
+          {
+            "id": "pt-1791910682265",
+            "heading": "",
+            "text": "Lightweight and Breathable: Our safety shoes are made with lightweight materials and breathable fabrics to ensure maximum airflow and prevent foot fatigue from prolonged work. The air cushioning not only provides all-day support for your feet but also helps reduce fatigue, allowing you to stay focused and efficient."
+          },
+          {
+            "id": "pt-1791910704928",
+            "heading": "",
+            "text": "Slip-Resistant Work Shoes: Our steel-toe athletic shoes feature a slip-resistant design, providing excellent grip on various surfaces. Whether you are working on wet, slippery ground or uneven terrain, these shoes offer enhanced stability, preventing accidents and injuries."
+          },
+          {
+            "id": "pt-1791910720192",
+            "heading": "",
+            "text": "Versatile Applications: Suitable for a variety of harsh working environments, from construction sites and warehouses to production workshops; also serves as an excellent slip-resistant steel-toe chef's shoe, ensuring stability in the kitchen or on smooth surfaces."
+          },
+          {
+            "id": "pt-1791910727553",
+            "heading": "",
+            "text": "Unique Design: Our work shoes feature a unique button design that sets them apart from other shoes."
+          }
+        ]
+      }
+    ],
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL"
+    ],
+    "colors": [
+      "Black",
+      "White"
+    ],
+    "colorImages": {
+      "Black": [
+        "/uploads/img_1791910868376_9c87aaa4d7708ba4fb26b45b42e1c19e.jpg",
+        "/uploads/img_1791910871113_328dc6bc4b4db76f5898aec9662c614a.jpg",
+        "/uploads/img_1791910873342_06b9d5e9de47bbc71974a7b8440d7dfc.jpg",
+        "/uploads/img_1791910875349_e20e504017db4f91339a51875f093a20.jpg",
+        "/uploads/img_1791910877822_0699f1a74516f676e09682f32fffa360.jpg"
+      ],
+      "White": [
+        "/uploads/img_1791910883949_f976d9f163e4957527aec228b01d05b2.jpg",
+        "/uploads/img_1791910886299_9c838e580f532c9e6075a9baa46f7bfe.jpg",
+        "/uploads/img_1791910890527_bc6415862bb5c5ae53e582d3e2581482.jpg",
+        "/uploads/img_1791910894222_25a996e904c134760a673a7dc7b82e60.jpg",
+        "/uploads/img_1791910896775_10e46a8212d30f5ea5b8c3f0221aafb1.jpg"
+      ]
+    },
     "colorSizes": {},
-    "images": []
+    "images": [
+      "/uploads/img_1791910871113_328dc6bc4b4db76f5898aec9662c614a.jpg",
+      "/uploads/img_1791910873342_06b9d5e9de47bbc71974a7b8440d7dfc.jpg",
+      "/uploads/img_1791910875349_e20e504017db4f91339a51875f093a20.jpg",
+      "/uploads/img_1791910877822_0699f1a74516f676e09682f32fffa360.jpg"
+    ]
   },
   {
     "id": "prod-1791740769336",
@@ -51,8 +112,8 @@
     "isSpecialOffer": false,
     "isNewArrival": true,
     "createdAt": 1791740786776,
-    "views": 1,
-    "clicks": 0,
+    "views": 3,
+    "clicks": 2,
     "isActive": true,
     "specifications": [],
     "sizes": [],
