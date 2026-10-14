@@ -19,6 +19,68 @@ interface ProductsCatalogViewProps {
   pageMode?: CatalogPageMode;
 }
 
+// Category matching helper: matches by ID, exact name, normalized slug, singular/plural, or ShopCategory mapping
+export function matchesCategory(
+  productCategory: string | undefined,
+  productCategoryId: string | undefined,
+  selectedCategoryOrId: string,
+  allCategories?: ShopCategory[]
+): boolean {
+  if (!selectedCategoryOrId || selectedCategoryOrId === 'all') return true;
+
+  const cleanSel = selectedCategoryOrId.toLowerCase().trim();
+  const cleanCat = (productCategory || '').toLowerCase().trim();
+  const cleanCatId = (productCategoryId || '').toLowerCase().trim();
+
+  // 1. Direct ID match (e.g. "cat-1" === "cat-1")
+  if (cleanCatId && cleanCatId === cleanSel) return true;
+
+  // 2. Exact name match (e.g. "helmet" === "helmet")
+  if (cleanCat && cleanCat === cleanSel) return true;
+
+  // 3. Normalized slug comparison (stripping spaces, dashes, underscores)
+  const slugSel = cleanSel.replace(/[\s_-]+/g, '');
+  const slugCat = cleanCat.replace(/[\s_-]+/g, '');
+  if (slugCat && slugSel) {
+    if (slugCat === slugSel) return true;
+    if (slugCat.includes(slugSel) || slugSel.includes(slugCat)) return true;
+  }
+
+  // 4. Singular / Plural word comparison (e.g. "helmets" vs "helmet")
+  const singularSel = cleanSel.replace(/s\b/g, '');
+  const singularCat = cleanCat.replace(/s\b/g, '');
+  if (singularCat && singularSel && (singularCat.includes(singularSel) || singularSel.includes(singularCat))) {
+    return true;
+  }
+
+  // 5. Lookup in allCategories: If selected matches a known category by ID or name, check product against that category
+  if (allCategories && allCategories.length > 0) {
+    const matchedCategory = allCategories.find((c) => {
+      const cId = c.id.toLowerCase().trim();
+      const cName = c.name.toLowerCase().trim();
+      const cSlug = cName.replace(/[\s_-]+/g, '');
+      return (
+        cId === cleanSel ||
+        cName === cleanSel ||
+        cSlug === slugSel ||
+        cName.includes(cleanSel) ||
+        cleanSel.includes(cName)
+      );
+    });
+
+    if (matchedCategory) {
+      if (cleanCatId && cleanCatId === matchedCategory.id.toLowerCase().trim()) return true;
+      const cName = matchedCategory.name.toLowerCase().trim();
+      const cSlug = cName.replace(/[\s_-]+/g, '');
+      if (cleanCat === cName || slugCat === cSlug || cleanCat.includes(cName) || cName.includes(cleanCat)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -48,6 +110,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
 
   // Accordion state for filter cards
   const [openSections, setOpenSections] = useState<{ [key: string]: boolean }>({
+    category: true,
     browse: true,
     size: true,
     color: true,
@@ -79,6 +142,8 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
   useEffect(() => {
     if (urlCategoryParam && urlCategoryParam !== 'all') {
       setSelectedCategories([urlCategoryParam]);
+    } else {
+      setSelectedCategories([]);
     }
   }, [urlCategoryParam]);
 
@@ -259,20 +324,58 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     }
   };
 
+  // Unified Category List: merges ShopSettings categories with any unique categories found in products
+  const displayCategories = useMemo(() => {
+    const list: ShopCategory[] = [...categories.filter((c) => c.isActive !== false)];
+    const existingNames = new Set(list.map((c) => c.name.toLowerCase().trim()));
+
+    // Also include any distinct product categories not already in shop settings
+    products.forEach((p) => {
+      if (p.category && !existingNames.has(p.category.toLowerCase().trim())) {
+        existingNames.add(p.category.toLowerCase().trim());
+        list.push({
+          id: p.categoryId || `cat-dyn-${list.length + 1}`,
+          name: p.category,
+          link: `/products?category=${encodeURIComponent(p.category)}`,
+          isActive: true,
+        });
+      }
+    });
+
+    return list;
+  }, [categories, products]);
+
   // Category Selection from Slider
-  const handleCategorySelectFromSlider = (catName: string) => {
+  const handleCategorySelectFromSlider = (catName: string, catId?: string) => {
     if (dragDistanceRef.current > 10) {
       return;
     }
     if (catName === 'all') {
       setSelectedCategories([]);
     } else {
-      setSelectedCategories((prev) =>
-        prev.length === 1 && prev[0].toLowerCase() === catName.toLowerCase()
-          ? []
-          : [catName]
-      );
+      setSelectedCategories((prev) => {
+        const isCurrent = prev.some((sel) =>
+          matchesCategory(catName, catId, sel, displayCategories)
+        );
+        return isCurrent ? [] : [catName];
+      });
     }
+  };
+
+  // Category toggle for sidebar (support multi-select or single-click toggle)
+  const handleToggleCategory = (catName: string, catId?: string) => {
+    setSelectedCategories((prev) => {
+      const exists = prev.some((sel) =>
+        matchesCategory(catName, catId, sel, displayCategories)
+      );
+      if (exists) {
+        return prev.filter(
+          (sel) => !matchesCategory(catName, catId, sel, displayCategories)
+        );
+      } else {
+        return [...prev, catName];
+      }
+    });
   };
 
   // Size toggle for sidebar
@@ -471,11 +574,11 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
 
     // 2. Category filter (multiple selection)
     if (selectedCategories.length > 0) {
-      const lowerSelected = selectedCategories.map((c) => c.toLowerCase());
-      result = result.filter((p) => {
-        const cat = p.category?.toLowerCase() || '';
-        return lowerSelected.some((sel) => cat.includes(sel) || sel.includes(cat) || p.categoryId === sel);
-      });
+      result = result.filter((p) =>
+        selectedCategories.some((sel) =>
+          matchesCategory(p.category, p.categoryId, sel, displayCategories)
+        )
+      );
     }
 
     // 3. Size Filter
@@ -526,7 +629,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     });
 
     return result;
-  }, [baseScopedProducts, urlSearchQuery, activeCollection, selectedCategories, selectedSizes, selectedColors, priceRange, selectedStandard, sortBy]);
+  }, [baseScopedProducts, urlSearchQuery, activeCollection, selectedCategories, selectedSizes, selectedColors, priceRange, selectedStandard, sortBy, displayCategories]);
 
   // Is filter currently active?
   const isAnyFilterActive =
@@ -555,7 +658,15 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
 
   // Section title calculation
   const pageTitle = useMemo(() => {
-    if (selectedCategories.length === 1) return selectedCategories[0];
+    if (selectedCategories.length === 1) {
+      const match = displayCategories.find((c) =>
+        matchesCategory(c.name, c.id, selectedCategories[0], displayCategories)
+      );
+      return match ? match.name : selectedCategories[0];
+    }
+    if (selectedCategories.length > 1) {
+      return `${selectedCategories.length} Categories Selected`;
+    }
     if (pageMode === 'offers') {
       return 'Offer Products';
     }
@@ -571,7 +682,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     if (activeCollection === 'most-searched') return 'Most Searched Products';
     if (activeCollection === 'special-offers') return 'Offer Products';
     return 'All Categories Products';
-  }, [pageMode, activeCollection, selectedCategories]);
+  }, [pageMode, activeCollection, selectedCategories, displayCategories]);
 
   // Page description calculation
   const pageDescription = useMemo(() => {
@@ -716,20 +827,19 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
               </div>
 
               {/* Dynamic Categories */}
-              {categories.map((cat, idx) => {
-                const isSelected = selectedCategories.some(
-                  (c) => c.toLowerCase() === cat.name.toLowerCase()
+              {displayCategories.map((cat, idx) => {
+                const isSelected = selectedCategories.some((c) =>
+                  matchesCategory(cat.name, cat.id, c, displayCategories)
                 );
-                const count = baseScopedProducts.filter(
-                  (p) =>
-                    p.category?.toLowerCase() === cat.name.toLowerCase() ||
-                    p.categoryId === cat.id
+                const count = baseScopedProducts.filter((p) =>
+                  matchesCategory(p.category, p.categoryId, cat.name, displayCategories) ||
+                  (cat.id && matchesCategory(p.category, p.categoryId, cat.id, displayCategories))
                 ).length;
 
                 return (
                   <div
                     key={cat.id || idx}
-                    onClick={() => handleCategorySelectFromSlider(cat.name)}
+                    onClick={() => handleCategorySelectFromSlider(cat.name, cat.id)}
                     className={`category-pill-card d-flex align-items-center flex-shrink-0 ${
                       isSelected ? 'active-cat-pill' : ''
                     }`}
@@ -1026,7 +1136,106 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                 </div>
               )}
 
-              {/* Card 2: Size Filter */}
+              {/* Card 2: Category Filter */}
+              <div className="filter-card-container">
+                <div
+                  className={`filter-card-header ${openSections.category ? 'is-open' : ''}`}
+                  onClick={() => toggleSection('category')}
+                >
+                  <span className="filter-card-title">Category</span>
+                  <div className="d-flex align-items-center gap-2">
+                    {selectedCategories.length > 0 && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedCategories([]);
+                        }}
+                        style={{ fontSize: '11px', color: '#64748b', textDecoration: 'underline', cursor: 'pointer' }}
+                      >
+                        Reset
+                      </span>
+                    )}
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#64748b"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{
+                        transform: openSections.category ? 'rotate(0deg)' : 'rotate(180deg)',
+                        transition: 'transform 0.2s ease',
+                      }}
+                    >
+                      <polyline points="18 15 12 9 6 15"></polyline>
+                    </svg>
+                  </div>
+                </div>
+                {openSections.category && (
+                  <div className="filter-card-body d-flex flex-column gap-1" style={{ maxHeight: '280px', overflowY: 'auto' }}>
+                    {displayCategories.map((cat) => {
+                      const isSelected = selectedCategories.some((c) =>
+                        matchesCategory(cat.name, cat.id, c, displayCategories)
+                      );
+                      const count = baseScopedProducts.filter((p) =>
+                        matchesCategory(p.category, p.categoryId, cat.name, displayCategories) ||
+                        (cat.id && matchesCategory(p.category, p.categoryId, cat.id, displayCategories))
+                      ).length;
+
+                      return (
+                        <div
+                          key={cat.id || cat.name}
+                          onClick={() => handleToggleCategory(cat.name, cat.id)}
+                          className="d-flex align-items-center justify-content-between p-2 rounded-2"
+                          style={{
+                            cursor: 'pointer',
+                            backgroundColor: isSelected ? '#f0fdf4' : 'transparent',
+                            transition: 'background-color 0.15s ease',
+                          }}
+                        >
+                          <div className="d-flex align-items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => {}}
+                              style={{
+                                cursor: 'pointer',
+                                accentColor: '#16a34a',
+                                width: '15px',
+                                height: '15px',
+                              }}
+                            />
+                            <span
+                              style={{
+                                fontSize: '13px',
+                                fontWeight: isSelected ? 600 : 500,
+                                color: isSelected ? '#16a34a' : '#334155',
+                              }}
+                            >
+                              {cat.name}
+                            </span>
+                          </div>
+                          <span
+                            className="badge rounded-pill"
+                            style={{
+                              fontSize: '11px',
+                              backgroundColor: isSelected ? '#dcfce7' : '#f1f5f9',
+                              color: isSelected ? '#16a34a' : '#64748b',
+                              fontWeight: 600,
+                            }}
+                          >
+                            {count}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Card 3: Size Filter */}
               <div className="filter-card-container">
                 <div
                   className={`filter-card-header ${openSections.size ? 'is-open' : ''}`}

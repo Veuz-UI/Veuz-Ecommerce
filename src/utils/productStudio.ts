@@ -369,10 +369,22 @@ export async function processProductStudioPhoto(
   // 1. Load image
   const img = await loadImage(file);
 
-  // 2. Remove background if requested
+  // 2. Remove background if requested (AI Neural Network with canvas fallback)
   let workingCanvas: HTMLCanvasElement;
   if (removeBackground) {
-    workingCanvas = removeBackgroundCanvas(img);
+    try {
+      const { removeBackgroundAi } = await import('./aiBackgroundRemoval');
+      const aiBlob = await removeBackgroundAi(file);
+      const aiImg = await loadImage(aiBlob);
+      workingCanvas = document.createElement('canvas');
+      workingCanvas.width = aiImg.naturalWidth || aiImg.width;
+      workingCanvas.height = aiImg.naturalHeight || aiImg.height;
+      const ctx = workingCanvas.getContext('2d');
+      ctx?.drawImage(aiImg, 0, 0);
+    } catch (aiErr) {
+      console.warn('AI background removal error, falling back to canvas:', aiErr);
+      workingCanvas = removeBackgroundCanvas(img);
+    }
   } else {
     workingCanvas = document.createElement('canvas');
     workingCanvas.width = img.naturalWidth || img.width;

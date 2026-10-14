@@ -7,6 +7,7 @@ import { fetchShopSettings, saveShopSettings } from '@/services/shopSettingsServ
 import { ShopCategory, CategorySubItem } from '@/data/defaultShopSettings';
 import { useToast } from '@/context/ToastContext';
 import { validateImageFile, compressImage } from '@/utils/imageSecurity';
+import { processProductStudioPhoto } from '@/utils/productStudio';
 
 export default function CategoryEditPage() {
   const params = useParams();
@@ -25,6 +26,7 @@ export default function CategoryEditPage() {
   const [name, setName] = useState('');
   const [link, setLink] = useState('');
   const [image, setImage] = useState('');
+  const [autoRemoveBg, setAutoRemoveBg] = useState<boolean>(true);
   const [isUploading, setIsUploading] = useState(false);
   const [isActive, setIsActive] = useState(true);
   const [hasSubItems, setHasSubItems] = useState(false);
@@ -184,24 +186,30 @@ export default function CategoryEditPage() {
       return;
     }
 
-    // 3. Compress & sanitize image in browser (strips malicious EXIF payloads)
+    // 3. Process with AI Studio & Upload (Removes background with AI + Centers 1:1 on transparent canvas)
     setIsUploading(true);
     try {
-      showToast('info', 'Validating and optimizing category image...');
-      const compressed = await compressImage(file, {
-        maxWidth: 800,
-        maxHeight: 800,
-        quality: 0.88,
-        mimeType: file.type === 'image/png' ? 'image/png' : 'image/webp',
+      showToast(
+        'info',
+        autoRemoveBg
+          ? 'Removing background with AI & centering for storefront bubbles...'
+          : 'Optimizing and uploading category image...'
+      );
+
+      const { file: processedFile, dataUrl } = await processProductStudioPhoto(file, {
+        removeBackground: autoRemoveBg,
+        standardizeSize: true,
+        backgroundColor: 'transparent',
+        canvasSize: 800,
+        paddingPercent: 8,
       });
 
       // Show immediate local preview
-      const previewUrl = URL.createObjectURL(compressed);
-      setImage(previewUrl);
+      setImage(dataUrl);
 
       // 4. Send to server upload endpoint with binary magic bytes verification
       const formData = new FormData();
-      formData.append('file', compressed);
+      formData.append('file', processedFile);
 
       const res = await fetch('/api/upload', {
         method: 'POST',
@@ -215,7 +223,12 @@ export default function CategoryEditPage() {
       }
 
       setImage(json.url);
-      showToast('success', 'Category image uploaded securely and verified!');
+      showToast(
+        'success',
+        autoRemoveBg
+          ? 'Background removed with AI! Centered cleanly on transparent canvas.'
+          : 'Category image uploaded securely and verified!'
+      );
     } catch (err: any) {
       console.error('Category image upload error:', err);
       showToast('danger', err.message || 'Error uploading file.');
@@ -521,8 +534,24 @@ export default function CategoryEditPage() {
                               )}
                             </div>
 
+                            {/* AI Background Removal Toggle */}
+                            <div className="form-check form-switch d-inline-flex align-items-center gap-2 mb-2">
+                              <input
+                                className="form-check-input"
+                                type="checkbox"
+                                id="catAutoRemoveBg"
+                                checked={autoRemoveBg}
+                                onChange={(e) => setAutoRemoveBg(e.target.checked)}
+                                style={{ cursor: 'pointer' }}
+                              />
+                              <label className="form-check-label fs-12 fw-semibold text-dark" htmlFor="catAutoRemoveBg" style={{ cursor: 'pointer' }}>
+                                <span className="badge me-1" style={{ fontSize: '10px', backgroundColor: '#e0f2fe', color: '#0284c7', border: '1px solid #bae6fd' }}>AI</span>
+                                Auto-Remove Background (Transparent Cutout)
+                              </label>
+                            </div>
+
                             <span className="text-muted fs-11 d-block">
-                              Formats: JPG, PNG, WebP · Max: 5MB · Auto-compressed &amp; Magic-byte verified
+                              Formats: JPG, PNG, WebP · Max: 5MB · AI Neural Background Removal &amp; 1:1 Normalization
                             </span>
                           </div>
                         </div>

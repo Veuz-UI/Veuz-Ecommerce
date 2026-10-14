@@ -51,7 +51,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (savedToken && savedUser) {
       try {
         setToken(savedToken);
-        setUser(JSON.parse(savedUser));
+        const parsedUser = JSON.parse(savedUser);
+        if (parsedUser && parsedUser.avatar && parsedUser.avatar.startsWith('data:image/') && parsedUser.avatar.length <= 250) {
+          parsedUser.avatar = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(parsedUser.name || 'User')}`;
+          localStorage.setItem('veuz_user', JSON.stringify(parsedUser));
+        }
+        setUser(parsedUser);
       } catch (e) {
         console.error('Failed to parse saved user:', e);
       }

@@ -1,8 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { fetchProducts, recordProductClick } from '@/services/productsService';
 import { ProductItem, CATEGORY_PRODUCTS_DATA } from '@/data/categoryProductsData';
 import { useToast } from '@/context/ToastContext';
@@ -182,10 +183,84 @@ function ProductDetailsContent() {
   // Related products
   const relatedProducts = useMemo(() => {
     if (!product) return [];
-    return allProducts
-      .filter((p) => p.id !== product.id && p.isActive !== false && p.category === product.category)
-      .slice(0, 4);
+    const sameCat = allProducts.filter(
+      (p) =>
+        p.id !== product.id &&
+        p.isActive !== false &&
+        p.category?.toLowerCase() === product.category?.toLowerCase()
+    );
+    if (sameCat.length >= 4) {
+      return sameCat.slice(0, 16);
+    }
+    const others = allProducts.filter(
+      (p) =>
+        p.id !== product.id &&
+        p.isActive !== false &&
+        p.category?.toLowerCase() !== product.category?.toLowerCase()
+    );
+    return [...sameCat, ...others].slice(0, 16);
   }, [product, allProducts]);
+
+  // Related products slider ref & scroll state
+  const relatedSliderRef = useRef<HTMLDivElement>(null);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(true);
+
+  const checkRelatedScroll = useCallback(() => {
+    const el = relatedSliderRef.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    setCanScrollPrev(scrollLeft > 6);
+    setCanScrollNext(scrollLeft < scrollWidth - clientWidth - 6);
+  }, []);
+
+  useEffect(() => {
+    const el = relatedSliderRef.current;
+    if (!el) return;
+    checkRelatedScroll();
+    el.addEventListener('scroll', checkRelatedScroll, { passive: true });
+    window.addEventListener('resize', checkRelatedScroll);
+    return () => {
+      el.removeEventListener('scroll', checkRelatedScroll);
+      window.removeEventListener('resize', checkRelatedScroll);
+    };
+  }, [checkRelatedScroll, relatedProducts]);
+
+  const handlePrevRelated = () => {
+    const el = relatedSliderRef.current;
+    if (!el) return;
+    const cardEl = el.firstElementChild as HTMLElement | null;
+    const scrollAmount = cardEl ? cardEl.offsetWidth + 20 : el.clientWidth * 0.75;
+    el.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+  };
+
+  const handleNextRelated = () => {
+    const el = relatedSliderRef.current;
+    if (!el) return;
+    const cardEl = el.firstElementChild as HTMLElement | null;
+    const scrollAmount = cardEl ? cardEl.offsetWidth + 20 : el.clientWidth * 0.75;
+    el.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  };
+
+  const handleAddRelatedToCart = (rel: ProductItem) => {
+    const relPrice = Number(rel.currentPrice || rel.originalPrice || parseFloat(rel.price?.replace(/[^\d.]/g, '') || '129'));
+    const cartProduct: any = {
+      id: Number(rel.id.replace(/[^\d]/g, '')) || Math.floor(Math.random() * 10000) + 1,
+      name: rel.title,
+      price: relPrice > 0 ? relPrice : 129,
+      image: rel.image,
+      category: rel.category,
+    };
+    addToCart(cartProduct, 1);
+    showToast('success', `Added "${toCapitalCase(rel.title)}" to cart!`);
+  };
+
+  const handleToggleRelatedWishlist = (rel: ProductItem) => {
+    const numId = Number(rel.id.replace(/[^\d]/g, '')) || 1;
+    const isW = isInWishlist(numId);
+    toggleWishlist(numId);
+    showToast('success', isW ? `Removed "${toCapitalCase(rel.title)}" from wishlist` : `Added "${toCapitalCase(rel.title)}" to wishlist`);
+  };
 
   if (isLoading) {
     return (
@@ -744,23 +819,56 @@ function ProductDetailsContent() {
       {/* 4. RELATED PRODUCTS SECTION */}
       {relatedProducts.length > 0 && (
         <div className="container mt-5 pt-3">
-          <div className="d-flex align-items-center justify-content-between mb-4">
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
             <div>
-              <h3 className="fw-bold text-dark mb-1">Related Products</h3>
+              <h3 className="fw-bold text-dark mb-1" style={{ fontSize: 'clamp(20px, 3.5vw, 26px)' }}>
+                Related Products
+              </h3>
               <p className="text-muted mb-0 text-capitalize" style={{ fontSize: '14px' }}>
                 More items from {toCapitalCase(product.category)}
               </p>
             </div>
-            <Link
-              href={`/products?category=${encodeURIComponent(product.category)}`}
-              className="btn px-4 btn-sm fw-semibold"
-              style={{ borderRadius: '5px', backgroundColor: '#0f172a', borderColor: '#0f172a', color: '#ffffff' }}
-            >
-              View All {toCapitalCase(product.category)}
-            </Link>
+            <div className="d-flex align-items-center gap-2">
+              <Link
+                href={`/products?category=${encodeURIComponent(product.category)}`}
+                className="btn px-3 px-sm-4 btn-sm fw-semibold d-inline-flex align-items-center justify-content-center text-nowrap"
+                style={{
+                  height: '38px',
+                  borderRadius: '6px',
+                  backgroundColor: '#0f172a',
+                  borderColor: '#0f172a',
+                  color: '#ffffff',
+                  fontSize: '13px',
+                }}
+              >
+                View All {toCapitalCase(product.category)}
+              </Link>
+              <div className="d-flex align-items-center gap-1 ms-1">
+                <button
+                  type="button"
+                  onClick={handlePrevRelated}
+                  disabled={!canScrollPrev}
+                  aria-label="Previous products"
+                  className="related-nav-btn"
+                  title="Previous Products"
+                >
+                  <ChevronLeft size={18} strokeWidth={2.2} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleNextRelated}
+                  disabled={!canScrollNext}
+                  aria-label="Next products"
+                  className="related-nav-btn"
+                  title="Next Products"
+                >
+                  <ChevronRight size={18} strokeWidth={2.2} />
+                </button>
+              </div>
+            </div>
           </div>
 
-          <div className="row g-3 g-md-4">
+          <div className="related-products-slider" ref={relatedSliderRef}>
             {relatedProducts.map((rel) => {
               const relCurrentPrice = rel.currentPrice ?? rel.originalPrice ?? parseFloat(rel.price?.replace(/[^\d.]/g, '') || '0');
               const relHasOffer = Boolean(rel.isSpecialOffer || rel.discount || rel.offerPercent || rel.oldPrice);
@@ -773,50 +881,68 @@ function ProductDetailsContent() {
                   ? { backgroundColor: '#e11d48', color: '#ffffff' }
                   : { backgroundColor: '#16a34a', color: '#ffffff' };
 
-              return <div key={rel.id} className="col-12 col-sm-6 col-lg-3">
-                <div className="product-cart-wrap uniform-product-card w-100 d-flex flex-column">
-                  <div className="product-img-action-wrap position-relative">
-                    {relStatus && <span className="ref-card-badge" style={relStatusStyle}>{relStatus}</span>}
-                    <ProductCardImageSlider
-                      productId={rel.id}
-                      title={toCapitalCase(rel.title)}
-                      link={`/product-details?id=${rel.id}`}
-                      image={rel.image}
-                      images={rel.images}
-                      onProductClick={recordProductClick}
-                    />
-                  </div>
-                  <div className="product-content-wrap d-flex flex-column flex-grow-1 justify-content-between">
-                    <div>
-                      <h2 className="new-prod-title">
-                        <Link href={`/product-details?id=${rel.id}`} className="text-dark text-decoration-none">
-                          {toCapitalCase(rel.title)}
-                        </Link>
-                      </h2>
-                      <div className="product-rate d-flex align-items-center mb-2">
-                        <span style={{ color: '#0f172a', fontSize: '13px', letterSpacing: '1px' }}>★★★★★</span>
-                        <span className="rating-score fw-bold ms-2" style={{ fontSize: '13px', color: '#0f172a' }}>{rel.rating}</span>
-                        <span className="rating-reviews ms-2" style={{ fontSize: '13px', color: '#64748b' }}>({rel.reviews})</span>
-                      </div>
-                      <div className="new-prod-price-box mb-2">
-                        <div className="d-flex align-items-center gap-2 flex-wrap">
-                          <span className="new-prod-current-price">{relCurrentPrice} SR</span>
-                          {relHasOffer && rel.oldPrice && <span className="new-prod-old-price">{rel.oldPrice}</span>}
-                          {relStatus && <span className="badge" style={{ ...relStatusStyle, fontSize: '11px', padding: '4px 7px' }}>{relStatus}</span>}
-                          {relHasOffer && rel.discount && <span className="badge bg-dark text-white" style={{ fontSize: '11px', padding: '4px 7px' }}>{rel.discount}</span>}
-                        </div>
-                        <div className="new-prod-vat-label">Inclusive of VAT</div>
-                      </div>
-                      <p className="new-prod-desc">{rel.desc}</p>
-                      <div className="mb-2"><span className="express-delivery-badge"><i className="fi-rs-bolt"></i>Express Delivery</span></div>
+              const relNumId = Number(rel.id.replace(/[^\d]/g, '')) || 0;
+              const isRelWishlisted = isInWishlist(relNumId);
+
+              return (
+                <div key={rel.id} className="related-product-slide">
+                  <div className="product-cart-wrap uniform-product-card w-100 d-flex flex-column h-100">
+                    <div className="product-img-action-wrap position-relative">
+                      {relStatus && <span className="ref-card-badge" style={relStatusStyle}>{relStatus}</span>}
+                      <ProductCardImageSlider
+                        productId={rel.id}
+                        title={toCapitalCase(rel.title)}
+                        link={`/product-details?id=${rel.id}`}
+                        image={rel.image}
+                        images={rel.images}
+                        onProductClick={recordProductClick}
+                      />
                     </div>
-                    <div className="product-card-bottom d-flex align-items-center gap-2 mt-auto">
-                      <Link href="/cart" className="btn-add-cart-wide">Add to Cart</Link>
-                      <button type="button" aria-label="Add to wishlist" className="btn-wishlist-square"><i className="fi-rs-heart"></i></button>
+                    <div className="product-content-wrap d-flex flex-column flex-grow-1 justify-content-between">
+                      <div>
+                        <h2 className="new-prod-title">
+                          <Link href={`/product-details?id=${rel.id}`} className="text-dark text-decoration-none">
+                            {toCapitalCase(rel.title)}
+                          </Link>
+                        </h2>
+                        <div className="product-rate d-flex align-items-center mb-2">
+                          <span style={{ color: '#0f172a', fontSize: '13px', letterSpacing: '1px' }}>★★★★★</span>
+                          <span className="rating-score fw-bold ms-2" style={{ fontSize: '13px', color: '#0f172a' }}>{rel.rating || '5.0'}</span>
+                          <span className="rating-reviews ms-2" style={{ fontSize: '13px', color: '#64748b' }}>({rel.reviews || '0'})</span>
+                        </div>
+                        <div className="new-prod-price-box mb-2">
+                          <div className="d-flex align-items-center gap-2 flex-wrap">
+                            <span className="new-prod-current-price">{relCurrentPrice} SR</span>
+                            {relHasOffer && rel.oldPrice && <span className="new-prod-old-price">{rel.oldPrice}</span>}
+                            {relStatus && <span className="badge" style={{ ...relStatusStyle, fontSize: '11px', padding: '4px 7px' }}>{relStatus}</span>}
+                            {relHasOffer && rel.discount && <span className="badge bg-dark text-white" style={{ fontSize: '11px', padding: '4px 7px' }}>{rel.discount}</span>}
+                          </div>
+                          <div className="new-prod-vat-label">Inclusive of VAT</div>
+                        </div>
+                        <p className="new-prod-desc">{rel.desc}</p>
+                        <div className="mb-2"><span className="express-delivery-badge"><i className="fi-rs-bolt"></i>Express Delivery</span></div>
+                      </div>
+                      <div className="product-card-bottom d-flex align-items-center gap-2 mt-auto">
+                        <button
+                          type="button"
+                          onClick={() => handleAddRelatedToCart(rel)}
+                          className="btn-add-cart-wide"
+                        >
+                          Add to Cart
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleRelatedWishlist(rel)}
+                          aria-label="Add to wishlist"
+                          className={`btn-wishlist-square ${isRelWishlisted ? 'active text-danger' : ''}`}
+                        >
+                          <i className={`fi-rs-heart ${isRelWishlisted ? 'text-danger' : ''}`}></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>;
+              );
             })}
           </div>
         </div>

@@ -132,11 +132,15 @@ export const MobileNav: React.FC = () => {
           <div className="p-4 border-t border-slate-100 bg-slate-50/60 text-xs text-slate-500 space-y-2">
             <div className="flex items-center gap-2">
               <Phone className="w-3.5 h-3.5 text-emerald-600" />
-              <span>(+91) - 9876-124553</span>
+              <a href="tel:+919876124553" className="hover:underline" suppressHydrationWarning>
+                (+91) - 9876-124553
+              </a>
             </div>
             <div className="flex items-center gap-2">
               <Mail className="w-3.5 h-3.5 text-emerald-600" />
-              <span>sales@veuz.com</span>
+              <a href="mailto:sales@veuz.com" className="hover:underline" suppressHydrationWarning>
+                sales@veuz.com
+              </a>
             </div>
             <div className="flex items-center gap-2">
               <MapPin className="w-3.5 h-3.5 text-emerald-600" />

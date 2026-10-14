@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { SystemColor, SYSTEM_COLORS } from '@/data/categoryProductsData';
 import { useToast } from '@/context/ToastContext';
+import { processProductStudioPhoto } from '@/utils/productStudio';
 
 interface ColorGalleryDrawerModalProps {
   isOpen: boolean;
@@ -59,6 +60,7 @@ export default function ColorGalleryDrawerModal({
   const [activeColor, setActiveColor] = useState<string>('');
   const [localColorImages, setLocalColorImages] = useState<Record<string, string[]>>({});
   const [localColorSizes, setLocalColorSizes] = useState<Record<string, string[]>>({});
+  const [autoRemoveBg, setAutoRemoveBg] = useState<boolean>(true);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
 
@@ -154,6 +156,8 @@ export default function ColorGalleryDrawerModal({
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Reset input to allow re-selecting same file if desired
+    e.target.value = '';
     if (!file || !activeColor) return;
 
     const slotIdx = currentSlotRef.current;
@@ -161,8 +165,36 @@ export default function ColorGalleryDrawerModal({
     setUploadingSlot(slotIdx);
 
     try {
+      showToast(
+        'info',
+        autoRemoveBg
+          ? 'Removing background with AI & standardizing...'
+          : 'Uploading product photo...',
+        'Processing'
+      );
+
+      // Process through AI Studio pipeline (removes background + 1:1 square focus on 100% transparent canvas)
+      const { file: processedFile, dataUrl } = await processProductStudioPhoto(file, {
+        removeBackground: autoRemoveBg,
+        standardizeSize: true,
+        backgroundColor: 'transparent',
+        canvasSize: 1000,
+        paddingPercent: 6,
+      });
+
+      // Show immediate local preview
+      setLocalColorImages((prev) => {
+        const curList = [...(prev[activeColor] || ['', '', '', '', ''])];
+        while (curList.length < 5) curList.push('');
+        curList[slotIdx] = dataUrl;
+        return {
+          ...prev,
+          [activeColor]: curList,
+        };
+      });
+
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', processedFile);
 
       const res = await fetch('/api/upload', {
         method: 'POST',
@@ -186,7 +218,13 @@ export default function ColorGalleryDrawerModal({
         };
       });
 
-      showToast('success', `Photo updated for ${activeColor} (${SLOT_CONFIGS[slotIdx].label})!`, 'Photo Uploaded');
+      showToast(
+        'success',
+        autoRemoveBg
+          ? `AI removed background & centered photo for ${activeLabel} (${SLOT_CONFIGS[slotIdx].label})!`
+          : `Photo updated for ${activeLabel} (${SLOT_CONFIGS[slotIdx].label})!`,
+        'Photo Ready'
+      );
     } catch (err: any) {
       console.error('Upload error:', err);
       showToast('danger', err.message || 'Failed to upload photo.');
@@ -597,6 +635,22 @@ export default function ColorGalleryDrawerModal({
                         : 'Upload at least 4 photos (Front view + 3 other angles) for this color.'}
                     </span>
                   </div>
+                </div>
+
+                {/* AI Background Removal Toggle Switch */}
+                <div className="form-check form-switch d-inline-flex align-items-center gap-1.5 m-0 flex-shrink-0">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id="modalAutoRemoveBg"
+                    checked={autoRemoveBg}
+                    onChange={(e) => setAutoRemoveBg(e.target.checked)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <label className="form-check-label fs-11 fw-semibold text-dark" htmlFor="modalAutoRemoveBg" style={{ cursor: 'pointer' }}>
+                    <span className="badge me-1" style={{ fontSize: '9px', backgroundColor: '#e0f2fe', color: '#0284c7', border: '1px solid #bae6fd' }}>AI</span>
+                    Auto-Remove BG
+                  </label>
                 </div>
               </div>
 

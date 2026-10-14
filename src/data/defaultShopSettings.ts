@@ -63,232 +63,238 @@ export const DEFAULT_SHOP_SETTINGS: ShopSettingsData = {
   "categories": [
     {
       "id": "cat-1",
-      "name": "HELMET",
-      "link": "/products?category=tshirts",
+      "name": "Helmet",
+      "link": "/products?category=Helmet",
       "image": "/assets/imgs/shop/p1.jpg",
       "isActive": true,
       "subItems": [
         {
           "id": "sub-1",
-          "name": "Custom Tshirts 1",
-          "link": "/products?category=tshirts"
+          "name": "Vented Hard Hats",
+          "link": "/products?category=Helmet"
         },
         {
           "id": "sub-2",
-          "name": "Custom Tshirts 2",
-          "link": "/products?category=tshirts"
+          "name": "Full Brim Hard Hats",
+          "link": "/products?category=Helmet"
         },
         {
           "id": "sub-3",
-          "name": "Custom Tshirts 3",
-          "link": "/products?category=tshirts"
+          "name": "Ratchet Suspension Helmets",
+          "link": "/products?category=Helmet"
         },
         {
           "id": "sub-4",
-          "name": "Custom Tshirts 4",
-          "link": "/products?category=tshirts"
+          "name": "Baseball Bump Caps",
+          "link": "/products?category=Helmet"
         },
         {
           "id": "see-all-1790888342314",
           "name": "See All",
-          "link": "/products?category=tshirts"
+          "link": "/products?category=Helmet"
         }
       ]
     },
     {
       "id": "cat-2",
-      "name": "Bag Print",
-      "link": "/products?category=bags",
+      "name": "Safety Shoes",
+      "link": "/products?category=Safety%20Shoes",
       "image": "/assets/imgs/shop/p2.jpg",
       "isActive": true,
       "subItems": [
         {
           "id": "sub-5",
-          "name": "Canvas Tote Bags",
-          "link": "/products?category=bags"
+          "name": "Steel Toe Boots",
+          "link": "/products?category=Safety%20Shoes"
         },
         {
           "id": "sub-6",
-          "name": "Drawstring Bags",
-          "link": "/products?category=bags"
+          "name": "Lightweight Work Shoes",
+          "link": "/products?category=Safety%20Shoes"
         },
         {
           "id": "sub-7",
-          "name": "Custom Backpacks",
-          "link": "/products?category=bags"
+          "name": "Dielectric Safety Boots",
+          "link": "/products?category=Safety%20Shoes"
         },
         {
           "id": "sub-8",
-          "name": "Paper Shopping Bags",
-          "link": "/products?category=bags"
+          "name": "Slip-Resistant Footwear",
+          "link": "/products?category=Safety%20Shoes"
         }
       ]
     },
     {
       "id": "cat-3",
-      "name": "Gift Pack",
-      "link": "/products?category=gifts",
+      "name": "Hi-Vis Vests",
+      "link": "/products?category=Hi-Vis%20Vests",
       "image": "/assets/imgs/shop/p3.jpg",
       "isActive": true,
       "subItems": [
         {
           "id": "sub-9",
-          "name": "Executive Gift Sets",
-          "link": "/products?category=gifts"
+          "name": "Class 3 Reflective Vests",
+          "link": "/products?category=Hi-Vis%20Vests"
         },
         {
           "id": "sub-10",
-          "name": "Corporate Hampers",
-          "link": "/products?category=gifts"
+          "name": "Multi-Pocket Executive Vests",
+          "link": "/products?category=Hi-Vis%20Vests"
         },
         {
           "id": "sub-11",
-          "name": "VIP Celebration Packs",
-          "link": "/products?category=gifts"
+          "name": "Breathable Mesh Vests",
+          "link": "/products?category=Hi-Vis%20Vests"
         },
         {
           "id": "sub-12",
-          "name": "Sweet Gift Boxes",
-          "link": "/products?category=gifts"
+          "name": "High-Visibility Jackets",
+          "link": "/products?category=Hi-Vis%20Vests"
         }
       ]
     },
     {
       "id": "cat-4",
-      "name": "Paper Cup",
-      "link": "/products?category=paper-cups",
+      "name": "Safety Goggles",
+      "link": "/products?category=Safety%20Goggles",
       "image": "/assets/imgs/shop/p4.jpg",
       "isActive": true,
       "subItems": [
         {
           "id": "sub-13",
-          "name": "Single Wall Cups",
-          "link": "/products?category=paper-cups"
+          "name": "Anti-Fog UV400 Goggles",
+          "link": "/products?category=Safety%20Goggles"
         },
         {
           "id": "sub-14",
-          "name": "Double Wall Cups",
-          "link": "/products?category=paper-cups"
+          "name": "Anti-Glare Safety Glasses",
+          "link": "/products?category=Safety%20Goggles"
         },
         {
           "id": "sub-15",
-          "name": "Ripple Wall Cups",
-          "link": "/products?category=paper-cups"
+          "name": "Chemical Splash Goggles",
+          "link": "/products?category=Safety%20Goggles"
         },
         {
           "id": "sub-16",
-          "name": "Custom Printed Sleeves",
-          "link": "/products?category=paper-cups"
+          "name": "Full Face Shields",
+          "link": "/products?category=Safety%20Goggles"
         }
       ]
     },
     {
       "id": "cat-5",
-      "name": "Brochure",
-      "link": "/products?category=brochures",
+      "name": "Cut Gloves",
+      "link": "/products?category=Cut%20Gloves",
       "image": "/assets/imgs/shop/p5.jpg",
       "isActive": true,
       "subItems": [
         {
           "id": "sub-17",
-          "name": "Bi-Fold Brochures",
-          "link": "/products?category=brochures"
+          "name": "Level 5 Cut Resistant Gloves",
+          "link": "/products?category=Cut%20Gloves"
         },
         {
           "id": "sub-18",
-          "name": "Tri-Fold Brochures",
-          "link": "/products?category=brochures"
+          "name": "Nitrile Coated Work Gloves",
+          "link": "/products?category=Cut%20Gloves"
         },
         {
           "id": "sub-19",
-          "name": "Corporate Catalogs",
-          "link": "/products?category=brochures"
+          "name": "Thermal Grip Insulated Gloves",
+          "link": "/products?category=Cut%20Gloves"
         },
         {
           "id": "sub-20",
-          "name": "Flyers & Leaflets",
-          "link": "/products?category=brochures"
+          "name": "Heavy Duty Impact Gloves",
+          "link": "/products?category=Cut%20Gloves"
         }
       ]
     },
     {
       "id": "cat-6",
-      "name": "Hoodies",
-      "link": "/products?category=hoodies",
+      "name": "Ear Protection",
+      "link": "/products?category=Ear%20Protection",
       "image": "/assets/imgs/shop/p6.jpg",
       "isActive": true,
       "subItems": [
         {
           "id": "sub-21",
-          "name": "Pullover Hoodies",
-          "link": "/products?category=hoodies"
+          "name": "Sound Cancelling Ear Muffs",
+          "link": "/products?category=Ear%20Protection"
         },
         {
           "id": "sub-22",
-          "name": "Zip-up Hoodies",
-          "link": "/products?category=hoodies"
+          "name": "Electronic Hearing Protection",
+          "link": "/products?category=Ear%20Protection"
         },
         {
           "id": "sub-23",
-          "name": "Fleece Hoodies",
-          "link": "/products?category=hoodies"
+          "name": "Helmet-Mounted Defenders",
+          "link": "/products?category=Ear%20Protection"
         },
         {
           "id": "sub-24",
-          "name": "Custom Printed Hoodies",
-          "link": "/products?category=hoodies"
+          "name": "Industrial Ear Plugs",
+          "link": "/products?category=Ear%20Protection"
         }
       ]
     },
     {
-      "id": "cat-1791017648820",
-      "name": "Bags",
-      "link": "/products?category=",
-      "image": "/uploads/img_1791017640365_7aa1d973042f1b674a19dcb6a3cc3390.webp",
+      "id": "cat-7",
+      "name": "Respirators",
+      "link": "/products?category=Respirators",
+      "image": "/assets/imgs/shop/p2.jpg",
       "isActive": true,
       "subItems": [
         {
-          "id": "see-all-1791017798830",
-          "name": "See All",
-          "link": "/products?category="
+          "id": "sub-25",
+          "name": "Dual Cartridge Respirators",
+          "link": "/products?category=Respirators"
+        },
+        {
+          "id": "sub-26",
+          "name": "FFP2 Particulate Masks",
+          "link": "/products?category=Respirators"
         }
-      ],
-      "hasSubItems": false
+      ]
+    },
+    {
+      "id": "cat-8",
+      "name": "Fall Harness",
+      "link": "/products?category=Fall%20Harness",
+      "image": "/assets/imgs/shop/p3.jpg",
+      "isActive": true,
+      "subItems": [
+        {
+          "id": "sub-27",
+          "name": "Full Body Safety Harness",
+          "link": "/products?category=Fall%20Harness"
+        },
+        {
+          "id": "sub-28",
+          "name": "Shock Absorbing Lanyards",
+          "link": "/products?category=Fall%20Harness"
+        }
+      ]
     },
     {
       "id": "cat-1791051887040",
       "name": "PPE KIT",
-      "link": "/products?category=",
+      "link": "/products?category=PPE%20KIT",
       "image": "/assets/imgs/shop/p1.jpg",
       "hasSubItems": false,
       "isActive": true,
-      "subItems": [
-        {
-          "id": "sub-1",
-          "name": "Custom Sub 1",
-          "link": "/products"
-        },
-        {
-          "id": "sub-2",
-          "name": "Custom Sub 2",
-          "link": "/products"
-        },
-        {
-          "id": "sub-3",
-          "name": "Custom Sub 3",
-          "link": "/products"
-        },
-        {
-          "id": "sub-4",
-          "name": "Custom Sub 4",
-          "link": "/products"
-        },
-        {
-          "id": "sub-see-all",
-          "name": "See All",
-          "link": "/products"
-        }
-      ]
+      "subItems": []
+    },
+    {
+      "id": "cat-1791017648820",
+      "name": "Bags",
+      "link": "/products?category=Bags",
+      "image": "/uploads/img_1791017640365_7aa1d973042f1b674a19dcb6a3cc3390.webp",
+      "isActive": true,
+      "hasSubItems": false,
+      "subItems": []
     }
   ],
   "mainMenu": [

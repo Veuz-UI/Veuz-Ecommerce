@@ -658,7 +658,13 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response): P
 
     if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth ? dateOfBirth.trim() : null;
     if (gender !== undefined) updateData.gender = gender ? gender.trim() : null;
-    if (avatar !== undefined) updateData.avatar = avatar;
+    if (avatar !== undefined) {
+      if (typeof avatar === 'string' && avatar.startsWith('data:image/') && avatar.length <= 250) {
+        updateData.avatar = null;
+      } else {
+        updateData.avatar = avatar;
+      }
+    }
     if (address !== undefined) updateData.address = address;
     if (settings !== undefined) updateData.settings = settings;
 

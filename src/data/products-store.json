@@ -8,7 +8,7 @@
     "price": "300 SR",
     "rating": "5.0",
     "reviews": "10",
-    "image": "/uploads/img_1791910868376_9c87aaa4d7708ba4fb26b45b42e1c19e.jpg",
+    "image": "/uploads/img_1792002180570_8521d195a9db612b51ac20996eeba45a.png",
     "badge": "New Arrival",
     "badgeClass": "new",
     "location": "Riyadh Central Warehouse",
@@ -20,8 +20,8 @@
     "isSpecialOffer": false,
     "isNewArrival": true,
     "createdAt": 1791741314174,
-    "views": 49,
-    "clicks": 48,
+    "views": 59,
+    "clicks": 58,
     "isActive": true,
     "specifications": [
       {
@@ -69,11 +69,11 @@
     ],
     "colorImages": {
       "Black": [
-        "/uploads/img_1791910868376_9c87aaa4d7708ba4fb26b45b42e1c19e.jpg",
-        "/uploads/img_1791910871113_328dc6bc4b4db76f5898aec9662c614a.jpg",
-        "/uploads/img_1791910873342_06b9d5e9de47bbc71974a7b8440d7dfc.jpg",
+        "/uploads/img_1792002180570_8521d195a9db612b51ac20996eeba45a.png",
+        "/uploads/img_1792002197907_b055895adb6378f1f9ac3082b0fbed37.png",
+        "/uploads/img_1792002218336_f902413b009d9009f512a556e3586a7a.png",
         "/uploads/img_1791910875349_e20e504017db4f91339a51875f093a20.jpg",
-        "/uploads/img_1791910877822_0699f1a74516f676e09682f32fffa360.jpg"
+        "/uploads/img_1792002355341_e712902e74761247fedf26c3fd207354.png"
       ],
       "White": [
         "/uploads/img_1791910883949_f976d9f163e4957527aec228b01d05b2.jpg",
@@ -85,10 +85,10 @@
     },
     "colorSizes": {},
     "images": [
-      "/uploads/img_1791910871113_328dc6bc4b4db76f5898aec9662c614a.jpg",
-      "/uploads/img_1791910873342_06b9d5e9de47bbc71974a7b8440d7dfc.jpg",
+      "/uploads/img_1792002197907_b055895adb6378f1f9ac3082b0fbed37.png",
+      "/uploads/img_1792002218336_f902413b009d9009f512a556e3586a7a.png",
       "/uploads/img_1791910875349_e20e504017db4f91339a51875f093a20.jpg",
-      "/uploads/img_1791910877822_0699f1a74516f676e09682f32fffa360.jpg"
+      "/uploads/img_1792002355341_e712902e74761247fedf26c3fd207354.png"
     ]
   },
   {
@@ -193,7 +193,8 @@
     "oldPrice": "160 SR",
     "discount": "15% OFF",
     "colorImages": {},
-    "colorSizes": {}
+    "colorSizes": {},
+    "offerEndDate": "2026-11-30"
   },
   {
     "id": "prod-1791554914508",
@@ -244,8 +245,8 @@
     "isSpecialOffer": false,
     "isNewArrival": true,
     "createdAt": 1791048115355,
-    "views": 10,
-    "clicks": 9,
+    "views": 14,
+    "clicks": 13,
     "isActive": true,
     "specifications": [
       {
@@ -338,7 +339,8 @@
       "Yellow",
       "Royal Blue",
       "Red"
-    ]
+    ],
+    "offerEndDate": "2026-11-30"
   },
   {
     "id": "prod-helmet-3",
@@ -451,7 +453,8 @@
     "colors": [
       "Black",
       "Brown"
-    ]
+    ],
+    "offerEndDate": "2026-11-30"
   },
   {
     "id": "prod-shoes-2",
@@ -531,7 +534,8 @@
     "colors": [
       "Black",
       "Brown"
-    ]
+    ],
+    "offerEndDate": "2026-11-30"
   },
   {
     "id": "prod-shoes-4",
@@ -607,7 +611,8 @@
       "Yellow",
       "Orange",
       "Hi-Vis Lime"
-    ]
+    ],
+    "offerEndDate": "2026-11-30"
   },
   {
     "id": "prod-vest-2",
@@ -722,7 +727,8 @@
       "Black",
       "White",
       "Royal Blue"
-    ]
+    ],
+    "offerEndDate": "2026-11-30"
   },
   {
     "id": "prod-goggles-2",
@@ -831,7 +837,8 @@
       "Black",
       "Royal Blue",
       "Gray"
-    ]
+    ],
+    "offerEndDate": "2026-11-30"
   },
   {
     "id": "prod-gloves-2",
@@ -944,7 +951,8 @@
       "Black",
       "White",
       "Royal Blue"
-    ]
+    ],
+    "offerEndDate": "2026-11-30"
   },
   {
     "id": "prod-ear-2",
@@ -1018,7 +1026,8 @@
       "Black",
       "White",
       "Royal Blue"
-    ]
+    ],
+    "offerEndDate": "2026-11-30"
   },
   {
     "id": "prod-resp-2",
@@ -1092,7 +1101,8 @@
       "Black",
       "White",
       "Royal Blue"
-    ]
+    ],
+    "offerEndDate": "2026-11-30"
   },
   {
     "id": "prod-fall-2",

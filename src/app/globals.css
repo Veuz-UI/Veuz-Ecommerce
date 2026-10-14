@@ -1082,6 +1082,8 @@ iconify-icon {
 
 /* ========================================================
    HORIZONTAL CATEGORY SLIDER (REFERENCE PILL & NOTCH CARD STYLE)
+/* ========================================================
+   HORIZONTAL CATEGORY SLIDER (ROUND BUBBLE STYLE - MATCHING REFERENCE)
    ======================================================== */
 .browse-categories-slider-wrapper {
   width: 100%;
@@ -1096,150 +1098,242 @@ iconify-icon {
   scroll-snap-type: x mandatory;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  gap: 22px;
-  padding: 12px 6px 26px 6px;
+  gap: 28px;
+  padding: 10px 4px 24px 4px;
+  align-items: flex-start;
 }
 
 .browse-cat-track-container::-webkit-scrollbar {
   display: none;
 }
 
-/* Horizontal Card Dimensions in Slider */
+/* Round Category Item Wrapper in Slider */
 .browse-cat-card-wrapper {
-  flex: 0 0 calc((100% - 66px) / 4);
-  min-width: 280px;
-  max-width: 320px;
+  flex: 0 0 calc((100% - (6 * 28px)) / 7);
+  min-width: 140px;
+  max-width: 165px;
   scroll-snap-align: start;
   display: flex;
+  justify-content: center;
 }
 
-@media (max-width: 1280px) {
+@media (max-width: 1300px) {
   .browse-cat-card-wrapper {
-    flex: 0 0 calc((100% - 44px) / 3);
-    min-width: 270px;
-    max-width: 310px;
+    flex: 0 0 calc((100% - (5 * 24px)) / 6);
+    min-width: 135px;
+    max-width: 160px;
   }
 }
 
-@media (max-width: 900px) {
+@media (max-width: 1050px) {
   .browse-cat-card-wrapper {
-    flex: 0 0 calc((100% - 22px) / 2);
-    min-width: 250px;
-    max-width: none;
+    flex: 0 0 calc((100% - (4 * 20px)) / 5);
+    min-width: 125px;
+    max-width: 150px;
   }
 }
 
-@media (max-width: 580px) {
+@media (max-width: 768px) {
   .browse-cat-card-wrapper {
-    flex: 0 0 84%;
-    min-width: 240px;
-    max-width: none;
+    flex: 0 0 calc((100% - (3 * 16px)) / 4);
+    min-width: 110px;
+    max-width: 135px;
   }
 }
 
-/* Horizontal Category Card (Matching User Reference Image) */
+@media (max-width: 520px) {
+  .browse-cat-card-wrapper {
+    flex: 0 0 calc((100% - (2 * 14px)) / 3.2);
+    min-width: 100px;
+    max-width: 125px;
+  }
+}
+
+/* Vertical Category Card Link */
 .browse-cat-card {
   width: 100% !important;
-  height: 125px !important;
-  min-height: 125px !important;
-  max-height: 125px !important;
-  background: #ffffff !important;
-  border: 1.5px solid #eef2f6 !important;
-  border-radius: 20px !important;
-  padding: 16px 18px 16px 20px !important;
   display: flex !important;
-  flex-direction: row !important;
+  flex-direction: column !important;
   align-items: center !important;
-  justify-content: space-between !important;
-  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04) !important;
-  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  justify-content: flex-start !important;
   text-decoration: none !important;
   box-sizing: border-box !important;
-  position: relative !important;
-  overflow: hidden !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  transition: transform 0.25s ease !important;
 }
 
 .browse-cat-card:hover {
   transform: translateY(-4px) !important;
-  border-color: #cbd5e1 !important;
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.09) !important;
 }
 
-/* Left Info Column: Category Title + "View More" Pill */
-.browse-cat-info-col {
+/* Perfectly Round Circle Bubble */
+.browse-cat-circle {
+  width: 136px !important;
+  height: 136px !important;
+  min-width: 136px !important;
+  min-height: 136px !important;
+  max-width: 136px !important;
+  max-height: 136px !important;
+  border-radius: 50% !important;
+  background-color: #f8fafc !important;
+  border: 1.5px solid #e2e8f0 !important;
   display: flex !important;
-  flex-direction: column !important;
-  align-items: flex-start !important;
+  align-items: center !important;
   justify-content: center !important;
-  gap: 10px !important;
-  flex: 1 1 auto !important;
-  min-width: 0 !important;
-  padding-right: 12px !important;
-  z-index: 1 !important;
+  overflow: hidden !important;
+  position: relative !important;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04) !important;
 }
 
-/* Category Title: Bold, 17px */
+.browse-cat-card:hover .browse-cat-circle {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1) !important;
+}
+
+@media (max-width: 1300px) {
+  .browse-cat-circle {
+    width: 125px !important;
+    height: 125px !important;
+    min-width: 125px !important;
+    min-height: 125px !important;
+    max-width: 125px !important;
+    max-height: 125px !important;
+  }
+}
+
+@media (max-width: 1050px) {
+  .browse-cat-circle {
+    width: 115px !important;
+    height: 115px !important;
+    min-width: 115px !important;
+    min-height: 115px !important;
+    max-width: 115px !important;
+    max-height: 115px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .browse-cat-circle {
+    width: 102px !important;
+    height: 102px !important;
+    min-width: 102px !important;
+    min-height: 102px !important;
+    max-width: 102px !important;
+    max-height: 102px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .browse-cat-circle {
+    width: 92px !important;
+    height: 92px !important;
+    min-width: 92px !important;
+    min-height: 92px !important;
+    max-width: 92px !important;
+    max-height: 92px !important;
+  }
+}
+
+/* Category Photo inside Circle */
+.browse-cat-photo {
+  width: 82px !important;
+  height: 82px !important;
+  max-width: 76% !important;
+  max-height: 76% !important;
+  object-fit: contain !important;
+  display: block !important;
+  margin: auto !important;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+}
+
+@media (max-width: 1050px) {
+  .browse-cat-photo {
+    width: 72px !important;
+    height: 72px !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .browse-cat-photo {
+    width: 62px !important;
+    height: 62px !important;
+  }
+}
+
+@media (max-width: 520px) {
+  .browse-cat-photo {
+    width: 52px !important;
+    height: 52px !important;
+  }
+}
+
+.browse-cat-card:hover .browse-cat-photo {
+  transform: scale(1.09) !important;
+}
+
+/* Category Name: Clean, Centered, Crisp font matching reference */
 .browse-cat-name {
-  font-size: 17px !important;
-  font-weight: 700 !important;
-  color: #0f172a !important;
-  line-height: 1.25 !important;
-  margin: 0 !important;
+  font-size: 14.5px !important;
+  font-weight: 600 !important;
+  color: #111827 !important;
+  line-height: 1.35 !important;
+  margin-top: 13px !important;
+  margin-bottom: 0 !important;
+  text-align: center !important;
+  letter-spacing: -0.01em !important;
   display: -webkit-box !important;
   -webkit-line-clamp: 2 !important;
   -webkit-box-orient: vertical !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   transition: color 0.2s ease !important;
+  width: 100% !important;
 }
 
 .browse-cat-card:hover .browse-cat-name {
-  color: #475569 !important;
+  color: #0f172a !important;
 }
 
-/* "View More" Pill Badge (Styled exactly as in reference image) */
-.browse-cat-view-more {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  padding: 5px 16px !important;
-  background-color: #f1f5f9 !important;
-  color: #64748b !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  border-radius: 999px !important;
-  transition: all 0.25s ease !important;
-  white-space: nowrap !important;
-  border: 1px solid transparent !important;
+@media (max-width: 768px) {
+  .browse-cat-name {
+    font-size: 13px !important;
+    margin-top: 10px !important;
+  }
 }
 
-.browse-cat-card:hover .browse-cat-view-more {
-  background-color: #0f172a !important;
-  color: #ffffff !important;
+/* ========================================================
+   REMOVE YELLOW ACCENT LINES FROM ALL SECTIONS
+   ======================================================== */
+.hr,
+hr,
+.hr-line,
+.section-divider {
+  display: none !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+  color: transparent !important;
 }
 
-/* Right Media Column: Clean Product/Category Image */
-.browse-cat-media-col {
-  width: 95px !important;
-  height: 95px !important;
-  min-width: 95px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  flex-shrink: 0 !important;
-}
-
-.browse-cat-photo {
-  max-width: 100% !important;
-  max-height: 100% !important;
-  width: auto !important;
-  height: auto !important;
-  object-fit: contain !important;
-  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
-}
-
-.browse-cat-card:hover .browse-cat-photo {
-  transform: scale(1.08) !important;
+.hr::after,
+.hr::before,
+hr::after,
+hr::before {
+  display: none !important;
+  content: none !important;
+  background: none !important;
+  height: 0 !important;
+  width: 0 !important;
 }
 
 /* ========================================================
@@ -1284,102 +1378,102 @@ iconify-icon {
 }
 
 /* ========================================================
-   STYLISH PILL VIEW ALL & SLIDER NAV BUTTONS (WHITE BG + BORDER + BLACK ARROW ICON)
+   HOMEPAGE SECTION VIEW ALL & SLIDER NAV BUTTONS (MATCHING REFERENCE IMAGE)
    ======================================================== */
 .btn-view-all-pill {
   display: inline-flex !important;
   align-items: center !important;
-  background-color: #ffffff !important;
-  color: #0f172a !important;
-  border-radius: 12px !important;
-  padding: 4px 16px 4px 5px !important;
+  justify-content: center !important;
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-radius: 6px !important;
+  padding: 0 18px !important;
   height: 38px !important;
   text-decoration: none !important;
-  gap: 10px !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
-  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  border: 1px solid #0f172a !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
   cursor: pointer !important;
-  border: 1.5px solid #e2e8f0 !important;
+  white-space: nowrap !important;
+  gap: 0 !important;
 }
 
 .btn-view-all-pill:hover {
-  background-color: #f8fafc !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
-  border-color: #0f172a !important;
+  background-color: #1e293b !important;
+  border-color: #1e293b !important;
+  color: #ffffff !important;
   transform: translateY(-1px) !important;
-  color: #0f172a !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16) !important;
+}
+
+.btn-view-all-pill:active {
+  transform: scale(0.98) !important;
 }
 
 .btn-view-all-icon {
-  width: 28px !important;
-  height: 28px !important;
-  background-color: #0f172a !important;
-  border-radius: 8px !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  color: #ffffff !important;
-  flex-shrink: 0 !important;
-  transition: transform 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease !important;
-}
-
-.btn-view-all-pill:hover .btn-view-all-icon {
-  transform: translateX(2px) !important;
-  background-color: #000000 !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+  display: none !important;
 }
 
 .btn-view-all-text {
-  font-size: 14px !important;
+  font-size: 13px !important;
   font-weight: 600 !important;
-  color: #0f172a !important;
-  letter-spacing: 0.2px !important;
+  color: #ffffff !important;
+  letter-spacing: normal !important;
   white-space: nowrap !important;
 }
 
-/* Slider Nav Buttons - Matching Shape & Height of View All Button */
+/* Slider Nav Buttons - Matching Reference Image Style (Square Rounded Border) */
 .btn-slider-nav-pill {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   background-color: #ffffff !important;
-  border-radius: 12px !important;
+  border-radius: 6px !important;
   width: 38px !important;
   height: 38px !important;
-  padding: 4px !important;
+  padding: 0 !important;
   cursor: pointer !important;
-  border: 1.5px solid #e2e8f0 !important;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
-  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #64748b !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
 
-.btn-slider-nav-pill:hover {
-  background-color: #f8fafc !important;
+.btn-slider-nav-pill:hover:not(:disabled) {
+  background-color: #0f172a !important;
   border-color: #0f172a !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  color: #ffffff !important;
   transform: translateY(-1px) !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15) !important;
 }
 
-.btn-slider-nav-pill:active {
-  transform: scale(0.95) !important;
+.btn-slider-nav-pill:active:not(:disabled) {
+  transform: scale(0.96) !important;
+}
+
+.btn-slider-nav-pill:disabled {
+  opacity: 0.35 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
 }
 
 .btn-slider-nav-icon {
-  width: 28px !important;
-  height: 28px !important;
-  background-color: #0f172a !important;
-  border-radius: 8px !important;
-  display: flex !important;
+  display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  color: #ffffff !important;
-  flex-shrink: 0 !important;
-  transition: transform 0.25s ease, background-color 0.25s ease, box-shadow 0.25s ease !important;
+  width: auto !important;
+  height: auto !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  color: inherit !important;
 }
 
 .btn-slider-nav-pill:hover .btn-slider-nav-icon {
-  background-color: #000000 !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2) !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  color: #ffffff !important;
 }
 
 @keyframes drawerSlideIn {
@@ -6042,4 +6136,106 @@ body.modal-open .main-nav {
 .product-card-hover h6,
 .product-card-hover span {
   text-transform: capitalize !important;
+}
+
+/* ==========================================================================
+   RELATED PRODUCTS SLIDER & NAVIGATION
+   ========================================================================== */
+.related-products-slider {
+  display: flex;
+  gap: 20px;
+  overflow-x: auto;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding: 8px 4px 20px 4px;
+  margin: 0 -4px;
+}
+
+.related-products-slider::-webkit-scrollbar {
+  display: none;
+}
+
+.related-product-slide {
+  flex: 0 0 calc((100% - (3 * 20px)) / 4);
+  min-width: 260px;
+  max-width: 320px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+}
+
+.related-nav-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  color: #0f172a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  user-select: none;
+}
+
+.related-nav-btn:hover:not(:disabled) {
+  background-color: #0f172a;
+  color: #ffffff;
+  border-color: #0f172a;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.15);
+}
+
+.related-nav-btn:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+.related-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
+  pointer-events: none;
+}
+
+@media (max-width: 1199px) {
+  .related-product-slide {
+    flex: 0 0 calc((100% - (2 * 18px)) / 3);
+    min-width: 240px;
+    max-width: none;
+  }
+}
+
+@media (max-width: 991px) {
+  .related-products-slider {
+    gap: 16px;
+  }
+  .related-product-slide {
+    flex: 0 0 calc((100% - 16px) / 2.3);
+    min-width: 220px;
+  }
+}
+
+@media (max-width: 767px) {
+  .related-product-slide {
+    flex: 0 0 calc((100% - 16px) / 2);
+    min-width: 200px;
+  }
+}
+
+@media (max-width: 575px) {
+  .related-products-slider {
+    gap: 14px;
+    padding-bottom: 14px;
+  }
+  .related-product-slide {
+    flex: 0 0 82%;
+    min-width: 240px;
+    max-width: 300px;
+  }
 }

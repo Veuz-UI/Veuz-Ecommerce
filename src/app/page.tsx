@@ -13,6 +13,15 @@ import { fetchPartners, PARTNERS_EVENT } from '@/services/partnersService';
 import { DEFAULT_PARTNERS_DATA, PartnersData } from '@/data/defaultPartners';
 import { ProductCardImageSlider } from '@/components/common/ProductCardImageSlider';
 
+const VERIFIED_CATEGORY_IMAGES = [
+  '/assets/imgs/shop/p1.jpg',
+  '/assets/imgs/shop/p2.jpg',
+  '/assets/imgs/shop/p3.jpg',
+  '/assets/imgs/shop/p4.jpg',
+  '/assets/imgs/shop/p5.jpg',
+  '/assets/imgs/shop/p6.jpg',
+];
+
 export default function HomePage() {
   const [activeSlide, setActiveSlide] = useState(0);
   const [activeSideSlide, setActiveSideSlide] = useState(0);
@@ -24,71 +33,18 @@ export default function HomePage() {
   const browseCatScrollRef = useRef<HTMLDivElement>(null);
   const partnersScrollRef = useRef<HTMLDivElement>(null);
 
-  // Dynamic Catalog Products from Products Service
-  const [catalogProducts, setCatalogProducts] = useState<ProductItem[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('veuz_products_cache');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-        }
-      } catch (e) {}
-    }
-    return [];
-  });
+  // Dynamic Catalog Products from Products Service (hydrated safely via useEffect)
+  const [catalogProducts, setCatalogProducts] = useState<ProductItem[]>([]);
 
   // Dynamic Partners Logos from Partners Service
   const [partnersData, setPartnersData] = useState<PartnersData>(DEFAULT_PARTNERS_DATA);
 
   // Dynamic Banners from Banner Settings
-  const [heroSlides, setHeroSlides] = useState<MainBannerItem[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('veuz_banner_settings_cache');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed && Array.isArray(parsed.mainBanners)) {
-            const active = parsed.mainBanners.filter((b: any) => b.isActive !== false);
-            if (active.length > 0) return active;
-          }
-        }
-      } catch (e) {}
-    }
-    return DEFAULT_BANNER_SETTINGS.mainBanners;
-  });
-
-  const [sideBannerSlides, setSideBannerSlides] = useState<PromoBannerItem[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('veuz_banner_settings_cache');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed && Array.isArray(parsed.promoBanners)) {
-            const active = parsed.promoBanners.filter((b: any) => b.isActive !== false);
-            if (active.length > 0) return active;
-          }
-        }
-      } catch (e) {}
-    }
-    return DEFAULT_BANNER_SETTINGS.promoBanners;
-  });
+  const [heroSlides, setHeroSlides] = useState<MainBannerItem[]>(DEFAULT_BANNER_SETTINGS.mainBanners);
+  const [sideBannerSlides, setSideBannerSlides] = useState<PromoBannerItem[]>(DEFAULT_BANNER_SETTINGS.promoBanners);
 
   // Dynamic Categories from Shop Settings (Shop by Categories)
-  const [shopCategories, setShopCategories] = useState<ShopCategory[]>(() => {
-    if (typeof window !== 'undefined') {
-      try {
-        const stored = localStorage.getItem('veuz_shop_settings_cache');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          if (parsed && Array.isArray(parsed.categories) && parsed.categories.length > 0) {
-            return parsed.categories;
-          }
-        }
-      } catch (e) {}
-    }
-    return DEFAULT_SHOP_SETTINGS.categories;
-  });
+  const [shopCategories, setShopCategories] = useState<ShopCategory[]>(DEFAULT_SHOP_SETTINGS.categories);
 
   // Guarantee that the home page always starts at the very top (0, 0)
   useEffect(() => {
@@ -1003,7 +959,8 @@ export default function HomePage() {
     if (browseCatScrollRef.current) {
       const container = browseCatScrollRef.current;
       const firstCol = container.querySelector('.browse-cat-card-wrapper') as HTMLElement;
-      const colWidth = firstCol ? firstCol.offsetWidth + 22 : 310;
+      const colWidth = firstCol ? firstCol.offsetWidth + 28 : 165;
+      const scrollStep = colWidth * 2;
       const maxScroll = container.scrollWidth - container.clientWidth;
 
       if (maxScroll <= 0) return;
@@ -1012,13 +969,13 @@ export default function HomePage() {
         if (container.scrollLeft >= maxScroll - 15) {
           container.scrollTo({ left: 0, behavior: 'smooth' });
         } else {
-          container.scrollBy({ left: colWidth, behavior: 'smooth' });
+          container.scrollBy({ left: scrollStep, behavior: 'smooth' });
         }
       } else {
         if (container.scrollLeft <= 15) {
           container.scrollTo({ left: maxScroll, behavior: 'smooth' });
         } else {
-          container.scrollBy({ left: -colWidth, behavior: 'smooth' });
+          container.scrollBy({ left: -scrollStep, behavior: 'smooth' });
         }
       }
     }
@@ -1409,15 +1366,9 @@ export default function HomePage() {
               <h3 className="mb-0" style={{ fontSize: '24px', fontWeight: '700' }}>Browse by Safety Categories</h3>
             </div>
             
-            <div className="d-flex align-items-center" style={{ gap: '10px' }}>
+            <div className="d-flex align-items-center" style={{ gap: '8px' }}>
               <Link className="btn-view-all-pill" href="/all-categories-products">
-                <span className="btn-view-all-icon">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
-                </span>
-                <span className="btn-view-all-text">View All</span>
+                View All
               </Link>
               
               <div className="d-flex align-items-center" style={{ gap: '6px' }}>
@@ -1428,11 +1379,9 @@ export default function HomePage() {
                   aria-label="Previous Categories"
                   title="Previous"
                 >
-                  <span className="btn-slider-nav-icon">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="15 18 9 12 15 6"></polyline>
-                    </svg>
-                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
                 </button>
                 <button
                   type="button"
@@ -1441,17 +1390,13 @@ export default function HomePage() {
                   aria-label="Next Categories"
                   title="Next"
                 >
-                  <span className="btn-slider-nav-icon">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
                 </button>
               </div>
             </div>
           </div>
-
-          <hr className="hr mb-30" />
 
           {/* Smooth Category Slider Track */}
           <div
@@ -1461,27 +1406,25 @@ export default function HomePage() {
           >
             <div ref={browseCatScrollRef} className="browse-cat-track-container">
               {shopCategories.map((cat, idx) => {
-                const imgSrc = cat.image || (cat as any).img || `/assets/imgs/shop/p${(idx % 8) + 1}.jpg`;
+                const fallbackImg = VERIFIED_CATEGORY_IMAGES[idx % VERIFIED_CATEGORY_IMAGES.length];
+                const imgSrc = cat.image && !cat.image.includes('undefined') && cat.image !== '#' ? cat.image : fallbackImg;
                 const catLink = cat.link && cat.link !== '#' ? cat.link : `/category?category=${encodeURIComponent(cat.name)}`;
                 return (
                   <div key={cat.id || idx} className="browse-cat-card-wrapper">
                     <Link href={catLink} className="browse-cat-card" title={cat.name}>
-                      {/* Left: Category Name */}
-                      <div className="browse-cat-info-col">
-                        <h4 className="browse-cat-name">{cat.name}</h4>
-                      </div>
-
-                      {/* Right: Floating Category Image */}
-                      <div className="browse-cat-media-col">
+                      <div className="browse-cat-circle">
                         <img
                           src={imgSrc}
                           alt={cat.name}
                           className="browse-cat-photo"
                           onError={(e) => {
-                            (e.target as HTMLImageElement).src = `/assets/imgs/shop/p${(idx % 8) + 1}.jpg`;
+                            const target = e.currentTarget;
+                            target.onerror = null;
+                            target.src = fallbackImg;
                           }}
                         />
                       </div>
+                      <h4 className="browse-cat-name">{cat.name}</h4>
                     </Link>
                   </div>
                 );
@@ -1499,15 +1442,9 @@ export default function HomePage() {
               <h3 className="mb-0" style={{ fontSize: '24px', fontWeight: '700' }}>New Arrival Safety Gear & PPE</h3>
             </div>
             
-            <div className="d-flex align-items-center" style={{ gap: '10px' }}>
+            <div className="d-flex align-items-center" style={{ gap: '8px' }}>
               <Link className="btn-view-all-pill" href="/new-arrival-products">
-                <span className="btn-view-all-icon">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
-                </span>
-                <span className="btn-view-all-text">View All</span>
+                View All
               </Link>
               
               <div className="d-flex align-items-center" style={{ gap: '6px' }}>
@@ -1518,11 +1455,9 @@ export default function HomePage() {
                   aria-label="Previous"
                   title="Previous"
                 >
-                  <span className="btn-slider-nav-icon">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="15 18 9 12 15 6"></polyline>
-                    </svg>
-                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
                 </button>
                 <button
                   type="button"
@@ -1531,16 +1466,13 @@ export default function HomePage() {
                   aria-label="Next"
                   title="Next"
                 >
-                  <span className="btn-slider-nav-icon">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
                 </button>
               </div>
             </div>
           </div>
-          <hr className="hr mb-30" />
           {renderProductSectionSlider(displayedNewProducts, 'newProd')}
         </div>
       </section>
@@ -1596,15 +1528,9 @@ export default function HomePage() {
               <h3 className="mb-0" style={{ fontSize: '24px', fontWeight: '700' }}>Most Searched Items</h3>
             </div>
             
-            <div className="d-flex align-items-center" style={{ gap: '10px' }}>
+            <div className="d-flex align-items-center" style={{ gap: '8px' }}>
               <Link className="btn-view-all-pill" href="/most-searched-products">
-                <span className="btn-view-all-icon">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
-                </span>
-                <span className="btn-view-all-text">View All</span>
+                View All
               </Link>
               
               <div className="d-flex align-items-center" style={{ gap: '6px' }}>
@@ -1615,11 +1541,9 @@ export default function HomePage() {
                   aria-label="Previous"
                   title="Previous"
                 >
-                  <span className="btn-slider-nav-icon">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="15 18 9 12 15 6"></polyline>
-                    </svg>
-                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
                 </button>
                 <button
                   type="button"
@@ -1628,17 +1552,14 @@ export default function HomePage() {
                   aria-label="Next"
                   title="Next"
                 >
-                  <span className="btn-slider-nav-icon">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
                 </button>
               </div>
             </div>
           </div>
           
-          <hr className="hr mb-30" />
           {renderProductSectionSlider(displayedMostSearched, 'mostSearched')}
         </div>
       </section>
@@ -1735,15 +1656,9 @@ export default function HomePage() {
               <h3 className="mb-0" style={{ fontSize: '24px', fontWeight: '700' }}>Special Offers & Bulk PPE Deals</h3>
             </div>
             
-            <div className="d-flex align-items-center" style={{ gap: '10px' }}>
+            <div className="d-flex align-items-center" style={{ gap: '8px' }}>
               <Link className="show-all btn-view-all-pill" href="/offer-products">
-                <span className="btn-view-all-icon">
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
-                </span>
-                <span className="btn-view-all-text">View All</span>
+                View All
               </Link>
               
               <div className="d-flex align-items-center" style={{ gap: '6px' }}>
@@ -1754,11 +1669,9 @@ export default function HomePage() {
                   aria-label="Previous"
                   title="Previous"
                 >
-                  <span className="btn-slider-nav-icon">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="15 18 9 12 15 6"></polyline>
-                    </svg>
-                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
                 </button>
                 <button
                   type="button"
@@ -1767,16 +1680,13 @@ export default function HomePage() {
                   aria-label="Next"
                   title="Next"
                 >
-                  <span className="btn-slider-nav-icon">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                  </span>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
                 </button>
               </div>
             </div>
           </div>
-          <hr className="mb-25" />
           {renderProductSectionSlider(displayedOnsale, 'onsale')}
         </div>
       </section>

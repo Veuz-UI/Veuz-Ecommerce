@@ -13173,27 +13173,17 @@ hr {
 }
 
 .hr {
-  margin-bottom: 60px;
-  color: rgba(253 200 57 / 30%);
-  position: relative;
+  display: none !important;
+  opacity: 0 !important;
+  height: 0 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
 }
 
 .hr::after {
-  position: absolute;
-  content: '';
-  height: 6px;
-  bottom: -3px;
-  margin: 0 auto;
-  border-radius: 10px;
-  left: 0;
-  right: 0;
-  width: 15%;
-  background: #fdc839;
-  -o-transition: .5s;
-  -ms-transition: .5s;
-  -moz-transition: .5s;
-  -webkit-transition: .5s;
-  transition: .5s;
+  display: none !important;
+  content: none !important;
 }
 
 .prdcts .slider-arrow .slider-btn.slider-prev {

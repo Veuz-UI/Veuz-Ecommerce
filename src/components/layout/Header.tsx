@@ -541,6 +541,11 @@ export const Header: React.FC = () => {
                         <img
                           src={user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}`}
                           alt={user.name}
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            target.onerror = null;
+                            target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name || 'User')}`;
+                          }}
                           style={{
                             width: '26px',
                             height: '26px',
@@ -1129,6 +1134,11 @@ export const Header: React.FC = () => {
                             src={user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}`}
                             alt={user.name}
                             className="header-user-avatar"
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              target.onerror = null;
+                              target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name || 'User')}`;
+                            }}
                             style={{
                               border: isAdmin ? '2px solid #2563eb' : '2px solid #3BB77E'
                             }}
@@ -1571,10 +1581,16 @@ export const Header: React.FC = () => {
           {/* Drawer Contact Footer */}
           <div className="mt-4 pt-3 border-top text-muted" style={{ fontSize: '12px' }}>
             <div className="d-flex align-items-center gap-2 mb-1">
-              <i className="fi-rs-headset text-success"></i> (+91) - 9876-124553
+              <i className="fi-rs-headset text-success"></i>
+              <a href="tel:+919876124553" className="text-muted text-decoration-none" suppressHydrationWarning>
+                (+91) - 9876-124553
+              </a>
             </div>
             <div className="d-flex align-items-center gap-2">
-              <i className="fi-rs-envelope text-success"></i> sales@veuz.com
+              <i className="fi-rs-envelope text-success"></i>
+              <a href="mailto:sales@veuz.com" className="text-muted text-decoration-none" suppressHydrationWarning>
+                sales@veuz.com
+              </a>
             </div>
           </div>
 

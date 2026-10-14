@@ -217,8 +217,10 @@ export default function ProfilePage() {
       setPhone(user.phone || user.mobile || '');
       setAlternatePhone(user.alternatePhone || '');
       setDateOfBirth(formatToDateInput(user.dateOfBirth));
-      setGender(user.gender || 'Prefer not to say');
-      setAvatarPreview(user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name || 'User')}`);
+      const safeAvatar = user.avatar && (!user.avatar.startsWith('data:image/') || user.avatar.length > 250)
+        ? user.avatar
+        : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name || 'User')}`;
+      setAvatarPreview(safeAvatar);
 
       if (user.address) {
         setCountry(user.address.country || '');
@@ -347,6 +349,8 @@ export default function ProfilePage() {
   // Profile Photo Upload & Delete (Validated & Canvas Compressed)
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    // Reset input value to allow re-selection
+    e.target.value = '';
     if (!file) return;
 
     // 1. Strict File Type & Max 5MB Size Validation
@@ -357,6 +361,7 @@ export default function ProfilePage() {
     }
 
     try {
+      showToast('info', 'Optimizing and uploading profile photo...', 'Uploading');
       // 2. Client-side Canvas Compression (Max 400x400 avatar WebP, quality 0.85)
       const compressedFile = await compressImage(file, {
         maxWidth: 400,
@@ -365,15 +370,28 @@ export default function ProfilePage() {
         mimeType: 'image/webp',
       });
 
-      const reader = new FileReader();
-      reader.onload = () => {
-        if (typeof reader.result === 'string') {
-          setAvatarPreview(reader.result);
-          showToast('success', 'Photo uploaded and optimized! Click "Save Details" to save your profile.', 'Photo Uploaded');
-        }
-      };
-      reader.readAsDataURL(compressedFile);
+      // Show immediate local preview
+      const localPreview = URL.createObjectURL(compressedFile);
+      setAvatarPreview(localPreview);
+
+      // 3. Upload to server endpoint to get clean /uploads/ URL (avoids database truncation)
+      const formData = new FormData();
+      formData.append('file', compressedFile);
+
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (res.ok && json.success && json.url) {
+        setAvatarPreview(json.url);
+        showToast('success', 'Photo uploaded and optimized! Click "Save Details" to save your profile.', 'Photo Uploaded');
+      } else {
+        showToast('warning', json.message || 'Image preview set locally.', 'Photo Uploaded');
+      }
     } catch (err) {
+      console.error('Profile photo upload error:', err);
       showToast('danger', 'Unable to process photo. Please try a different image.', 'Error Message');
     }
   };
@@ -750,6 +768,11 @@ export default function ProfilePage() {
                   src={avatarPreview || user?.avatar || fallbackAvatar}
                   alt={firstName || user?.name || 'User'}
                   className="profile-avatar-img"
+                  onError={(e) => {
+                    const target = e.currentTarget;
+                    target.onerror = null;
+                    target.src = fallbackAvatar;
+                  }}
                 />
                 <div>
                   <h6 style={{ margin: '0 0 4px 0', fontWeight: '700', fontSize: '15px', color: '#0f172a' }}>
