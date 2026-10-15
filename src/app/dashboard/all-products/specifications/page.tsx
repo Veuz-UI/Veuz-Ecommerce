@@ -17,7 +17,7 @@ function SpecificationsEditor() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [product, setProduct] = useState<ProductItem | null>(null);
-  const [desc, setDesc] = useState<string>('');
+  const [imageError, setImageError] = useState<boolean>(false);
   const [sections, setSections] = useState<ProductDetailSection[]>([]);
   const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
 
@@ -31,13 +31,12 @@ function SpecificationsEditor() {
     const loadProductData = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(`/api/products?id=${encodeURIComponent(productId)}`, { cache: 'no-store' });
+        const res = await fetch(`/api/products?id=${encodeURIComponent(productId)}&includeDrafts=true`, { cache: 'no-store' });
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.data) {
             const found: ProductItem = json.data;
             setProduct(found);
-            setDesc(found.desc || '');
 
             // Crucial fix: Respect empty array [] if user previously deleted all sections!
             if (found.specifications !== undefined && Array.isArray(found.specifications)) {
@@ -185,7 +184,7 @@ function SpecificationsEditor() {
     try {
       const res = await updateProduct({
         ...product,
-        desc: desc.trim(),
+        desc: product.desc || '',
         specifications: cleaned,
       });
 
@@ -344,7 +343,7 @@ function SpecificationsEditor() {
           >
             <div className="d-flex align-items-center gap-3.5">
               <div
-                className="d-flex align-items-center justify-content-center flex-shrink-0"
+                className="d-flex align-items-center justify-content-center flex-shrink-0 overflow-hidden"
                 style={{
                   width: '64px',
                   height: '64px',
@@ -355,14 +354,28 @@ function SpecificationsEditor() {
                   boxShadow: '0 1px 2px rgba(0, 0, 0, 0.03)',
                 }}
               >
-                <img
-                  src={product.image || '/assets/imgs/shop/p1.jpg'}
-                  alt={product.title}
-                  style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = '/assets/imgs/shop/p1.jpg';
-                  }}
-                />
+                {(() => {
+                  const resolvedImg = (product.image && !product.image.includes('p1.jpg'))
+                    ? product.image
+                    : (product.colorImages && Object.values(product.colorImages).flat().find((u) => Boolean(u && typeof u === 'string' && !u.includes('p1.jpg')))) || '';
+
+                  if (resolvedImg && !imageError) {
+                    return (
+                      <img
+                        src={resolvedImg}
+                        alt={product.title}
+                        style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                        onError={() => setImageError(true)}
+                      />
+                    );
+                  }
+
+                  return (
+                    <div className="d-flex flex-column align-items-center justify-content-center w-100 h-100 rounded-2" style={{ backgroundColor: '#f8fafc' }}>
+                      <iconify-icon icon="solar:box-minimalistic-bold" class="fs-28 text-secondary opacity-75"></iconify-icon>
+                    </div>
+                  );
+                })()}
               </div>
 
               <div>
@@ -444,54 +457,6 @@ function SpecificationsEditor() {
           {/* 4. Main Body: Builder Mode or Preview Mode */}
           {activeTab === 'editor' ? (
             <div>
-              {/* Product Overview Description */}
-              <div
-                className="p-4 rounded-3 border mb-4 bg-white"
-                style={{
-                  borderColor: '#e2e8f0',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
-                }}
-              >
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <div className="d-flex align-items-center gap-2">
-                    <span
-                      className="rounded-circle d-flex align-items-center justify-content-center text-primary"
-                      style={{ width: '32px', height: '32px', backgroundColor: '#eff6ff', border: '1px solid #dbeafe' }}
-                    >
-                      <iconify-icon icon="solar:document-text-bold" class="fs-17"></iconify-icon>
-                    </span>
-                    <div>
-                      <label className="form-label fs-14 fw-bold text-dark mb-0">
-                        Product Description
-                      </label>
-                      <span className="text-muted fs-11 d-block">
-                        Comprehensive summary displayed on storefront product page
-                      </span>
-                    </div>
-                  </div>
-                  <span className="badge bg-light text-secondary border fs-11 fw-medium px-2 py-1">
-                    Storefront Overview
-                  </span>
-                </div>
-
-                <textarea
-                  className="form-control"
-                  rows={4}
-                  placeholder="Provide a detailed description of key protection features, shell materials, certifications, and product benefits..."
-                  value={desc}
-                  onChange={(e) => setDesc(e.target.value)}
-                  style={{
-                    borderRadius: '8px',
-                    borderColor: '#cbd5e1',
-                    fontSize: '13.5px',
-                    lineHeight: '1.6',
-                    resize: 'vertical',
-                  }}
-                ></textarea>
-                <div className="form-text fs-12 text-muted mt-1.5">
-                  Appears at the top of the product details tab, above individual technical specifications.
-                </div>
-              </div>
 
               {/* Sections List */}
               {sections.length === 0 ? (
@@ -850,14 +815,14 @@ function SpecificationsEditor() {
                 </span>
               </div>
 
-              {desc && (
+              {product?.desc && (
                 <div className="mb-4 pb-4 border-bottom">
                   <h5 className="fw-bold text-dark mb-2 fs-15 d-flex align-items-center gap-2">
                     <iconify-icon icon="solar:document-text-bold" class="fs-17 text-primary"></iconify-icon>
                     <span>Product Overview</span>
                   </h5>
                   <p className="text-secondary fs-14 mb-0" style={{ lineHeight: '1.7', whiteSpace: 'pre-line' }}>
-                    {desc}
+                    {product.desc}
                   </p>
                 </div>
               )}

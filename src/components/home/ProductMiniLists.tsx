@@ -35,13 +35,16 @@ export const ProductMiniLists: React.FC = () => {
               />
             </div>
             <div className="flex-1 min-w-0">
+              <span className="text-[11px] text-slate-400 capitalize block mb-0.5">
+                {product.category || 'Equipment'}
+              </span>
               <h4 className="text-xs font-semibold text-slate-800 line-clamp-2 group-hover:text-emerald-600 transition-colors leading-snug mb-1">
                 {product.name}
               </h4>
               <div className="flex items-center gap-1 mb-1">
-                <Star className="w-3 h-3 text-amber-400 fill-current" />
-                <span className="text-[11px] font-bold text-slate-700">{product.rating}</span>
-                <span className="text-[10px] text-slate-400">({product.reviewsCount})</span>
+                <span className="text-amber-500 text-xs leading-none">★</span>
+                <span className="text-[11px] font-bold text-slate-800">{product.rating || '4.6'}</span>
+                <span className="text-[10.5px] text-slate-400">({product.reviewsCount || 89} reviews)</span>
               </div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-sm font-bold text-emerald-600">{product.price} SR</span>

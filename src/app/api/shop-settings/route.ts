@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { DEFAULT_SHOP_SETTINGS, ShopSettingsData } from '@/data/defaultShopSettings';
+import { DEFAULT_SHOP_SETTINGS, DEFAULT_DELIVERY_OPTIONS, ShopSettingsData } from '@/data/defaultShopSettings';
 
 const DATA_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'shop-settings-store.json');
 
@@ -11,7 +11,13 @@ function readStoredSettings(): ShopSettingsData {
       const content = fs.readFileSync(DATA_FILE_PATH, 'utf-8');
       const parsed = JSON.parse(content);
       if (parsed && Array.isArray(parsed.categories) && Array.isArray(parsed.mainMenu)) {
-        return parsed;
+        return {
+          ...DEFAULT_SHOP_SETTINGS,
+          ...parsed,
+          deliveryOptions: Array.isArray(parsed.deliveryOptions) && parsed.deliveryOptions.length > 0
+            ? parsed.deliveryOptions
+            : DEFAULT_DELIVERY_OPTIONS,
+        };
       }
     }
   } catch (error) {
@@ -54,20 +60,20 @@ export async function POST(req: Request) {
       );
     }
 
-    const allowedBadges = new Set(['NEW', 'OFFER', 'LIMITED SALE']);
+    const allowedBadges = new Set(['NEW', 'OFFER SALES', 'LIMITED SALES', 'OFFER', 'LIMITED SALE', 'HOT', 'TRENDING']);
     const invalidMenuTitleOrBadge = body.mainMenu.find((menu: ShopSettingsData['mainMenu'][number]) => {
       const existingMenu = readStoredSettings().mainMenu.find((storedMenu) => storedMenu.id === menu.id);
       const title = menu.name?.trim() || '';
-      const wordCount = title ? title.split(/\s+/).length : 0;
       const titleChanged = !existingMenu || existingMenu.name !== menu.name;
-      const badgeChanged = !existingMenu || existingMenu.badge !== menu.badge;
-      return (titleChanged && (wordCount < 2 || wordCount > 3 || title.length < 10 || title.length > 15)) ||
-        (badgeChanged && Boolean(menu.badge && !allowedBadges.has(menu.badge)));
+      const cleanBadge = menu.badge ? menu.badge.toUpperCase().trim() : '';
+      const badgeChanged = !existingMenu || (existingMenu.badge ? existingMenu.badge.toUpperCase().trim() : '') !== cleanBadge;
+      return (titleChanged && (!title || title.length > 25)) ||
+        (badgeChanged && Boolean(cleanBadge && !allowedBadges.has(cleanBadge)));
     });
 
     if (invalidMenuTitleOrBadge) {
       return NextResponse.json(
-        { success: false, message: 'Menu titles must be 2–3 words and 10–15 characters. Only NEW, OFFER, or LIMITED SALE badges are allowed.' },
+        { success: false, message: 'Menu title is required and cannot exceed 25 characters. Badges allowed: NEW, OFFER SALES, LIMITED SALES.' },
         { status: 400 }
       );
     }
@@ -89,16 +95,39 @@ export async function POST(req: Request) {
       );
     }
 
+    const currentStored = readStoredSettings();
+    const deliveryOptionsToSave = Array.isArray(body.deliveryOptions)
+      ? body.deliveryOptions
+      : (currentStored.deliveryOptions || DEFAULT_DELIVERY_OPTIONS);
+
+    const sanitizedMainMenu = body.mainMenu.map((m: any) => {
+      let b = m.badge ? String(m.badge).toUpperCase().trim() : undefined;
+      if (b === 'OFFER') b = 'OFFER SALES';
+      if (b === 'LIMITED SALE' || b === 'LIMTED SALE' || b === 'LIMITED') b = 'LIMITED SALES';
+      return {
+        ...m,
+        badge: b,
+      };
+    });
+
     const saved = writeStoredSettings({
       categories: body.categories,
-      mainMenu: body.mainMenu,
+      mainMenu: sanitizedMainMenu,
+      deliveryOptions: deliveryOptionsToSave,
     });
 
     if (!saved) {
       return NextResponse.json({ success: false, message: 'Failed to write settings to disk' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, data: body });
+    return NextResponse.json({
+      success: true,
+      data: {
+        categories: body.categories,
+        mainMenu: body.mainMenu,
+        deliveryOptions: deliveryOptionsToSave,
+      },
+    });
   } catch (error: any) {
     return NextResponse.json({ success: false, message: error.message || 'Server error' }, { status: 500 });
   }

@@ -90,29 +90,18 @@ export const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       {/* Product Info */}
       <div className="flex-1 flex flex-col justify-between">
         <div>
-          <span className="text-xs font-medium text-slate-400 hover:text-emerald-600 transition-colors uppercase tracking-wider block mb-1">
+          <span className="text-xs font-medium text-slate-400 hover:text-emerald-600 transition-colors capitalize block mb-1">
             {product.category}
           </span>
           <h3 className="font-semibold text-slate-800 text-sm md:text-base line-clamp-2 hover:text-emerald-600 transition-colors mb-2 leading-snug">
             <Link href="#">{product.name}</Link>
           </h3>
 
-          {/* Rating */}
+          {/* Rating (Matching Reference Image: Star + Rating + (reviews)) */}
           <div className="flex items-center gap-1.5 mb-2.5">
-            <div className="flex text-amber-400">
-              {[...Array(5)].map((_, i) => (
-                <Star
-                  key={i}
-                  className={`w-3.5 h-3.5 ${
-                    i < Math.floor(product.rating)
-                      ? 'fill-current text-amber-400'
-                      : 'text-slate-200'
-                  }`}
-                />
-              ))}
-            </div>
-            <span className="text-xs font-bold text-slate-700">{product.rating}</span>
-            <span className="text-xs text-slate-400">({product.reviewsCount})</span>
+            <span className="text-amber-500 text-sm leading-none">★</span>
+            <span className="text-xs font-bold text-slate-800">{product.rating || '4.6'}</span>
+            <span className="text-xs text-slate-400">({product.reviewsCount || 89} reviews)</span>
           </div>
         </div>
 

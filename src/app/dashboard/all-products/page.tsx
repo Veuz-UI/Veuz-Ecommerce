@@ -28,7 +28,7 @@ export default function AllProductsPage() {
     setIsLoading(true);
     try {
       const [prods, shopData] = await Promise.all([
-        fetchProducts(),
+        fetchProducts(undefined, { includeDrafts: true }),
         fetchShopSettings(),
       ]);
       setProducts(prods);
@@ -649,11 +649,18 @@ export default function AllProductsPage() {
                             }}
                           >
                             <img
-                              src={item.image}
+                              src={
+                                (item.image && !item.image.includes('p1.jpg'))
+                                  ? item.image
+                                  : (item.colorImages && Object.values(item.colorImages).flat().find((u) => Boolean(u && typeof u === 'string' && !u.includes('p1.jpg'))))
+                                  || '/assets/imgs/theme/placeholder.svg'
+                              }
                               alt={item.title}
                               style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '3px' }}
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/assets/imgs/shop/p1.jpg';
+                                const target = e.target as HTMLImageElement;
+                                target.onerror = null;
+                                target.src = '/assets/imgs/theme/placeholder.svg';
                               }}
                             />
                           </div>
@@ -728,24 +735,35 @@ export default function AllProductsPage() {
                       {/* Collections Flags */}
                       <td style={{ padding: '14px 16px' }}>
                         <div className="d-flex flex-column gap-1">
-                          {isNew && (
+                          {item.isDraft ? (
                             <span
-                              className="badge bg-success-subtle text-success border border-success-subtle fs-11 fw-semibold align-self-start"
-                              style={{ padding: '3px 7px', borderRadius: '4px' }}
+                              className="badge bg-secondary-subtle text-secondary border border-secondary-subtle fs-11 fw-semibold align-self-start"
+                              style={{ padding: '3px 7px', borderRadius: '4px', backgroundColor: '#f1f5f9', color: '#64748b' }}
                             >
-                              New Arrival (1st)
+                              Draft (Unpublished)
                             </span>
-                          )}
-                          {isOffer && (
-                            <span
-                              className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fs-11 fw-semibold align-self-start"
-                              style={{ padding: '3px 7px', borderRadius: '4px' }}
-                            >
-                              {isLimitedOffer ? 'Limited Offer' : 'Special Offer'}
-                            </span>
-                          )}
-                          {!isNew && !isOffer && (
-                            <span className="text-muted fs-11">Standard Catalog</span>
+                          ) : (
+                            <>
+                              {isNew && (
+                                <span
+                                  className="badge bg-success-subtle text-success border border-success-subtle fs-11 fw-semibold align-self-start"
+                                  style={{ padding: '3px 7px', borderRadius: '4px' }}
+                                >
+                                  New Arrival (1st)
+                                </span>
+                              )}
+                              {isOffer && (
+                                <span
+                                  className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fs-11 fw-semibold align-self-start"
+                                  style={{ padding: '3px 7px', borderRadius: '4px' }}
+                                >
+                                  {isLimitedOffer ? 'Limited Offer' : 'Special Offer'}
+                                </span>
+                              )}
+                              {!isNew && !isOffer && (
+                                <span className="text-muted fs-11">Standard Catalog</span>
+                              )}
+                            </>
                           )}
                         </div>
                       </td>
@@ -858,11 +876,51 @@ export default function AllProductsPage() {
                   </div>
                   <button
                     type="button"
-                    className="btn-close"
-                    aria-label="Close"
-                    disabled={isDeleting}
                     onClick={() => setDeleteTarget(null)}
-                  ></button>
+                    disabled={isDeleting}
+                    className="btn p-0 d-flex align-items-center justify-content-center transition-all flex-shrink-0"
+                    style={{
+                      width: '36px',
+                      height: '36px',
+                      borderRadius: '50%',
+                      backgroundColor: '#f8fafc',
+                      border: '1px solid #e2e8f0',
+                      color: '#475569',
+                      boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                      cursor: isDeleting ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isDeleting) {
+                        e.currentTarget.style.backgroundColor = '#0f172a';
+                        e.currentTarget.style.color = '#ffffff';
+                        e.currentTarget.style.borderColor = '#0f172a';
+                        e.currentTarget.style.transform = 'scale(1.05)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                      e.currentTarget.style.color = '#475569';
+                      e.currentTarget.style.borderColor = '#e2e8f0';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
+                    aria-label="Close"
+                    title="Close"
+                  >
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
                 </div>
 
                 <div className="modal-body px-4 pt-3 pb-4">

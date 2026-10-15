@@ -37,7 +37,7 @@ function ProductSizesManager() {
       setIsLoading(true);
       try {
         const [prodRes, attrs] = await Promise.all([
-          fetch(`/api/products?id=${encodeURIComponent(productId)}`, { cache: 'no-store' }),
+          fetch(`/api/products?id=${encodeURIComponent(productId)}&includeDrafts=true`, { cache: 'no-store' }),
           fetchAttributes(),
         ]);
 

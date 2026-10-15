@@ -136,21 +136,18 @@ export const DealOfTheDay: React.FC = () => {
               {/* Product Info & Stock Progress */}
               <div className="p-5 flex-1 flex flex-col justify-between">
                 <div>
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1">
+                  <span className="text-xs font-medium text-slate-400 capitalize block mb-1">
                     {product.category}
                   </span>
                   <h3 className="font-bold text-slate-900 text-sm sm:text-base line-clamp-2 hover:text-emerald-600 transition-colors mb-2">
                     <Link href="#">{product.name}</Link>
                   </h3>
 
-                  {/* Rating */}
+                  {/* Rating (Matching Reference Image: Star + Rating + (reviews)) */}
                   <div className="flex items-center gap-1.5 mb-3">
-                    <div className="flex text-amber-400">
-                      {[...Array(5)].map((_, i) => (
-                        <Star key={i} className="w-3.5 h-3.5 fill-current" />
-                      ))}
-                    </div>
-                    <span className="text-xs font-bold text-slate-700">{product.rating}</span>
+                    <span className="text-amber-500 text-sm leading-none">★</span>
+                    <span className="text-xs font-bold text-slate-800">{product.rating || '4.6'}</span>
+                    <span className="text-xs text-slate-400">({product.reviewsCount || 89} reviews)</span>
                   </div>
 
                   {/* Pricing */}

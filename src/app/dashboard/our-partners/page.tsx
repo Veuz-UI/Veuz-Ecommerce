@@ -116,7 +116,144 @@ export default function OurPartnersDashboardPage() {
     setFormOrder(item.order || 1);
   };
 
-  // Handle File Upload ONLY (no URL input)
+  // Optical normalization for partner brand logos
+  const normalizePartnerLogo = (file: File): Promise<File | Blob> => {
+    if (file.type === 'image/svg+xml' || file.name.endsWith('.svg')) {
+      return Promise.resolve(file);
+    }
+
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          try {
+            const origW = img.naturalWidth || img.width;
+            const origH = img.naturalHeight || img.height;
+            if (!origW || !origH) {
+              resolve(file);
+              return;
+            }
+
+            const srcCanvas = document.createElement('canvas');
+            srcCanvas.width = origW;
+            srcCanvas.height = origH;
+            const srcCtx = srcCanvas.getContext('2d');
+            if (!srcCtx) {
+              resolve(file);
+              return;
+            }
+
+            srcCtx.drawImage(img, 0, 0);
+            const imgData = srcCtx.getImageData(0, 0, origW, origH);
+            const data = imgData.data;
+
+            let minX = origW;
+            let minY = origH;
+            let maxX = 0;
+            let maxY = 0;
+            let hasContent = false;
+
+            for (let y = 0; y < origH; y++) {
+              for (let x = 0; x < origW; x++) {
+                const idx = (y * origW + x) * 4;
+                const r = data[idx];
+                const g = data[idx + 1];
+                const b = data[idx + 2];
+                const a = data[idx + 3];
+
+                const isTransparent = a < 25;
+                const isWhite = r > 245 && g > 245 && b > 245;
+
+                if (!isTransparent && !isWhite) {
+                  if (x < minX) minX = x;
+                  if (x > maxX) maxX = x;
+                  if (y < minY) minY = y;
+                  if (y > maxY) maxY = y;
+                  hasContent = true;
+                }
+              }
+            }
+
+            // Fallback for dark or white backgrounds if needed
+            if (!hasContent || minX > maxX || minY > maxY) {
+              for (let y = 0; y < origH; y++) {
+                for (let x = 0; x < origW; x++) {
+                  const idx = (y * origW + x) * 4;
+                  if (data[idx + 3] > 20) {
+                    if (x < minX) minX = x;
+                    if (x > maxX) maxX = x;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                    hasContent = true;
+                  }
+                }
+              }
+            }
+
+            if (!hasContent || minX > maxX || minY > maxY) {
+              minX = 0;
+              minY = 0;
+              maxX = origW - 1;
+              maxY = origH - 1;
+            }
+
+            const cropW = Math.max(1, maxX - minX + 1);
+            const cropH = Math.max(1, maxY - minY + 1);
+
+            // Normalized optical canvas 400x200
+            const targetW = 400;
+            const targetH = 200;
+            const maxTargetW = 340;
+            const maxTargetH = 150;
+
+            const scale = Math.min(maxTargetW / cropW, maxTargetH / cropH);
+            const drawW = Math.round(cropW * scale);
+            const drawH = Math.round(cropH * scale);
+            const drawX = Math.round((targetW - drawW) / 2);
+            const drawY = Math.round((targetH - drawH) / 2);
+
+            const outCanvas = document.createElement('canvas');
+            outCanvas.width = targetW;
+            outCanvas.height = targetH;
+            const outCtx = outCanvas.getContext('2d');
+            if (!outCtx) {
+              resolve(file);
+              return;
+            }
+
+            outCtx.clearRect(0, 0, targetW, targetH);
+            outCtx.imageSmoothingEnabled = true;
+            outCtx.imageSmoothingQuality = 'high';
+            outCtx.drawImage(srcCanvas, minX, minY, cropW, cropH, drawX, drawY, drawW, drawH);
+
+            outCanvas.toBlob(
+              (blob) => {
+                if (blob) {
+                  const normalizedFile = new File([blob], file.name.replace(/\.[^.]+$/, '') + '.png', {
+                    type: 'image/png',
+                  });
+                  resolve(normalizedFile);
+                } else {
+                  resolve(file);
+                }
+              },
+              'image/png'
+            );
+          } catch (err) {
+            console.warn('Logo optical normalization fallback:', err);
+            resolve(file);
+          }
+        };
+        img.onerror = () => resolve(file);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  // Handle File Upload ONLY (with automatic optical zoom & fit normalization)
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -134,8 +271,11 @@ export default function OurPartnersDashboardPage() {
 
     setIsUploading(true);
     try {
+      // Normalize optical zoom and crop excess whitespace so all logos fit uniformly
+      const processedFile = await normalizePartnerLogo(file);
+
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('file', processedFile);
 
       const res = await fetch('/api/upload', {
         method: 'POST',
@@ -145,7 +285,7 @@ export default function OurPartnersDashboardPage() {
       const json = await res.json();
       if (res.ok && json.success && json.url) {
         setFormLogo(json.url);
-        showToast('success', 'Partner logo uploaded successfully!');
+        showToast('success', 'Partner logo uploaded and optically fitted successfully!');
       } else {
         showToast('danger', json.message || 'Upload failed.');
       }
@@ -622,26 +762,42 @@ export default function OurPartnersDashboardPage() {
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          padding: '16px',
+                          padding: '12px',
                           border: '1px solid #f1f5f9',
                           boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)',
                           overflow: 'hidden',
                         }}
                       >
-                        <img
-                          src={item.logo}
-                          alt={item.name}
+                        <div
+                          className="partner-logo-frame"
                           style={{
-                            maxWidth: '100%',
+                            width: '100%',
+                            height: '100%',
+                            maxWidth: '140px',
                             maxHeight: '75px',
-                            objectFit: 'contain',
-                            filter: item.isActive ? 'none' : 'grayscale(100%) opacity(0.5)',
-                            transition: 'all 0.2s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                           }}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/assets/imgs/client/partner1.svg';
-                          }}
-                        />
+                        >
+                          <img
+                            src={item.logo}
+                            alt={item.name}
+                            className="partner-logo-img"
+                            style={{
+                              maxWidth: '100%',
+                              maxHeight: '100%',
+                              width: 'auto',
+                              height: 'auto',
+                              objectFit: 'contain',
+                              filter: item.isActive ? 'none' : 'grayscale(100%) opacity(0.5)',
+                              transition: 'all 0.2s ease',
+                            }}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/assets/imgs/client/partner1.svg';
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
 
@@ -972,15 +1128,31 @@ export default function OurPartnersDashboardPage() {
                               height: '110px',
                             }}
                           >
-                            <img
-                              src={formLogo}
-                              alt="Preview"
+                            <div
+                              className="partner-logo-frame"
                               style={{
-                                maxWidth: '100%',
+                                width: '100%',
+                                height: '100%',
+                                maxWidth: '140px',
                                 maxHeight: '75px',
-                                objectFit: 'contain',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
                               }}
-                            />
+                            >
+                              <img
+                                src={formLogo}
+                                alt="Preview"
+                                className="partner-logo-img"
+                                style={{
+                                  maxWidth: '100%',
+                                  maxHeight: '100%',
+                                  width: 'auto',
+                                  height: 'auto',
+                                  objectFit: 'contain',
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
                       )}

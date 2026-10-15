@@ -168,7 +168,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const dismissToast = useCallback((id: string, force: boolean = false) => {
     // If auto-dismiss triggered while user is hovering the toast stack, wait until hover ends
     if (!force && isHoveredRef.current) {
-      setTimeout(() => dismissToast(id, false), 1500);
+      setTimeout(() => dismissToast(id, false), 1000);
       return;
     }
 
@@ -184,8 +184,8 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       prev.map((t) => (t.id === id ? { ...t, isExiting: true } : t))
     );
 
-    // Smooth removal
-    const exitDuration = force ? 240 : 400;
+    // Fast, smooth removal (snappy fade out)
+    const exitDuration = force ? 180 : 220;
     setTimeout(() => {
       setToasts((prev) => prev.filter((t) => t.id !== id));
       pendingDismissTimeoutsRef.current.delete(id);
@@ -206,33 +206,45 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         tag
       );
 
-      const id = 'toast_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
-      const newToast: ToastItem = {
-        id,
-        type,
-        message,
-        title: parsedTitle,
-        tag: parsedTag,
-        timestamp: formatToastTimestamp(),
-        isExiting: false,
-      };
+      // Prevent duplicate stacking of the exact same message if already visible
+      setToasts((prev) => {
+        const existingIdx = prev.findIndex((t) => !t.isExiting && t.message === message);
+        if (existingIdx !== -1) {
+          // If already visible, don't spam duplicate card; reset existing timer
+          const existing = prev[existingIdx];
+          const oldTimer = pendingDismissTimeoutsRef.current.get(existing.id);
+          if (oldTimer) clearTimeout(oldTimer);
+          const newTimer = setTimeout(() => dismissToast(existing.id), 2800);
+          pendingDismissTimeoutsRef.current.set(existing.id, newTimer);
+          return prev;
+        }
 
-      setToasts((prev) => [...prev, newToast]);
+        const id = 'toast_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+        const newToast: ToastItem = {
+          id,
+          type,
+          message,
+          title: parsedTitle,
+          tag: parsedTag,
+          timestamp: formatToastTimestamp(),
+          isExiting: false,
+        };
 
-      const now = Date.now();
-      // Ensure each toast stays visible and staggers with at least 2200ms spacing
-      // so if 3 or 4 toasts arrive, they slowly and smoothly disappear one-by-one from top
-      const minDuration = 5200; // minimum stay duration
-      const scheduledTime = Math.max(now + minDuration, lastDismissTimeRef.current + 2200);
-      lastDismissTimeRef.current = scheduledTime;
+        const now = Date.now();
+        // Snappy, pleasant duration (3200ms) with 800ms stagger for multiple messages
+        const minDuration = 3200;
+        const scheduledTime = Math.max(now + minDuration, lastDismissTimeRef.current + 800);
+        lastDismissTimeRef.current = scheduledTime;
 
-      const delayForThisToast = scheduledTime - now;
+        const delayForThisToast = scheduledTime - now;
+        const timerId = setTimeout(() => {
+          dismissToast(id);
+        }, delayForThisToast);
 
-      const timerId = setTimeout(() => {
-        dismissToast(id);
-      }, delayForThisToast);
+        pendingDismissTimeoutsRef.current.set(id, timerId);
 
-      pendingDismissTimeoutsRef.current.set(id, timerId);
+        return [...prev, newToast];
+      });
     },
     [dismissToast]
   );
@@ -288,7 +300,7 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           @keyframes toastSlideInDown {
             0% {
               opacity: 0;
-              transform: translateY(-24px) scale(0.95);
+              transform: translateY(-16px) scale(0.97);
             }
             100% {
               opacity: 1;
@@ -309,12 +321,12 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 boxShadow:
                   '0 12px 28px -4px rgba(0, 0, 0, 0.08), 0 6px 12px -3px rgba(0, 0, 0, 0.03)',
                 padding: '16px 20px',
-                animation: 'toastSlideInDown 0.36s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                animation: 'toastSlideInDown 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards',
                 transition:
-                  'opacity 0.65s cubic-bezier(0.4, 0, 0.2, 1), transform 0.65s cubic-bezier(0.4, 0, 0.2, 1), max-height 0.65s ease, margin 0.65s ease, padding 0.65s ease',
+                  'opacity 0.22s cubic-bezier(0.2, 0, 0, 1), transform 0.22s cubic-bezier(0.2, 0, 0, 1), max-height 0.22s ease, margin 0.22s ease, padding 0.22s ease',
                 opacity: toast.isExiting ? 0 : 1,
                 transform: toast.isExiting
-                  ? 'translateY(-14px) scale(0.95)'
+                  ? 'translateY(-12px) scale(0.96)'
                   : 'translateY(0) scale(1)',
                 display: 'flex',
                 alignItems: 'flex-start',
@@ -389,11 +401,11 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                       dismissToast(toast.id, true);
                     }}
                     style={{
-                      background: 'transparent',
-                      border: 'none',
-                      padding: '4px',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #e2e8f0',
+                      padding: 0,
                       borderRadius: '6px',
-                      color: '#94a3b8',
+                      color: '#64748b',
                       cursor: 'pointer',
                       lineHeight: 1,
                       display: 'flex',
@@ -402,20 +414,23 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                       flexShrink: 0,
                       width: '24px',
                       height: '24px',
-                      transition: 'all 0.15s ease',
+                      transition: 'all 0.2s ease',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.02)',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.color = '#0f172a';
-                      e.currentTarget.style.backgroundColor = '#f1f5f9';
+                      e.currentTarget.style.color = '#ef4444';
+                      e.currentTarget.style.borderColor = '#ef4444';
+                      e.currentTarget.style.backgroundColor = '#ffffff';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.color = '#94a3b8';
-                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.color = '#64748b';
+                      e.currentTarget.style.borderColor = '#e2e8f0';
+                      e.currentTarget.style.backgroundColor = '#ffffff';
                     }}
                     aria-label="Close"
                     title="Dismiss"
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <line x1="18" y1="6" x2="6" y2="18"></line>
                       <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>

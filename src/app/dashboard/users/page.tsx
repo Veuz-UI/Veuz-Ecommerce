@@ -1339,10 +1339,51 @@ export default function UserManagementPage() {
                 </div>
                 <button
                   type="button"
-                  className="btn-close"
                   onClick={() => setResetModalUser(null)}
                   disabled={isResetting}
-                ></button>
+                  className="btn p-0 d-flex align-items-center justify-content-center transition-all flex-shrink-0"
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    color: '#475569',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                    cursor: isResetting ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isResetting) {
+                      e.currentTarget.style.backgroundColor = '#0f172a';
+                      e.currentTarget.style.color = '#ffffff';
+                      e.currentTarget.style.borderColor = '#0f172a';
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                    e.currentTarget.style.color = '#475569';
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                  aria-label="Close"
+                  title="Close"
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
               </div>
 
               <form onSubmit={handleResetPasswordSubmit}>
@@ -1477,10 +1518,51 @@ export default function UserManagementPage() {
                 </div>
                 <button
                   type="button"
-                  className="btn-close"
                   onClick={() => setDeleteModalUser(null)}
                   disabled={isDeleting}
-                ></button>
+                  className="btn p-0 d-flex align-items-center justify-content-center transition-all flex-shrink-0"
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #fecaca',
+                    color: '#dc2626',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                    cursor: isDeleting ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isDeleting) {
+                      e.currentTarget.style.backgroundColor = '#dc2626';
+                      e.currentTarget.style.color = '#ffffff';
+                      e.currentTarget.style.borderColor = '#dc2626';
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#ffffff';
+                    e.currentTarget.style.color = '#dc2626';
+                    e.currentTarget.style.borderColor = '#fecaca';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                  aria-label="Close"
+                  title="Close"
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
               </div>
 
               <div className="modal-body px-4 py-3">
@@ -1576,9 +1658,48 @@ export default function UserManagementPage() {
                 </div>
                 <button
                   type="button"
-                  className="btn-close"
                   onClick={() => setViewDetailsUser(null)}
-                ></button>
+                  className="btn p-0 d-flex align-items-center justify-content-center transition-all flex-shrink-0"
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    color: '#475569',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#0f172a';
+                    e.currentTarget.style.color = '#ffffff';
+                    e.currentTarget.style.borderColor = '#0f172a';
+                    e.currentTarget.style.transform = 'scale(1.05)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                    e.currentTarget.style.color = '#475569';
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                  aria-label="Close"
+                  title="Close"
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
               </div>
 
               <div className="modal-body p-4">
@@ -1865,10 +1986,51 @@ export default function UserManagementPage() {
                 </div>
                 <button
                   type="button"
-                  className="btn-close"
                   onClick={() => setCreateModalOpen(false)}
                   disabled={isCreating}
-                ></button>
+                  className="btn p-0 d-flex align-items-center justify-content-center transition-all flex-shrink-0"
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    color: '#475569',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                    cursor: isCreating ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isCreating) {
+                      e.currentTarget.style.backgroundColor = '#0f172a';
+                      e.currentTarget.style.color = '#ffffff';
+                      e.currentTarget.style.borderColor = '#0f172a';
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8fafc';
+                    e.currentTarget.style.color = '#475569';
+                    e.currentTarget.style.borderColor = '#e2e8f0';
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                  aria-label="Close"
+                  title="Close"
+                >
+                  <svg
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.4"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
               </div>
 
               <form onSubmit={handleCreateUserSubmit}>

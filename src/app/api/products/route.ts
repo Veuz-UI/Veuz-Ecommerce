@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { ProductItem, CATEGORY_PRODUCTS_DATA } from '@/data/categoryProductsData';
+import { ProductItem } from '@/data/categoryProductsData';
 
 const DATA_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'products-store.json');
 
@@ -10,14 +10,14 @@ function readStoredProducts(): ProductItem[] {
     if (fs.existsSync(DATA_FILE_PATH)) {
       const content = fs.readFileSync(DATA_FILE_PATH, 'utf-8');
       const parsed = JSON.parse(content);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     }
   } catch (error) {
     console.error('Error reading products store:', error);
   }
-  return CATEGORY_PRODUCTS_DATA;
+  return [];
 }
 
 function expireLimitedOffers(products: ProductItem[]) {
@@ -62,6 +62,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const filter = searchParams.get('filter');
     const id = searchParams.get('id');
+    const includeDrafts = searchParams.get('includeDrafts') === 'true';
 
     const products = expireLimitedOffers(readStoredProducts());
 
@@ -70,10 +71,18 @@ export async function GET(req: Request) {
       if (!item) {
         return NextResponse.json({ success: false, message: 'Product not found' }, { status: 404 });
       }
+      if (item.isDraft && !includeDrafts) {
+        return NextResponse.json({ success: false, message: 'Product not found' }, { status: 404 });
+      }
       return NextResponse.json({ success: true, data: item });
     }
 
     let result = [...products];
+
+    // Exclude draft products from front store unless explicitly requested (dashboard)
+    if (!includeDrafts) {
+      result = result.filter((p) => !p.isDraft);
+    }
 
     // Sort by createdAt desc by default so newly added items show first
     result.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -149,6 +158,38 @@ export async function POST(req: Request) {
 
       const formattedPrice = `${currentPrice} SR`;
 
+      // Extract real uploaded photo from colorImages or gallery images if main cover was not set
+      let primaryImage = newProductData.image && !newProductData.image.includes('p1.jpg') ? newProductData.image.trim() : '';
+      if (!primaryImage && newProductData.colorImages && typeof newProductData.colorImages === 'object') {
+        const firstCol = Array.isArray(newProductData.colors) && newProductData.colors[0] ? newProductData.colors[0] : Object.keys(newProductData.colorImages)[0];
+        const colPhotos = firstCol && Array.isArray(newProductData.colorImages[firstCol])
+          ? newProductData.colorImages[firstCol].filter((u: string) => Boolean(u && u.trim() && !u.includes('p1.jpg')))
+          : [];
+        if (colPhotos.length > 0) {
+          primaryImage = colPhotos[0];
+        } else {
+          const allColPhotos = Object.values(newProductData.colorImages).flat().filter((u: any) => typeof u === 'string' && u.trim() && !u.includes('p1.jpg'));
+          if (allColPhotos.length > 0) primaryImage = allColPhotos[0] as string;
+        }
+      }
+      if (!primaryImage && Array.isArray(newProductData.images)) {
+        const validGallery = newProductData.images.filter((u: string) => Boolean(u && u.trim() && !u.includes('p1.jpg')));
+        if (validGallery.length > 0) primaryImage = validGallery[0];
+      }
+
+      let galleryPhotos = Array.isArray(newProductData.images)
+        ? newProductData.images.filter((u: string) => Boolean(u && u.trim() && !u.includes('p1.jpg')))
+        : [];
+      if (galleryPhotos.length === 0 && newProductData.colorImages && typeof newProductData.colorImages === 'object') {
+        const firstCol = Array.isArray(newProductData.colors) && newProductData.colors[0] ? newProductData.colors[0] : Object.keys(newProductData.colorImages)[0];
+        const colPhotos = firstCol && Array.isArray(newProductData.colorImages[firstCol])
+          ? newProductData.colorImages[firstCol].filter((u: string) => Boolean(u && u.trim() && !u.includes('p1.jpg')))
+          : [];
+        if (colPhotos.length > 1) {
+          galleryPhotos = colPhotos.slice(1);
+        }
+      }
+
       const newProduct: ProductItem = {
         id: newId,
         title: newProductData.title.trim(),
@@ -160,10 +201,10 @@ export async function POST(req: Request) {
         discount: discountText,
         rating: newProductData.rating || '5.0',
         reviews: newProductData.reviews || '10',
-        image: newProductData.image || '/assets/imgs/shop/p1.jpg',
+        image: primaryImage,
         badge: newProductData.badge || (isSpecialOffer ? 'Special Offer' : 'New Arrival'),
         badgeClass: isSpecialOffer ? 'sale' : 'new',
-        location: newProductData.location || 'Riyadh Central Warehouse',
+        location: newProductData.location || '',
         standard: newProductData.standard || 'Certified Safety Standard',
         inStock: newProductData.inStock !== false,
         link: newProductData.link || '/product-details',
@@ -181,9 +222,10 @@ export async function POST(req: Request) {
         specifications: Array.isArray(newProductData.specifications) ? newProductData.specifications : [],
         sizes: Array.isArray(newProductData.sizes) ? newProductData.sizes : [],
         colors: Array.isArray(newProductData.colors) ? newProductData.colors : [],
+        gender: newProductData.gender ? String(newProductData.gender).trim() : 'Unisex',
         colorImages: typeof newProductData.colorImages === 'object' && newProductData.colorImages !== null ? newProductData.colorImages : {},
         colorSizes: typeof newProductData.colorSizes === 'object' && newProductData.colorSizes !== null ? newProductData.colorSizes : {},
-        images: Array.isArray(newProductData.images) ? newProductData.images : [],
+        images: galleryPhotos,
       };
 
       // Prepend to array so it always shows 1st!
@@ -224,6 +266,23 @@ export async function POST(req: Request) {
 
       const formattedPrice = `${currentPrice} SR`;
 
+      let primaryImage = updateData.image !== undefined ? updateData.image : existing.image;
+      if (!primaryImage || primaryImage.includes('p1.jpg')) {
+        const cImgs = updateData.colorImages || existing.colorImages;
+        if (cImgs && typeof cImgs === 'object') {
+          const firstCol = (updateData.colors || existing.colors || [])[0] || Object.keys(cImgs)[0];
+          const colPhotos = firstCol && Array.isArray(cImgs[firstCol])
+            ? cImgs[firstCol].filter((u: string) => Boolean(u && u.trim() && !u.includes('p1.jpg')))
+            : [];
+          if (colPhotos.length > 0) {
+            primaryImage = colPhotos[0];
+          } else {
+            const allColPhotos = Object.values(cImgs).flat().filter((u: any) => typeof u === 'string' && u.trim() && !u.includes('p1.jpg'));
+            if (allColPhotos.length > 0) primaryImage = allColPhotos[0] as string;
+          }
+        }
+      }
+
       const updatedProduct: ProductItem = {
         ...existing,
         ...updateData,
@@ -231,6 +290,7 @@ export async function POST(req: Request) {
         desc: updateData.desc !== undefined ? updateData.desc?.trim() : existing.desc,
         category: updateData.category !== undefined ? updateData.category?.trim() : existing.category,
         categoryId: updateData.categoryId !== undefined ? updateData.categoryId : existing.categoryId,
+        image: primaryImage || '',
         price: formattedPrice,
         originalPrice: originalPrice,
         currentPrice: currentPrice,

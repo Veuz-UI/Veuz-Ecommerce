@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
-import { DEFAULT_BANNER_SETTINGS, BannerSettingsData } from '@/data/defaultBannerSettings';
+import { DEFAULT_BANNER_SETTINGS, BannerSettingsData, countWords } from '@/data/defaultBannerSettings';
 
 const DATA_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'banner-settings-store.json');
 
@@ -59,6 +59,66 @@ export async function POST(req: Request) {
         { success: false, message: 'Maximum 12 Promotion Banners allowed.' },
         { status: 400 }
       );
+    }
+
+    // Validate Main Banners
+    for (let i = 0; i < body.mainBanners.length; i++) {
+      const b = body.mainBanners[i];
+      if (!b.title || !b.title.trim()) {
+        return NextResponse.json(
+          { success: false, message: `Main Banner #${i + 1}: Heading is mandatory.` },
+          { status: 400 }
+        );
+      }
+      const titleWords = countWords(b.title);
+      if (titleWords > 50) {
+        return NextResponse.json(
+          { success: false, message: `Main Banner #${i + 1}: Heading exceeds 50 words limit (${titleWords}/50 words).` },
+          { status: 400 }
+        );
+      }
+      if (b.desc && countWords(b.desc) > 50) {
+        return NextResponse.json(
+          { success: false, message: `Main Banner #${i + 1}: Description exceeds 50 words limit (${countWords(b.desc)}/50 words).` },
+          { status: 400 }
+        );
+      }
+      if (!b.image || !b.image.trim()) {
+        return NextResponse.json(
+          { success: false, message: `Main Banner #${i + 1}: Banner image is mandatory.` },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Validate Promotion Banners
+    for (let i = 0; i < body.promoBanners.length; i++) {
+      const b = body.promoBanners[i];
+      if (!b.title || !b.title.trim()) {
+        return NextResponse.json(
+          { success: false, message: `Promotion Banner #${i + 1}: Heading is mandatory.` },
+          { status: 400 }
+        );
+      }
+      const titleWords = countWords(b.title);
+      if (titleWords > 50) {
+        return NextResponse.json(
+          { success: false, message: `Promotion Banner #${i + 1}: Heading exceeds 50 words limit (${titleWords}/50 words).` },
+          { status: 400 }
+        );
+      }
+      if (b.desc && countWords(b.desc) > 50) {
+        return NextResponse.json(
+          { success: false, message: `Promotion Banner #${i + 1}: Description exceeds 50 words limit (${countWords(b.desc)}/50 words).` },
+          { status: 400 }
+        );
+      }
+      if (!b.image || !b.image.trim()) {
+        return NextResponse.json(
+          { success: false, message: `Promotion Banner #${i + 1}: Banner image is mandatory.` },
+          { status: 400 }
+        );
+      }
     }
 
     const saved = writeStoredBanners({

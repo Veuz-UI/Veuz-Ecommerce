@@ -9,7 +9,9 @@ interface ProductCardImageSliderProps {
   link: string;
   image: string;
   images?: string[];
+  colorImages?: Record<string, string[]>;
   onProductClick?: (id: string) => void;
+  selectedColor?: string;
 }
 
 export function ProductCardImageSlider({
@@ -18,15 +20,49 @@ export function ProductCardImageSlider({
   link,
   image,
   images,
+  colorImages,
   onProductClick,
+  selectedColor,
 }: ProductCardImageSliderProps) {
-  // Collect all unique images (Cover + Side + Top + Back)
-  const allImages = Array.from(
-    new Set([image, ...(Array.isArray(images) ? images : [])])
-  ).filter(Boolean);
+  // Collect photos specifically for the selected color if available
+  let activeColorPhotos: string[] = [];
+  if (selectedColor && colorImages && typeof colorImages === 'object') {
+    if (Array.isArray(colorImages[selectedColor])) {
+      activeColorPhotos = colorImages[selectedColor];
+    } else {
+      const norm = selectedColor.trim().toLowerCase();
+      const matchKey = Object.keys(colorImages).find((k) => k.trim().toLowerCase() === norm);
+      if (matchKey && Array.isArray(colorImages[matchKey])) {
+        activeColorPhotos = colorImages[matchKey];
+      }
+    }
+    activeColorPhotos = activeColorPhotos.filter(
+      (u) => Boolean(u && typeof u === 'string' && u.trim() && !u.includes('p1.jpg'))
+    );
+  }
+
+  // Fallback to all Genuine photos if no color-specific photos found
+  const colorPhotos = colorImages
+    ? Object.values(colorImages).flat().filter((u) => Boolean(u && typeof u === 'string' && u.trim() && !u.includes('p1.jpg')))
+    : [];
+
+  const candidateImages = activeColorPhotos.length > 0
+    ? activeColorPhotos
+    : [
+        image && !image.includes('p1.jpg') ? image : '',
+        ...(Array.isArray(images) ? images : []),
+        ...colorPhotos,
+      ].filter((u) => Boolean(u && typeof u === 'string' && u.trim() && !u.includes('p1.jpg')));
+
+  const allImages = Array.from(new Set(candidateImages));
 
   const [activeIdx, setActiveIdx] = useState(0);
   const touchStartX = useRef<number | null>(null);
+
+  // When selectedColor changes, reset slider back to the first angle of this color
+  React.useEffect(() => {
+    setActiveIdx(0);
+  }, [selectedColor]);
 
   // Next / Prev slide handlers
   const handlePrev = (e: React.MouseEvent) => {
@@ -63,10 +99,15 @@ export function ProductCardImageSlider({
     touchStartX.current = null;
   };
 
-  const currentImg = allImages[activeIdx] || image || '/assets/imgs/shop/p1.jpg';
-  const computedLink = link
+  const safeIdx = activeIdx < allImages.length ? activeIdx : 0;
+  const currentImg = allImages[safeIdx] || allImages[0] || (image && !image.includes('p1.jpg') ? image : '');
+  let computedLink = link
     ? (link.includes('?id=') ? link : (link.startsWith('/product-details') ? `/product-details?id=${productId}` : `${link}${link.includes('?') ? '&' : '?'}id=${productId}`))
     : `/product-details?id=${productId}`;
+
+  if (selectedColor && !computedLink.includes('color=')) {
+    computedLink += `${computedLink.includes('?') ? '&' : '?'}color=${encodeURIComponent(selectedColor)}`;
+  }
 
   return (
     <div
@@ -82,22 +123,32 @@ export function ProductCardImageSlider({
           className="d-flex align-items-center justify-content-center w-100"
           style={{ height: '220px', backgroundColor: 'transparent' }}
         >
-          <img
-            key={currentImg}
-            src={currentImg}
-            alt={`${title} - view ${activeIdx + 1}`}
-            className="default-img"
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'contain',
-              padding: '10px',
-              transition: 'opacity 0.25s ease',
-            }}
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = '/assets/imgs/shop/p1.jpg';
-            }}
-          />
+          {currentImg ? (
+            <img
+              key={currentImg}
+              src={currentImg}
+              alt={`${title} - view ${activeIdx + 1}`}
+              className="default-img"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                padding: '10px',
+                transition: 'opacity 0.25s ease',
+              }}
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.opacity = '0';
+              }}
+            />
+          ) : (
+            <div className="d-flex flex-column align-items-center justify-content-center text-muted" style={{ height: '100%' }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="1.5">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
+            </div>
+          )}
         </Link>
 
         {/* Hover Arrow Controls (Desktop) */}

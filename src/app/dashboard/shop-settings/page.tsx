@@ -3,20 +3,40 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { fetchShopSettings, saveShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsService';
-import { ShopCategory, MainMenuItem } from '@/data/defaultShopSettings';
+import { ShopCategory, MainMenuItem, DeliveryOptionItem, DEFAULT_DELIVERY_OPTIONS } from '@/data/defaultShopSettings';
 import { useToast } from '@/context/ToastContext';
+import { getMenuBadgeColor, formatMenuBadgeLabel } from '@/components/layout/Header';
 
 export default function ShopSettingsPage() {
-  const [activeTab, setActiveTab] = useState<'categories' | 'mainMenu'>('categories');
+  const [activeTab, setActiveTab] = useState<'categories' | 'mainMenu' | 'delivery'>('categories');
   const [categories, setCategories] = useState<ShopCategory[]>([]);
   const [mainMenu, setMainMenu] = useState<MainMenuItem[]>([]);
+  const [deliveryOptions, setDeliveryOptions] = useState<DeliveryOptionItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const { showToast } = useToast();
 
   // Delete modal state
-  const [deleteTarget, setDeleteTarget] = useState<{ type: 'category' | 'menu'; id: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ type: 'category' | 'menu' | 'delivery'; id: string; name: string } | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Delivery option modal state
+  const [deliveryModalOpen, setDeliveryModalOpen] = useState(false);
+  const [editingDelivery, setEditingDelivery] = useState<DeliveryOptionItem | null>(null);
+  const [deliveryForm, setDeliveryForm] = useState<{
+    name: string;
+    charge: number;
+    estimatedDays: string;
+    description: string;
+    isActive: boolean;
+  }>({
+    name: '',
+    charge: 0,
+    estimatedDays: '',
+    description: '',
+    isActive: true,
+  });
+  const [isSavingDelivery, setIsSavingDelivery] = useState(false);
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -24,6 +44,7 @@ export default function ShopSettingsPage() {
       const data = await fetchShopSettings();
       setCategories(data.categories || []);
       setMainMenu(data.mainMenu || []);
+      setDeliveryOptions(data.deliveryOptions || DEFAULT_DELIVERY_OPTIONS);
     } catch (err: any) {
       console.error('Error loading shop settings:', err);
       showToast('danger', 'Failed to load shop settings.');
@@ -40,6 +61,7 @@ export default function ShopSettingsPage() {
       if (customEvent.detail) {
         if (customEvent.detail.categories) setCategories(customEvent.detail.categories);
         if (customEvent.detail.mainMenu) setMainMenu(customEvent.detail.mainMenu);
+        if (customEvent.detail.deliveryOptions) setDeliveryOptions(customEvent.detail.deliveryOptions);
       }
     };
 
@@ -58,6 +80,7 @@ export default function ShopSettingsPage() {
       const res = await saveShopSettings({
         categories: updated,
         mainMenu,
+        deliveryOptions,
       });
       if (res.success) {
         showToast('success', `Category "${cat.name}" is now ${!cat.isActive ? 'Active' : 'Inactive'}. Storefront header updated.`);
@@ -82,6 +105,7 @@ export default function ShopSettingsPage() {
       const res = await saveShopSettings({
         categories,
         mainMenu: updated,
+        deliveryOptions,
       });
       if (res.success) {
         showToast('success', `Menu "${item.name}" is now ${!item.isActive ? 'Active' : 'Inactive'}. Storefront header updated.`);
@@ -95,6 +119,113 @@ export default function ShopSettingsPage() {
     }
   };
 
+  // Toggle Delivery Option Active Status
+  const handleToggleDeliveryStatus = async (item: DeliveryOptionItem) => {
+    const updated = deliveryOptions.map((d) =>
+      d.id === item.id ? { ...d, isActive: !d.isActive } : d
+    );
+    setDeliveryOptions(updated);
+
+    try {
+      const res = await saveShopSettings({
+        categories,
+        mainMenu,
+        deliveryOptions: updated,
+      });
+      if (res.success) {
+        showToast('success', `Delivery option "${item.name}" is now ${!item.isActive ? 'Active' : 'Inactive'}.`);
+      } else {
+        showToast('danger', res.message || 'Failed to update delivery option status.');
+        loadData();
+      }
+    } catch (err: any) {
+      showToast('danger', err.message || 'Error updating status.');
+      loadData();
+    }
+  };
+
+  const handleOpenAddDelivery = () => {
+    setEditingDelivery(null);
+    setDeliveryForm({
+      name: '',
+      charge: 0,
+      estimatedDays: '3-5 Business Days',
+      description: '',
+      isActive: true,
+    });
+    setDeliveryModalOpen(true);
+  };
+
+  const handleOpenEditDelivery = (item: DeliveryOptionItem) => {
+    setEditingDelivery(item);
+    setDeliveryForm({
+      name: item.name,
+      charge: item.charge ?? 0,
+      estimatedDays: item.estimatedDays || '',
+      description: item.description || '',
+      isActive: item.isActive !== false,
+    });
+    setDeliveryModalOpen(true);
+  };
+
+  const handleSaveDeliveryOption = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deliveryForm.name.trim()) {
+      showToast('danger', 'Please enter a delivery method name.');
+      return;
+    }
+
+    setIsSavingDelivery(true);
+    try {
+      let updated: DeliveryOptionItem[];
+      if (editingDelivery) {
+        updated = deliveryOptions.map((d) =>
+          d.id === editingDelivery.id
+            ? {
+                ...d,
+                name: deliveryForm.name.trim(),
+                charge: Math.max(0, Number(deliveryForm.charge) || 0),
+                estimatedDays: deliveryForm.estimatedDays.trim(),
+                description: deliveryForm.description.trim(),
+                isActive: deliveryForm.isActive,
+              }
+            : d
+        );
+      } else {
+        const newOption: DeliveryOptionItem = {
+          id: `del-${Date.now()}`,
+          name: deliveryForm.name.trim(),
+          charge: Math.max(0, Number(deliveryForm.charge) || 0),
+          estimatedDays: deliveryForm.estimatedDays.trim(),
+          description: deliveryForm.description.trim(),
+          isActive: deliveryForm.isActive,
+          order: deliveryOptions.length + 1,
+        };
+        updated = [...deliveryOptions, newOption];
+      }
+
+      setDeliveryOptions(updated);
+
+      const res = await saveShopSettings({
+        categories,
+        mainMenu,
+        deliveryOptions: updated,
+      });
+
+      if (res.success) {
+        showToast('success', editingDelivery ? 'Delivery option updated successfully!' : 'New delivery option added successfully!');
+        setDeliveryModalOpen(false);
+      } else {
+        showToast('danger', res.message || 'Failed to save delivery option.');
+        loadData();
+      }
+    } catch (err: any) {
+      showToast('danger', err.message || 'Error saving delivery option.');
+    } finally {
+      setIsSavingDelivery(false);
+    }
+  };
+
   // Confirm Delete
   const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
@@ -103,22 +234,28 @@ export default function ShopSettingsPage() {
     try {
       let updatedCategories = [...categories];
       let updatedMenu = [...mainMenu];
+      let updatedDelivery = [...deliveryOptions];
 
       if (deleteTarget.type === 'category') {
         updatedCategories = updatedCategories.filter((c) => c.id !== deleteTarget.id);
         setCategories(updatedCategories);
-      } else {
+      } else if (deleteTarget.type === 'menu') {
         updatedMenu = updatedMenu.filter((m) => m.id !== deleteTarget.id);
         setMainMenu(updatedMenu);
+      } else if (deleteTarget.type === 'delivery') {
+        updatedDelivery = updatedDelivery.filter((d) => d.id !== deleteTarget.id);
+        setDeliveryOptions(updatedDelivery);
       }
 
       const res = await saveShopSettings({
         categories: updatedCategories,
         mainMenu: updatedMenu,
+        deliveryOptions: updatedDelivery,
       });
 
       if (res.success) {
-        showToast('danger', `Deleted "${deleteTarget.name}" successfully! Header navigation updated.`, 'Deleted Successfully');
+        const typeLabel = deleteTarget.type === 'category' ? 'Category' : deleteTarget.type === 'menu' ? 'Main Menu' : 'Delivery Option';
+        showToast('danger', `Deleted ${typeLabel} "${deleteTarget.name}" successfully!`, 'Deleted Successfully');
         setDeleteTarget(null);
       } else {
         showToast('danger', res.message || 'Failed to delete item.');
@@ -145,6 +282,18 @@ export default function ShopSettingsPage() {
     const q = searchQuery.toLowerCase().trim();
     return mainMenu.filter((m) => m.name.toLowerCase().includes(q) || m.link.toLowerCase().includes(q));
   }, [mainMenu, searchQuery]);
+
+  // Filtered Delivery Options
+  const filteredDeliveryOptions = useMemo(() => {
+    if (!searchQuery.trim()) return deliveryOptions;
+    const q = searchQuery.toLowerCase().trim();
+    return deliveryOptions.filter(
+      (d) =>
+        d.name.toLowerCase().includes(q) ||
+        (d.description && d.description.toLowerCase().includes(q)) ||
+        (d.estimatedDays && d.estimatedDays.toLowerCase().includes(q))
+    );
+  }, [deliveryOptions, searchQuery]);
 
   return (
     <>
@@ -173,10 +322,10 @@ export default function ShopSettingsPage() {
                 <span className="text-dark fw-bold">Shop Settings</span>
               </div>
               <h2 className="fw-bold text-dark" style={{ fontSize: '23px', letterSpacing: '-0.4px', color: '#0f172a', marginBottom: '8px' }}>
-                Storefront Navigation &amp; Categories
+                Storefront Navigation, Categories &amp; Delivery
               </h2>
               <p className="text-muted fs-14 mb-0" style={{ color: '#64748b' }}>
-                Manage header navigation (max 6 items), mega-menu dropdowns, promo banner uploads, and category catalog.
+                Manage header navigation (max 6 items), mega-menu dropdowns, categories catalog, and store delivery settings.
               </p>
             </div>
 
@@ -217,7 +366,7 @@ export default function ShopSettingsPage() {
                   <iconify-icon icon="solar:add-circle-bold" class="fs-17"></iconify-icon>
                   <span>+ Add Category</span>
                 </Link>
-              ) : (
+              ) : activeTab === 'mainMenu' ? (
                 <Link
                   href={mainMenu.length >= 6 ? '#' : '/dashboard/shop-settings/menu/new'}
                   className={`btn btn-sm d-flex align-items-center gap-2 fs-13 fw-semibold text-white ${
@@ -236,6 +385,23 @@ export default function ShopSettingsPage() {
                   <iconify-icon icon="solar:add-circle-bold" class="fs-17"></iconify-icon>
                   <span>+ Add Main Menu ({mainMenu.length}/6)</span>
                 </Link>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleOpenAddDelivery}
+                  className="btn btn-sm d-flex align-items-center gap-2 fs-13 fw-semibold text-white"
+                  style={{
+                    borderRadius: '8px',
+                    padding: '10px 22px',
+                    backgroundColor: '#0f172a',
+                    border: '1px solid #0f172a',
+                    boxShadow: '0 2px 4px rgba(15, 23, 42, 0.25)',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <iconify-icon icon="solar:add-circle-bold" class="fs-17"></iconify-icon>
+                  <span>+ Add Delivery Option</span>
+                </button>
               )}
             </div>
           </div>
@@ -347,7 +513,7 @@ export default function ShopSettingsPage() {
                 <div className="card-body p-3.5">
                   <div className="d-flex align-items-center justify-content-between mb-2">
                     <span className="text-muted fs-12 fw-bold text-uppercase" style={{ letterSpacing: '0.6px', color: '#64748b' }}>
-                      Mega Menus
+                      Delivery Methods
                     </span>
                     <div
                       className="d-flex align-items-center justify-content-center"
@@ -355,19 +521,25 @@ export default function ShopSettingsPage() {
                         width: '40px',
                         height: '40px',
                         borderRadius: '8px',
-                        backgroundColor: '#fef3c7',
-                        color: '#b45309',
-                        border: '1px solid #fde68a',
+                        backgroundColor: '#eff6ff',
+                        color: '#2563eb',
+                        border: '1px solid #bfdbfe',
                       }}
                     >
-                      <iconify-icon icon="solar:layers-bold" class="fs-20"></iconify-icon>
+                      <iconify-icon icon="solar:delivery-bold" class="fs-20"></iconify-icon>
                     </div>
                   </div>
                   <div className="d-flex align-items-baseline gap-2">
                     <h3 className="fw-bold mb-0 text-dark" style={{ fontSize: '24px' }}>
-                      {mainMenu.filter((m) => m.hasMegaMenu).length}
+                      {deliveryOptions.length}
                     </h3>
-                    <span className="text-muted fs-12">With 3-Col &amp; Banner</span>
+                    <span
+                      className="badge fs-11 fw-semibold d-inline-flex align-items-center gap-1.5"
+                      style={{ backgroundColor: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: '4px', padding: '4px 8px' }}
+                    >
+                      <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: '#16a34a' }}></span>
+                      {deliveryOptions.filter((d) => d.isActive !== false).length} Active
+                    </span>
                   </div>
                 </div>
               </div>
@@ -477,6 +649,35 @@ export default function ShopSettingsPage() {
                   {mainMenu.length} / 6
                 </span>
               </button>
+
+              <button
+                type="button"
+                className={`btn d-flex align-items-center gap-2 fs-14 fw-semibold ${
+                  activeTab === 'delivery'
+                    ? 'text-white shadow-sm'
+                    : 'text-secondary border'
+                }`}
+                style={{
+                  borderRadius: '8px',
+                  padding: '9px 20px',
+                  transition: 'all 0.2s ease',
+                  backgroundColor: activeTab === 'delivery' ? '#0f172a' : '#ffffff',
+                  borderColor: activeTab === 'delivery' ? '#0f172a' : '#e2e8f0',
+                  color: activeTab === 'delivery' ? '#ffffff' : '#475569',
+                }}
+                onClick={() => setActiveTab('delivery')}
+              >
+                <iconify-icon icon="solar:delivery-bold" class="fs-17"></iconify-icon>
+                <span>Delivery Settings</span>
+                <span
+                  className={`badge ${
+                    activeTab === 'delivery' ? 'bg-white text-dark' : 'bg-light text-secondary border'
+                  } ms-1 fs-12`}
+                  style={{ borderRadius: '6px', padding: '3px 8px' }}
+                >
+                  {deliveryOptions.length}
+                </span>
+              </button>
             </div>
 
             <div className="d-flex align-items-center gap-2" style={{ minWidth: '280px' }}>
@@ -487,7 +688,7 @@ export default function ShopSettingsPage() {
                 <input
                   type="text"
                   className="form-control border-start-0 fs-13 py-2"
-                  placeholder={`Search ${activeTab === 'categories' ? 'categories' : 'menu items'}...`}
+                  placeholder={`Search ${activeTab === 'categories' ? 'categories' : activeTab === 'mainMenu' ? 'menu items' : 'delivery options'}...`}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   style={{ borderColor: '#cbd5e1' }}
@@ -799,18 +1000,16 @@ export default function ShopSettingsPage() {
                                     <span className="fs-14 fw-bold text-dark">{item.name}</span>
                                     {item.badge && (
                                       <span
-                                        className="badge fs-11 fw-bold"
+                                        className="badge fs-10 fw-bold text-white shadow-sm"
                                         style={{
-                                          padding: '3px 8px',
-                                          borderRadius: '5px',
-                                          ...(item.badge === 'NEW'
-                                            ? { backgroundColor: '#dcfce7', color: '#15803d', border: '1px solid #86efac' }
-                                            : item.badge === 'LIMITED SALE'
-                                              ? { backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d' }
-                                              : { backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' }),
+                                          padding: '3px 7px',
+                                          borderRadius: '3px',
+                                          backgroundColor: getMenuBadgeColor(item.badge),
+                                          letterSpacing: '0.4px',
+                                          textTransform: 'uppercase',
                                         }}
                                       >
-                                        {item.badge}
+                                        {formatMenuBadgeLabel(item.badge)}
                                       </span>
                                     )}
                                   </div>
@@ -938,8 +1137,430 @@ export default function ShopSettingsPage() {
             </div>
           )}
 
+          {/* 5. Tab 3 Content: Delivery Settings Table */}
+          {activeTab === 'delivery' && (
+            <div>
+              {/* Informational banner about charges */}
+              <div
+                className="d-flex align-items-center gap-3 p-3 mb-3.5 border rounded-3"
+                style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
+              >
+                <div
+                  className="d-flex align-items-center justify-content-center flex-shrink-0 rounded-circle"
+                  style={{ width: '36px', height: '36px', backgroundColor: '#e0f2fe', color: '#0284c7' }}
+                >
+                  <iconify-icon icon="solar:info-circle-bold" class="fs-20"></iconify-icon>
+                </div>
+                <div className="flex-grow-1">
+                  <div className="fs-13 fw-semibold text-dark">Delivery Configuration &amp; Charge Management</div>
+                  <div className="fs-12 text-muted">
+                    Configure your delivery methods, delivery charges, and turnaround times below. By design, these charges are configured here for setup and do not apply to checkout yet.
+                  </div>
+                </div>
+              </div>
+
+              <div className="table-responsive rounded-3 border" style={{ borderColor: '#e2e8f0' }}>
+                <table className="table table-hover align-middle mb-0" style={{ borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold" style={{ width: '60px', letterSpacing: '0.6px' }}>#</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold" style={{ letterSpacing: '0.6px' }}>Delivery Method</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold" style={{ letterSpacing: '0.6px' }}>Charge (SR)</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold" style={{ letterSpacing: '0.6px' }}>Estimated Delivery Time</th>
+                      <th className="py-3 px-4 text-muted fs-12 text-uppercase fw-bold" style={{ letterSpacing: '0.6px' }}>Description</th>
+                      <th className="py-3 px-4 text-center text-muted fs-12 text-uppercase fw-bold" style={{ letterSpacing: '0.6px' }}>Status</th>
+                      <th className="py-3 px-4 text-end text-muted fs-12 text-uppercase fw-bold" style={{ letterSpacing: '0.6px' }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredDeliveryOptions.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="text-center py-5">
+                          <div className="py-4">
+                            <iconify-icon icon="solar:delivery-bold" class="fs-48 text-muted mb-3 opacity-50"></iconify-icon>
+                            <h5 className="fw-semibold text-dark mb-1">No Delivery Options Found</h5>
+                            <p className="text-muted fs-13 mb-3">
+                              {searchQuery ? `No delivery options match "${searchQuery}"` : 'Add your first delivery method to get started.'}
+                            </p>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-dark px-3 py-2 fs-13"
+                              onClick={handleOpenAddDelivery}
+                              style={{ borderRadius: '8px' }}
+                            >
+                              + Add Delivery Option
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredDeliveryOptions.map((item, index) => {
+                        const isFree = Number(item.charge) === 0;
+                        return (
+                          <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            <td className="py-3.5 px-4 text-muted fs-13 fw-semibold">{index + 1}</td>
+                            <td className="py-3.5 px-4">
+                              <div className="d-flex align-items-center gap-3">
+                                <div
+                                  className="d-flex align-items-center justify-content-center rounded-2 flex-shrink-0"
+                                  style={{
+                                    width: '38px',
+                                    height: '38px',
+                                    backgroundColor: item.name.toLowerCase().includes('express')
+                                      ? '#fef3c7'
+                                      : isFree
+                                      ? '#f0fdf4'
+                                      : '#eff6ff',
+                                    color: item.name.toLowerCase().includes('express')
+                                      ? '#b45309'
+                                      : isFree
+                                      ? '#16a34a'
+                                      : '#2563eb',
+                                    border: '1px solid rgba(0,0,0,0.06)',
+                                  }}
+                                >
+                                  <iconify-icon
+                                    icon={
+                                      item.name.toLowerCase().includes('express')
+                                        ? 'solar:rocket-bold'
+                                        : isFree
+                                        ? 'solar:box-minimalistic-bold'
+                                        : 'solar:delivery-bold'
+                                    }
+                                    class="fs-20"
+                                  ></iconify-icon>
+                                </div>
+                                <div>
+                                  <div className="fw-bold text-dark fs-14 mb-0.5">{item.name}</div>
+                                  <span className="text-muted fs-12">Store Delivery Option</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              {isFree ? (
+                                <span
+                                  className="badge fs-12 fw-bold"
+                                  style={{
+                                    backgroundColor: '#f0fdf4',
+                                    color: '#15803d',
+                                    border: '1px solid #86efac',
+                                    padding: '5px 10px',
+                                    borderRadius: '6px',
+                                  }}
+                                >
+                                  FREE (0.00 SR)
+                                </span>
+                              ) : (
+                                <span
+                                  className="badge bg-light text-dark border font-monospace fs-12 fw-bold"
+                                  style={{ padding: '5px 10px', borderRadius: '6px', borderColor: '#cbd5e1' }}
+                                >
+                                  {Number(item.charge).toFixed(2)} SR
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span
+                                className="badge bg-light text-secondary border fs-12 d-inline-flex align-items-center gap-1.5"
+                                style={{ padding: '5px 10px', borderRadius: '6px' }}
+                              >
+                                <iconify-icon icon="solar:clock-circle-bold" class="fs-14 text-primary"></iconify-icon>
+                                {item.estimatedDays || 'Not specified'}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span className="text-muted fs-13" style={{ maxWidth: '280px', display: 'inline-block' }}>
+                                {item.description || '—'}
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              <div className="form-check form-switch d-inline-block m-0">
+                                <input
+                                  className="form-check-input"
+                                  type="checkbox"
+                                  checked={item.isActive !== false}
+                                  onChange={() => handleToggleDeliveryStatus(item)}
+                                  style={{
+                                    cursor: 'pointer',
+                                    width: '2.6em',
+                                    height: '1.3em',
+                                    backgroundColor: item.isActive !== false ? '#16a34a' : '#cbd5e1',
+                                    borderColor: item.isActive !== false ? '#16a34a' : '#cbd5e1',
+                                  }}
+                                  title="Toggle Active / Inactive"
+                                />
+                              </div>
+                            </td>
+                            <td className="py-3.5 px-4 text-end">
+                              <div className="d-flex align-items-center justify-content-end gap-2.5">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm d-flex align-items-center justify-content-center"
+                                  style={{
+                                    borderRadius: '8px',
+                                    width: '36px',
+                                    height: '36px',
+                                    backgroundColor: '#fef3c7',
+                                    color: '#b45309',
+                                    border: '1px solid #fde68a',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                  onClick={() => handleOpenEditDelivery(item)}
+                                  title="Edit Delivery Option"
+                                >
+                                  <iconify-icon icon="solar:pen-new-square-linear" class="fs-18"></iconify-icon>
+                                </button>
+                                <button
+                                  type="button"
+                                  className="btn btn-sm d-flex align-items-center justify-content-center text-danger"
+                                  style={{
+                                    borderRadius: '8px',
+                                    width: '36px',
+                                    height: '36px',
+                                    backgroundColor: '#fee2e2',
+                                    color: '#dc2626',
+                                    border: '1px solid #fecaca',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                  onClick={() => setDeleteTarget({ type: 'delivery', id: item.id, name: item.name })}
+                                  title="Delete Delivery Option"
+                                >
+                                  <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-18"></iconify-icon>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
         </div>
       </div>
+
+      {/* Add / Edit Delivery Option Modal */}
+      {deliveryModalOpen && (
+        <div
+          className="modal fade show d-block"
+          style={{ backgroundColor: 'rgba(15, 23, 42, 0.65)', backdropFilter: 'blur(4px)', zIndex: 1060 }}
+          tabIndex={-1}
+        >
+          <div className="modal-dialog modal-dialog-centered" style={{ maxWidth: '520px' }}>
+            <div
+              className="modal-content border-0 shadow-lg"
+              style={{
+                borderRadius: '16px',
+                border: '1px solid #e2e8f0',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Modal Header */}
+              <div className="modal-header border-bottom px-4 py-3.5 d-flex align-items-center justify-content-between bg-white">
+                <div className="d-flex align-items-center gap-2.5">
+                  <div
+                    className="rounded-circle d-flex align-items-center justify-content-center"
+                    style={{ width: '38px', height: '38px', backgroundColor: '#eff6ff', color: '#2563eb' }}
+                  >
+                    <iconify-icon icon="solar:delivery-bold" class="fs-20"></iconify-icon>
+                  </div>
+                  <div>
+                    <h5 className="modal-title fw-bold text-dark fs-16 mb-0">
+                      {editingDelivery ? 'Edit Delivery Option' : 'Add Delivery Option'}
+                    </h5>
+                    <span className="text-muted fs-12">Configure delivery method and fee</span>
+                  </div>
+                </div>
+
+                {/* Close Button with circular hover effect */}
+                <button
+                  type="button"
+                  onClick={() => setDeliveryModalOpen(false)}
+                  disabled={isSavingDelivery}
+                  className="btn p-0 d-flex align-items-center justify-content-center transition-all flex-shrink-0"
+                  style={{
+                    width: '34px',
+                    height: '34px',
+                    borderRadius: '50%',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    color: '#475569',
+                    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+                    cursor: isSavingDelivery ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isSavingDelivery) {
+                      e.currentTarget.style.backgroundColor = '#fee2e2';
+                      e.currentTarget.style.color = '#dc2626';
+                      e.currentTarget.style.borderColor = '#fca5a5';
+                      e.currentTarget.style.transform = 'rotate(90deg)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isSavingDelivery) {
+                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                      e.currentTarget.style.color = '#475569';
+                      e.currentTarget.style.borderColor = '#e2e8f0';
+                      e.currentTarget.style.transform = 'rotate(0deg)';
+                    }
+                  }}
+                >
+                  <iconify-icon icon="solar:close-circle-bold" class="fs-18"></iconify-icon>
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <form onSubmit={handleSaveDeliveryOption}>
+                <div className="modal-body p-4">
+                  <div className="mb-3">
+                    <label className="form-label fs-13 fw-semibold text-dark mb-1">
+                      Delivery Method Name <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control fs-13"
+                      placeholder="e.g. Free Delivery, Standard Delivery, Express Delivery"
+                      value={deliveryForm.name}
+                      onChange={(e) => setDeliveryForm({ ...deliveryForm, name: e.target.value })}
+                      required
+                      style={{ borderRadius: '8px', padding: '9px 13px', borderColor: '#cbd5e1' }}
+                    />
+                  </div>
+
+                  <div className="row g-3 mb-3">
+                    <div className="col-12 col-sm-6">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-1">
+                        Delivery Charge (SR) <span className="text-danger">*</span>
+                      </label>
+                      <div className="input-group">
+                        <span className="input-group-text bg-light border-end-0 fs-13 text-muted" style={{ borderColor: '#cbd5e1' }}>
+                          SR
+                        </span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          className="form-control border-start-0 fs-13"
+                          placeholder="0 for Free"
+                          value={deliveryForm.charge}
+                          onChange={(e) => setDeliveryForm({ ...deliveryForm, charge: parseFloat(e.target.value) || 0 })}
+                          style={{ borderColor: '#cbd5e1' }}
+                          required
+                        />
+                      </div>
+                      <span className="text-muted fs-11 mt-1 d-block">Enter 0 for Free Delivery</span>
+                    </div>
+
+                    <div className="col-12 col-sm-6">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-1">
+                        Estimated Delivery Time
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control fs-13"
+                        placeholder="e.g. 3-5 Business Days"
+                        value={deliveryForm.estimatedDays}
+                        onChange={(e) => setDeliveryForm({ ...deliveryForm, estimatedDays: e.target.value })}
+                        style={{ borderRadius: '8px', padding: '9px 13px', borderColor: '#cbd5e1' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="mb-3">
+                    <label className="form-label fs-13 fw-semibold text-dark mb-1">
+                      Description / Terms
+                    </label>
+                    <textarea
+                      rows={2}
+                      className="form-control fs-13"
+                      placeholder="e.g. Complimentary standard shipping on all regular orders"
+                      value={deliveryForm.description}
+                      onChange={(e) => setDeliveryForm({ ...deliveryForm, description: e.target.value })}
+                      style={{ borderRadius: '8px', padding: '9px 13px', borderColor: '#cbd5e1', resize: 'none' }}
+                    />
+                  </div>
+
+                  {/* Active Switch */}
+                  <div
+                    className="d-flex align-items-center justify-content-between p-3 rounded-3 border"
+                    style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
+                  >
+                    <div>
+                      <div className="fs-13 fw-semibold text-dark mb-0.5">Active Delivery Method</div>
+                      <div className="text-muted fs-12">Enable or disable this delivery option in store settings</div>
+                    </div>
+                    <div className="form-check form-switch m-0">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        checked={deliveryForm.isActive}
+                        onChange={(e) => setDeliveryForm({ ...deliveryForm, isActive: e.target.checked })}
+                        style={{
+                          cursor: 'pointer',
+                          width: '2.6em',
+                          height: '1.3em',
+                          backgroundColor: deliveryForm.isActive ? '#16a34a' : '#cbd5e1',
+                          borderColor: deliveryForm.isActive ? '#16a34a' : '#cbd5e1',
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Notice */}
+                  <div className="mt-3 p-2.5 rounded-2" style={{ backgroundColor: '#fffbeb', border: '1px solid #fef3c7' }}>
+                    <div className="d-flex align-items-center gap-2 text-warning-emphasis fs-12">
+                      <iconify-icon icon="solar:info-circle-bold" class="fs-16 flex-shrink-0 text-warning"></iconify-icon>
+                      <span>This charge is recorded in your delivery settings and is not applied to checkout yet.</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Modal Footer */}
+                <div className="modal-footer border-top px-4 py-3 bg-light d-flex align-items-center justify-content-end gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-light border px-3 py-2 fs-13 fw-semibold text-secondary"
+                    onClick={() => setDeliveryModalOpen(false)}
+                    disabled={isSavingDelivery}
+                    style={{ borderRadius: '8px' }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-sm text-white px-4 py-2 fs-13 fw-semibold d-flex align-items-center gap-2"
+                    disabled={isSavingDelivery}
+                    style={{
+                      borderRadius: '8px',
+                      backgroundColor: '#0f172a',
+                      borderColor: '#0f172a',
+                      minWidth: '120px',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {isSavingDelivery ? (
+                      <>
+                        <div className="spinner-border spinner-border-sm" role="status"></div>
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <iconify-icon icon="solar:check-circle-bold" class="fs-16"></iconify-icon>
+                        <span>{editingDelivery ? 'Save Changes' : 'Add Option'}</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Modal */}
       {deleteTarget && (
@@ -965,10 +1586,10 @@ export default function ShopSettingsPage() {
                   <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-30"></iconify-icon>
                 </div>
                 <h4 className="fw-bold text-dark mb-1.5" style={{ fontSize: '18px' }}>
-                  Delete {deleteTarget.type === 'category' ? 'Category' : 'Main Menu'}?
+                  Delete {deleteTarget.type === 'category' ? 'Category' : deleteTarget.type === 'menu' ? 'Main Menu' : 'Delivery Option'}?
                 </h4>
                 <p className="text-muted fs-14 mb-4">
-                  Are you sure you want to remove &quot;{deleteTarget.name}&quot;? This item will be immediately removed from the header navigation.
+                  Are you sure you want to remove &quot;{deleteTarget.name}&quot;? {deleteTarget.type === 'delivery' ? 'This delivery method will be removed from your delivery settings.' : 'This item will be immediately removed from the header navigation.'}
                 </p>
                 <div className="d-flex align-items-center justify-content-center gap-3">
                   <button

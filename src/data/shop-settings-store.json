@@ -2,9 +2,9 @@
   "categories": [
     {
       "id": "cat-1",
-      "name": "Helmet",
+      "name": "Safety Helmet",
       "link": "/products?category=Helmet",
-      "image": "/uploads/img_1792001564974_d9f573c40699f0ea16a6f47ed2718c01.png",
+      "image": "/uploads/img_1792005995619_46b7bb2f6f16e07a8e9021e16446b8e1.png",
       "isActive": true,
       "subItems": [
         {
@@ -72,9 +72,9 @@
     },
     {
       "id": "cat-3",
-      "name": "Hi-Vis Vests",
+      "name": "Safety Vests",
       "link": "/products?category=Hi-Vis%20Vests",
-      "image": "/assets/imgs/shop/p3.jpg",
+      "image": "/uploads/img_1792006036838_69c79564a6f83812a8b5cb53ad0ed3b0.png",
       "isActive": true,
       "subItems": [
         {
@@ -96,14 +96,20 @@
           "id": "sub-12",
           "name": "High-Visibility Jackets",
           "link": "/products?category=Hi-Vis%20Vests"
+        },
+        {
+          "id": "see-all-1792006021829",
+          "name": "See All",
+          "link": "/products?category=Hi-Vis%20Vests"
         }
-      ]
+      ],
+      "hasSubItems": false
     },
     {
       "id": "cat-4",
       "name": "Safety Goggles",
       "link": "/products?category=Safety%20Goggles",
-      "image": "/assets/imgs/shop/p4.jpg",
+      "image": "/uploads/img_1792006129370_62686cbae1c56cf9c9ef86e0db4ccc46.png",
       "isActive": true,
       "subItems": [
         {
@@ -125,14 +131,20 @@
           "id": "sub-16",
           "name": "Full Face Shields",
           "link": "/products?category=Safety%20Goggles"
+        },
+        {
+          "id": "see-all-1792006113116",
+          "name": "See All",
+          "link": "/products?category=Safety%20Goggles"
         }
-      ]
+      ],
+      "hasSubItems": false
     },
     {
       "id": "cat-5",
       "name": "Cut Gloves",
       "link": "/products?category=Cut%20Gloves",
-      "image": "/assets/imgs/shop/p5.jpg",
+      "image": "/uploads/img_1792006203187_fc921000535fd16b84722ec5c31712a1.png",
       "isActive": true,
       "subItems": [
         {
@@ -154,14 +166,20 @@
           "id": "sub-20",
           "name": "Heavy Duty Impact Gloves",
           "link": "/products?category=Cut%20Gloves"
+        },
+        {
+          "id": "see-all-1792006183933",
+          "name": "See All",
+          "link": "/products?category=Cut%20Gloves"
         }
-      ]
+      ],
+      "hasSubItems": false
     },
     {
       "id": "cat-6",
       "name": "Ear Protection",
       "link": "/products?category=Ear%20Protection",
-      "image": "/assets/imgs/shop/p6.jpg",
+      "image": "/uploads/img_1792006283399_9f5680881fa1ca722bd41865357ce652.png",
       "isActive": true,
       "subItems": [
         {
@@ -183,14 +201,20 @@
           "id": "sub-24",
           "name": "Industrial Ear Plugs",
           "link": "/products?category=Ear%20Protection"
+        },
+        {
+          "id": "see-all-1792006260733",
+          "name": "See All",
+          "link": "/products?category=Ear%20Protection"
         }
-      ]
+      ],
+      "hasSubItems": false
     },
     {
       "id": "cat-7",
       "name": "Respirators",
       "link": "/products?category=Respirators",
-      "image": "/assets/imgs/shop/p2.jpg",
+      "image": "/uploads/img_1792006611772_8ac079aad55e7a04c329e231f8a49d24.png",
       "isActive": true,
       "subItems": [
         {
@@ -202,14 +226,20 @@
           "id": "sub-26",
           "name": "FFP2 Particulate Masks",
           "link": "/products?category=Respirators"
+        },
+        {
+          "id": "see-all-1792006595370",
+          "name": "See All",
+          "link": "/products?category=Respirators"
         }
-      ]
+      ],
+      "hasSubItems": false
     },
     {
       "id": "cat-8",
       "name": "Fall Harness",
       "link": "/products?category=Fall%20Harness",
-      "image": "/assets/imgs/shop/p3.jpg",
+      "image": "/uploads/img_1792006530766_b0cd0014283a8380a51c19218480f775.png",
       "isActive": true,
       "subItems": [
         {
@@ -221,14 +251,20 @@
           "id": "sub-28",
           "name": "Shock Absorbing Lanyards",
           "link": "/products?category=Fall%20Harness"
+        },
+        {
+          "id": "see-all-1792006510589",
+          "name": "See All",
+          "link": "/products?category=Fall%20Harness"
         }
-      ]
+      ],
+      "hasSubItems": false
     },
     {
       "id": "cat-1791051887040",
       "name": "PPE KIT",
       "link": "/products?category=PPE%20KIT",
-      "image": "/uploads/img_1792003015892_13280ce552c9110209be7d8ca5ac93b0.png",
+      "image": "/uploads/img_1792006365254_0f55eb2ce02d7eaa933551ab6732528c.png",
       "hasSubItems": false,
       "isActive": true,
       "subItems": [
@@ -241,30 +277,87 @@
     },
     {
       "id": "cat-1791017648820",
-      "name": "Bags",
+      "name": "Safety Bags",
       "link": "/products?category=Bags",
-      "image": "/uploads/img_1791017640365_7aa1d973042f1b674a19dcb6a3cc3390.webp",
+      "image": "/uploads/img_1792006400746_8a7bc6b510c08e37907b6aa750b14088.png",
       "isActive": true,
       "hasSubItems": false,
-      "subItems": []
+      "subItems": [
+        {
+          "id": "see-all-1792006373907",
+          "name": "See All",
+          "link": "/products?category=Bags"
+        }
+      ]
     }
   ],
   "mainMenu": [
     {
       "id": "menu-1",
-      "name": "New Arrival",
-      "link": "/products?filter=new-arrival",
+      "name": "Safety Gloves",
+      "link": "/products?category=Cut%20Gloves",
       "hasMegaMenu": false,
-      "isActive": true,
-      "badge": "NEW"
+      "isActive": true
     },
     {
       "id": "menu-2",
-      "name": "Limited Offer",
-      "link": "/limited-offers",
+      "name": "Safety Helmet",
+      "link": "/products?category=Safety%20Helmet",
       "hasMegaMenu": false,
+      "isActive": true
+    },
+    {
+      "id": "menu-1792067545889",
+      "name": "Safety Shoes",
+      "link": "/products?category=Safety%20Shoes",
+      "hasMegaMenu": false,
+      "isActive": true
+    },
+    {
+      "id": "menu-1792087253958",
+      "name": "Hot Sales",
+      "link": "/offer-products",
+      "hasMegaMenu": false,
+      "badge": "OFFER SALES",
+      "isActive": true
+    }
+  ],
+  "deliveryOptions": [
+    {
+      "id": "del-free",
+      "name": "Free Delivery",
+      "charge": 0,
+      "estimatedDays": "5-6 Business Days",
+      "description": "Complimentary standard shipping on all regular orders",
       "isActive": true,
-      "badge": "LIMITED SALE"
+      "order": 1
+    },
+    {
+      "id": "del-standard",
+      "name": "Standard Delivery",
+      "charge": 15,
+      "estimatedDays": "3-5 Business Days",
+      "description": "Fast and reliable ground doorstep delivery across all regions",
+      "isActive": true,
+      "order": 2
+    },
+    {
+      "id": "del-express",
+      "name": "Express Delivery",
+      "charge": 30,
+      "estimatedDays": "1-2 Business Days",
+      "description": "Priority courier handling with expedited transit and tracking",
+      "isActive": true,
+      "order": 3
+    },
+    {
+      "id": "del-1792101611812",
+      "name": "1 Hour",
+      "charge": 10,
+      "estimatedDays": "Same Day",
+      "description": "",
+      "isActive": true,
+      "order": 4
     }
   ]
 }

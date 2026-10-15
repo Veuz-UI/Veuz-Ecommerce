@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { fetchProducts, recordProductClick } from '@/services/productsService';
-import { ProductItem, CATEGORY_PRODUCTS_DATA } from '@/data/categoryProductsData';
+import { ProductItem } from '@/data/categoryProductsData';
 import { useToast } from '@/context/ToastContext';
 import { useStore } from '@/context/StoreContext';
 import { ProductCardImageSlider } from '@/components/common/ProductCardImageSlider';
@@ -31,7 +31,7 @@ function ProductDetailsContent() {
   const { showToast } = useToast();
   const { addToCart, toggleWishlist, isInWishlist } = useStore();
 
-  const [allProducts, setAllProducts] = useState<ProductItem[]>(CATEGORY_PRODUCTS_DATA);
+  const [allProducts, setAllProducts] = useState<ProductItem[]>([]);
   const [product, setProduct] = useState<ProductItem | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -54,7 +54,7 @@ function ProductDetailsContent() {
       try {
         const prods = await fetchProducts();
         if (isMounted) {
-          const list = prods && prods.length > 0 ? prods : CATEGORY_PRODUCTS_DATA;
+          const list = prods && Array.isArray(prods) ? prods : [];
           setAllProducts(list);
 
           let found: ProductItem | undefined;
@@ -70,7 +70,11 @@ function ProductDetailsContent() {
             recordProductClick(found.id);
 
             // Initialize selections
-            if (found.colors && found.colors.length > 0) {
+            const paramColor = searchParams?.get('color');
+            if (paramColor && found.colors?.some((c) => c.toLowerCase() === paramColor.toLowerCase())) {
+              const matched = found.colors.find((c) => c.toLowerCase() === paramColor.toLowerCase());
+              setSelectedColor(matched || paramColor);
+            } else if (found.colors && found.colors.length > 0) {
               setSelectedColor(found.colors[0]);
             } else {
               setSelectedColor('');
@@ -79,7 +83,7 @@ function ProductDetailsContent() {
             if (found.sizes && found.sizes.length > 0) {
               setSelectedSize(found.sizes[0]);
             } else {
-              setSelectedSize('US 9');
+              setSelectedSize('Regular Size');
             }
           }
         }
@@ -120,6 +124,25 @@ function ProductDetailsContent() {
     setActiveImageIdx(0);
   }, [product?.id, selectedColor]);
 
+  // Keyboard navigation for lightbox modal (Esc to close, Left/Right arrows to move)
+  useEffect(() => {
+    if (!isZoomOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsZoomOpen(false);
+        setZoomScale(1);
+      } else if (e.key === 'ArrowLeft' && galleryImages.length > 1) {
+        setZoomScale(1);
+        setActiveImageIdx((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1));
+      } else if (e.key === 'ArrowRight' && galleryImages.length > 1) {
+        setZoomScale(1);
+        setActiveImageIdx((prev) => (prev + 1) % galleryImages.length);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isZoomOpen, galleryImages.length]);
+
   // Colors available for this product
   const colorOptions = useMemo(() => {
     if (!product) return [];
@@ -139,13 +162,13 @@ function ProductDetailsContent() {
     });
   }, [product, galleryImages]);
 
-  // Sizes available for this product
+  // Sizes available for this product (Only what the merchant configured; never dummy sizes!)
   const sizeOptions = useMemo(() => {
     if (!product) return [];
     if (product.sizes && product.sizes.length > 0) {
       return product.sizes;
     }
-    return ['7', '8', '9', '10', '11', '12'];
+    return [];
   }, [product]);
 
   // Handle color change (switches active color and sets active image to 1st photo)
@@ -159,16 +182,20 @@ function ProductDetailsContent() {
     if (!product) return;
 
     const numPrice = Number(product.currentPrice || product.originalPrice || parseFloat(product.price?.replace(/[^\d.]/g, '') || '129'));
+    const sizeLabel = (sizeOptions.length > 0 && selectedSize && selectedSize !== 'Regular Size')
+      ? ` - Size ${selectedSize}`
+      : ' - Regular Size';
+    const colorLabel = selectedColor ? ` (${selectedColor})` : '';
+
     const cartProduct: any = {
       id: Number(product.id.replace(/[^\d]/g, '')) || Math.floor(Math.random() * 10000) + 1,
-      name: `${product.title} (${selectedColor}) - ${selectedSize}`,
+      name: product.title,
       price: numPrice > 0 ? numPrice : 129,
       image: galleryImages[activeImageIdx] || product.image,
       category: product.category,
     };
 
-    addToCart(cartProduct, 1);
-    showToast('success', `Added "${product.title}" to cart!`);
+    addToCart(cartProduct, 1, selectedColor, selectedSize);
   };
 
   // Wishlist handler
@@ -252,7 +279,6 @@ function ProductDetailsContent() {
       category: rel.category,
     };
     addToCart(cartProduct, 1);
-    showToast('success', `Added "${toCapitalCase(rel.title)}" to cart!`);
   };
 
   const handleToggleRelatedWishlist = (rel: ProductItem) => {
@@ -318,9 +344,49 @@ function ProductDetailsContent() {
             {toCapitalCase(product.standard ? product.standard.split('&')[0].trim() : 'Performance')}
           </span>
           <span style={{ color: '#cbd5e1', fontSize: '13px' }}>›</span>
-          <span className="fw-bold text-capitalize" style={{ color: '#0f172a' }}>
-            {toCapitalCase(product.title)}
-          </span>
+          {(() => {
+            const rawTitle = toCapitalCase(product.title || '');
+            const words = rawTitle.trim().split(/\s+/).filter(Boolean);
+            const isLongerThan30Words = words.length > 30;
+            const display30Words = isLongerThan30Words
+              ? words.slice(0, 30).join(' ') + '...'
+              : rawTitle;
+
+            return (
+              <span
+                className={`breadcrumb-title-wrapper position-relative d-inline-flex align-items-center ${isLongerThan30Words ? 'is-long' : ''}`}
+                style={{ verticalAlign: 'middle', maxWidth: 'min(720px, 60vw)' }}
+              >
+                <span
+                  className="breadcrumb-title-track fw-bold text-capitalize"
+                  style={{
+                    color: '#0f172a',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    display: 'inline-block',
+                    cursor: isLongerThan30Words ? 'pointer' : 'default',
+                  }}
+                >
+                  <span className="breadcrumb-static-text">
+                    {display30Words}
+                  </span>
+                  {isLongerThan30Words && (
+                    <span className="breadcrumb-sliding-text">
+                      {rawTitle}
+                    </span>
+                  )}
+                </span>
+
+                {/* Floating Tooltip displaying complete full product name */}
+                {isLongerThan30Words && (
+                  <span className="breadcrumb-custom-tooltip shadow" role="tooltip">
+                    {rawTitle}
+                  </span>
+                )}
+              </span>
+            );
+          })()}
         </div>
       </div>
 
@@ -381,7 +447,7 @@ function ProductDetailsContent() {
                           transition: 'opacity 0.2s ease',
                         }}
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/assets/imgs/shop/p1.jpg';
+                          (e.target as HTMLImageElement).style.opacity = '0';
                         }}
                       />
                       {isLastWithMore && extraCount > 0 && (
@@ -452,7 +518,7 @@ function ProductDetailsContent() {
                       transition: 'all 0.3s ease',
                     }}
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/assets/imgs/shop/p1.jpg';
+                      (e.target as HTMLImageElement).style.opacity = '0';
                     }}
                   />
                 </div>
@@ -491,8 +557,8 @@ function ProductDetailsContent() {
           <div className="col-12 col-lg-6">
             <div className="d-flex flex-column gap-3 ps-lg-1 h-100" style={{ minHeight: '580px' }}>
               
-              {/* Badge: New Arrival or Discount */}
-              <div>
+              {/* Badge: New Arrival or Discount + Gender */}
+              <div className="d-flex align-items-center gap-2 flex-wrap">
                 <span
                   className="badge px-3 py-1.5 rounded-pill fw-bold text-capitalize"
                   style={{
@@ -525,16 +591,14 @@ function ProductDetailsContent() {
                 </p>
               </div>
 
-              {/* Star Rating Row */}
-              <div className="d-flex align-items-center gap-2">
-                <div className="d-flex text-warning" style={{ fontSize: '18px', letterSpacing: '2px' }}>
-                  ★★★★★
-                </div>
-                <span className="fw-bold text-dark" style={{ fontSize: '15px' }}>
-                  {product.rating || '4.8'}
+              {/* Star Rating Row (Matching Reference Image Style: Star + Rating + (reviews), bigger for product details) */}
+              <div className="d-flex align-items-center gap-2 my-1">
+                <span style={{ color: '#f59e0b', fontSize: '20px', lineHeight: 1 }}>★</span>
+                <span className="fw-bold text-dark" style={{ fontSize: '17px', letterSpacing: '-0.2px' }}>
+                  {product.rating ? String(product.rating).replace('/5', '') : '4.6'}
                 </span>
-                <span className="text-muted" style={{ fontSize: '14px' }}>
-                  ({product.reviews || '128'} reviews)
+                <span className="text-muted" style={{ fontSize: '15px' }}>
+                  ({product.reviews ? String(product.reviews).replace(/[^0-9]/g, '') || '89' : '89'} reviews)
                 </span>
               </div>
 
@@ -565,6 +629,55 @@ function ProductDetailsContent() {
                   </span>
                 )}
               </div>
+
+              {/* Target Gender & Size Meta in ONE ROW with Box Border */}
+              {(product.gender || selectedSize) && (
+                <div className="d-flex align-items-center flex-wrap gap-4 py-1">
+                  {product.gender && (
+                    <div className="d-flex align-items-center gap-2">
+                      <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 500 }}>Target Gender:</span>
+                      <span
+                        className="fw-bold"
+                        style={{
+                          border: '1px solid #cbd5e1',
+                          backgroundColor: '#f8fafc',
+                          color: '#0f172a',
+                          fontSize: '13px',
+                          padding: '3px 10px',
+                          borderRadius: '4px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        {product.gender}
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedSize && (
+                    <div className="d-flex align-items-center gap-2">
+                      <span style={{ fontSize: '14px', color: '#64748b', fontWeight: 500 }}>Size:</span>
+                      <span
+                        className="fw-bold text-uppercase"
+                        style={{
+                          border: '1px solid #cbd5e1',
+                          backgroundColor: '#f8fafc',
+                          color: '#0f172a',
+                          fontSize: '13px',
+                          padding: '3px 10px',
+                          borderRadius: '4px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        {selectedSize}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Color Selection — shown only for products with color variants */}
               {colorOptions.length > 0 && <div className="d-flex flex-column gap-2">
@@ -611,42 +724,39 @@ function ProductDetailsContent() {
                 </div>
               </div>}
 
-              {/* Size Selection */}
-              <div className="d-flex flex-column gap-2 mt-1">
-                <span style={{ fontSize: '14px', color: '#0f172a' }}>
-                  Size: <span className="fw-bold text-uppercase">{toCapitalCase(selectedSize)}</span>
-                </span>
+              {/* Size Buttons Grid (Only shown when product has multiple selectable sizes; strictly NO green color Free Size button) */}
+              {sizeOptions.length > 1 && !(sizeOptions.length === 1 && sizeOptions[0].toLowerCase() === 'free size') && (
+                <div className="d-flex flex-column gap-2 mt-1">
+                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 500 }}>Select Size:</span>
+                  <div className="d-flex flex-wrap gap-2">
+                    {sizeOptions.map((s) => {
+                      const isSelected = selectedSize === s;
 
-                {/* Size Buttons Grid (Clean rounded boxes) */}
-                <div className="d-flex flex-wrap gap-2">
-                  {sizeOptions.map((s) => {
-                    const isSelected = selectedSize === s;
-
-                    return (
-                      <button
-                        key={s}
-                        type="button"
-                        onClick={() => setSelectedSize(s)}
-                        className="btn fw-semibold transition-all"
-                        style={{
-                          width: '48px',
-                          minWidth: '48px',
-                          height: '40px',
-                          padding: 0,
-                          borderRadius: '3px',
-                          fontSize: '14px',
-                          backgroundColor: isSelected ? '#16a34a' : '#ffffff',
-                          color: isSelected ? '#ffffff' : '#0f172a',
-                          border: isSelected ? 'none' : '1px solid #e2e8f0',
-                          boxShadow: isSelected ? '0 4px 12px rgba(22, 163, 74, 0.28)' : 'none',
-                        }}
-                      >
-                        {s}
-                      </button>
-                    );
-                  })}
+                      return (
+                        <button
+                          key={s}
+                          type="button"
+                          onClick={() => setSelectedSize(s)}
+                          className="btn fw-semibold transition-all"
+                          style={{
+                            minWidth: '46px',
+                            height: '38px',
+                            padding: '0 12px',
+                            borderRadius: '4px',
+                            fontSize: '13.5px',
+                            backgroundColor: isSelected ? '#0f172a' : '#ffffff',
+                            color: isSelected ? '#ffffff' : '#0f172a',
+                            border: isSelected ? '1px solid #0f172a' : '1px solid #e2e8f0',
+                            boxShadow: isSelected ? '0 2px 8px rgba(15, 23, 42, 0.16)' : 'none',
+                          }}
+                        >
+                          {s}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Action Buttons: Add to Cart + Add to Wishlist */}
               <div className="d-flex align-items-center gap-3 pt-3 mt-auto">
@@ -895,6 +1005,7 @@ function ProductDetailsContent() {
                         link={`/product-details?id=${rel.id}`}
                         image={rel.image}
                         images={rel.images}
+                        colorImages={rel.colorImages}
                         onProductClick={recordProductClick}
                       />
                     </div>
@@ -920,7 +1031,16 @@ function ProductDetailsContent() {
                           <div className="new-prod-vat-label">Inclusive of VAT</div>
                         </div>
                         <p className="new-prod-desc">{rel.desc}</p>
-                        <div className="mb-2"><span className="express-delivery-badge"><i className="fi-rs-bolt"></i>Express Delivery</span></div>
+                        <div className="mb-2 d-flex align-items-center gap-2 flex-wrap">
+                          <span className="express-delivery-badge">
+                            <i className="fi-rs-bolt"></i>Express Delivery
+                          </span>
+                          {rel.gender && (
+                            <span className="product-gender-badge">
+                              {rel.gender}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="product-card-bottom d-flex align-items-center gap-2 mt-auto">
                         <button
@@ -951,57 +1071,189 @@ function ProductDetailsContent() {
       {/* FULLSCREEN LIGHTBOX MODAL */}
       {isZoomOpen && (
         <div
-          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3 p-md-4"
           style={{
             zIndex: 9999,
-            backgroundColor: 'rgb(0 0 0 / 53%)',
-            backdropFilter: 'blur(6px)',
+            backgroundColor: 'rgba(15, 23, 42, 0.72)',
+            backdropFilter: 'blur(8px)',
           }}
           onClick={() => {
             setIsZoomOpen(false);
             setZoomScale(1);
           }}
         >
-          <button
-            type="button"
-            onClick={() => {
-              setIsZoomOpen(false);
-              setZoomScale(1);
-            }}
-            className="position-absolute top-0 end-0 m-4 btn border-0 d-flex align-items-center justify-content-center"
-            style={{
-              width: '44px',
-              minWidth: '44px',
-              height: '44px',
-              padding: 0,
-              borderRadius: '50%',
-              backgroundColor: '#0f172a',
-              color: '#ffffff',
-              zIndex: 10001,
-            }}
-            title="Close Zoom View"
-          >
-            ✕
-          </button>
-
+          {/* Main White Canvas Card */}
           <div
-            className="d-flex align-items-center justify-content-center p-4 overflow-hidden"
-            style={{ maxWidth: '90vw', maxHeight: '85vh' }}
+            className="position-relative d-flex align-items-center justify-content-center overflow-hidden"
+            style={{
+              width: 'min(920px, 92vw)',
+              height: 'min(700px, 84vh)',
+              backgroundColor: '#ffffff',
+              borderRadius: '24px',
+              boxShadow: '0 25px 60px -10px rgba(0, 0, 0, 0.45)',
+              border: '1px solid #f1f5f9',
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <img
-              src={galleryImages[activeImageIdx] || product.image}
-              alt={product.title}
+            {/* Close Button on White Card Top-Right */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsZoomOpen(false);
+                setZoomScale(1);
+              }}
+              className="position-absolute top-0 end-0 m-3 m-md-4 btn border-0 d-flex align-items-center justify-content-center"
               style={{
-                maxWidth: '100%',
-                maxHeight: '80vh',
-                objectFit: 'contain',
-                transform: `scale(${zoomScale})`,
+                width: '42px',
+                minWidth: '42px',
+                height: '42px',
+                padding: 0,
+                borderRadius: '50%',
+                backgroundColor: '#0f172a',
+                color: '#ffffff',
+                zIndex: 10001,
+                boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)',
+                cursor: 'pointer',
                 transition: 'transform 0.2s ease',
+              }}
+              title="Close View (Esc)"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+
+            {/* Previous Arrow (<) */}
+            {galleryImages.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setZoomScale(1);
+                  setActiveImageIdx((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1));
+                }}
+                className="position-absolute start-0 top-50 translate-middle-y ms-2 ms-md-4 btn border-0 d-flex align-items-center justify-content-center"
+                style={{
+                  width: '48px',
+                  minWidth: '48px',
+                  height: '48px',
+                  padding: 0,
+                  borderRadius: '50%',
+                  backgroundColor: '#ffffff',
+                  color: '#0f172a',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 6px 18px rgba(0, 0, 0, 0.1)',
+                  zIndex: 10000,
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s ease, background-color 0.2s ease',
+                }}
+                aria-label="Previous image"
+                title="Previous Image (Left Arrow)"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+            )}
+
+            {/* Next Arrow (>) */}
+            {galleryImages.length > 1 && (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setZoomScale(1);
+                  setActiveImageIdx((prev) => (prev + 1) % galleryImages.length);
+                }}
+                className="position-absolute end-0 top-50 translate-middle-y me-2 me-md-4 btn border-0 d-flex align-items-center justify-content-center"
+                style={{
+                  width: '48px',
+                  minWidth: '48px',
+                  height: '48px',
+                  padding: 0,
+                  borderRadius: '50%',
+                  backgroundColor: '#ffffff',
+                  color: '#0f172a',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 6px 18px rgba(0, 0, 0, 0.1)',
+                  zIndex: 10000,
+                  cursor: 'pointer',
+                  transition: 'transform 0.2s ease, background-color 0.2s ease',
+                }}
+                aria-label="Next image"
+                title="Next Image (Right Arrow)"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            )}
+
+            {/* Center Zoomable Image with White Background */}
+            <div
+              className="w-100 h-100 d-flex align-items-center justify-content-center p-4 p-md-5 overflow-hidden"
+              style={{
                 cursor: zoomScale > 1 ? 'grab' : 'zoom-in',
+                backgroundColor: '#ffffff',
               }}
               onClick={() => setZoomScale((s) => (s === 1 ? 1.75 : 1))}
-            />
+              title={zoomScale === 1 ? 'Click to zoom in' : 'Click to zoom out'}
+            >
+              <img
+                key={galleryImages[activeImageIdx]}
+                src={galleryImages[activeImageIdx] || product.image}
+                alt={product.title}
+                style={{
+                  maxWidth: '85%',
+                  maxHeight: '85%',
+                  objectFit: 'contain',
+                  transform: `scale(${zoomScale})`,
+                  transition: 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)',
+                  filter: 'drop-shadow(0 10px 25px rgba(0,0,0,0.06))',
+                  userSelect: 'none',
+                }}
+              />
+            </div>
+
+            {/* Bottom Angle / Image Carousel Indicators */}
+            {galleryImages.length > 1 && (
+              <div
+                className="position-absolute bottom-0 start-50 translate-middle-x mb-3 d-flex align-items-center gap-2 px-3 py-1.5 rounded-pill shadow-xs"
+                style={{
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  zIndex: 10000,
+                }}
+              >
+                <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+                  {activeImageIdx + 1} / {galleryImages.length}
+                </span>
+                <div className="d-flex align-items-center gap-1.5 ms-1">
+                  {galleryImages.map((_, dotIdx) => (
+                    <button
+                      key={dotIdx}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setZoomScale(1);
+                        setActiveImageIdx(dotIdx);
+                      }}
+                      className="border-0 p-0"
+                      style={{
+                        width: activeImageIdx === dotIdx ? '18px' : '6px',
+                        height: '6px',
+                        borderRadius: '3px',
+                        backgroundColor: activeImageIdx === dotIdx ? '#0f172a' : '#cbd5e1',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                      title={`Go to image ${dotIdx + 1}`}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1101,6 +1353,67 @@ function ProductDetailsContent() {
         </div>
       )}
 
+      {/* Breadcrumb Hover-Slide & Tooltip Styling */}
+      <style jsx global>{`
+        .breadcrumb-title-wrapper {
+          position: relative;
+        }
+        .breadcrumb-title-wrapper .breadcrumb-sliding-text {
+          display: none;
+        }
+        .breadcrumb-title-wrapper.is-long:hover .breadcrumb-static-text {
+          display: none;
+        }
+        .breadcrumb-title-wrapper.is-long:hover .breadcrumb-sliding-text {
+          display: inline-block;
+          white-space: nowrap;
+          animation: breadcrumbSlideAnim 8s ease-in-out infinite alternate;
+        }
+        @keyframes breadcrumbSlideAnim {
+          0% {
+            transform: translateX(0);
+          }
+          100% {
+            transform: translateX(calc(-100% + min(650px, 55vw)));
+          }
+        }
+        .breadcrumb-title-wrapper .breadcrumb-custom-tooltip {
+          position: absolute;
+          bottom: calc(100% + 8px);
+          left: 0;
+          background-color: #0f172a;
+          color: #ffffff;
+          font-size: 12px;
+          font-weight: 500;
+          line-height: 1.4;
+          padding: 7px 12px;
+          border-radius: 6px;
+          white-space: normal;
+          max-width: 360px;
+          width: max-content;
+          box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.25);
+          pointer-events: none;
+          opacity: 0;
+          visibility: hidden;
+          transform: translateY(4px);
+          transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s;
+          z-index: 1050;
+        }
+        .breadcrumb-title-wrapper .breadcrumb-custom-tooltip::after {
+          content: '';
+          position: absolute;
+          top: 100%;
+          left: 20px;
+          border-width: 5px;
+          border-style: solid;
+          border-color: #0f172a transparent transparent transparent;
+        }
+        .breadcrumb-title-wrapper:hover .breadcrumb-custom-tooltip {
+          opacity: 1;
+          visibility: visible;
+          transform: translateY(0);
+        }
+      `}</style>
     </div>
   );
 }

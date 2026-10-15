@@ -23,56 +23,16 @@ function readStoredAttributes(): AttributesStoreData {
     console.error('Error reading attributes store:', error);
   }
 
-  // Base colors: System defaults (Strictly Black, White, Blue, Red, Green)
-  const defaultMap = new Map<string, SystemColor>();
-  SYSTEM_COLORS.forEach((col) => {
-    defaultMap.set(col.name.toLowerCase().trim(), col);
-  });
+  // Use stored attributes as source of truth; fallback to defaults if not yet initialized
+  const colorsList: SystemColor[] =
+    Array.isArray(stored.colors) && stored.colors.length > 0 ? stored.colors : [...SYSTEM_COLORS];
 
-  // Merge any stored custom colors
-  if (Array.isArray(stored.colors)) {
-    stored.colors.forEach((col) => {
-      if (col && col.name) {
-        const key = col.name.toLowerCase().trim();
-        if (!defaultMap.has(key)) {
-          defaultMap.set(key, col);
-        }
-      }
-    });
-  }
-
-  // Base sizes: Presets
-  const sizesSet = new Set<string>(PRESET_SIZES);
-  if (Array.isArray(stored.sizes)) {
-    stored.sizes.forEach((s) => {
-      if (s && typeof s === 'string' && s.trim()) {
-        sizesSet.add(s.trim());
-      }
-    });
-  }
-
-  // Also include any colors/sizes existing in products-store.json so user never loses their data
-  try {
-    if (fs.existsSync(PRODUCTS_STORE_PATH)) {
-      const pContent = fs.readFileSync(PRODUCTS_STORE_PATH, 'utf-8');
-      const products: ProductItem[] = JSON.parse(pContent);
-      if (Array.isArray(products)) {
-        products.forEach((p) => {
-          if (Array.isArray(p.sizes)) {
-            p.sizes.forEach((sz) => {
-              if (sz && typeof sz === 'string' && sz.trim()) sizesSet.add(sz.trim());
-            });
-          }
-        });
-      }
-    }
-  } catch (err) {
-    console.error('Error scanning products store for attributes:', err);
-  }
+  const sizesList: string[] =
+    Array.isArray(stored.sizes) && stored.sizes.length > 0 ? stored.sizes : [...PRESET_SIZES];
 
   return {
-    colors: Array.from(defaultMap.values()),
-    sizes: Array.from(sizesSet),
+    colors: colorsList,
+    sizes: sizesList,
   };
 }
 
@@ -152,13 +112,11 @@ export async function POST(req: Request) {
 
     if (action === 'delete_color') {
       const { name } = body;
-      // Do not allow deleting system default 5 colors
-      const isSystemDefault = SYSTEM_COLORS.some((c) => c.name.toLowerCase() === name.toLowerCase());
-      if (isSystemDefault) {
-        return NextResponse.json({ success: false, message: 'Default system colors cannot be deleted.' }, { status: 400 });
+      if (!name) {
+        return NextResponse.json({ success: false, message: 'Color name is required' }, { status: 400 });
       }
 
-      current.colors = current.colors.filter((c) => c.name.toLowerCase() !== name.toLowerCase());
+      current.colors = current.colors.filter((c) => c.name.toLowerCase().trim() !== name.toLowerCase().trim());
       writeStoredAttributes(current);
       return NextResponse.json({ success: true, data: current });
     }

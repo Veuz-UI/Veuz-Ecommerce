@@ -5,13 +5,34 @@ import { ProductItem } from '@/data/categoryProductsData';
 const STORAGE_KEY = 'veuz_products_cache';
 export const PRODUCTS_EVENT = 'veuz:products-updated';
 
-export async function fetchProducts(filter?: string): Promise<ProductItem[]> {
-  // 1. Try local cache first for instant render
+export async function fetchProducts(filter?: string, options?: { includeDrafts?: boolean }): Promise<ProductItem[]> {
+  // 1. Fresh fetch from API first so dashboard products are always live and accurate
+  try {
+    const params = new URLSearchParams();
+    if (filter) params.set('filter', filter);
+    if (options?.includeDrafts) params.set('includeDrafts', 'true');
+    const queryString = params.toString();
+    const url = queryString ? `/api/products?${queryString}` : '/api/products';
+    const res = await fetch(url, { cache: 'no-store' });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        if (!filter && !options?.includeDrafts && typeof window !== 'undefined') {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(json.data));
+        }
+        return json.data;
+      }
+    }
+  } catch (error) {
+    console.warn('Could not fetch products from API, falling back to cache:', error);
+  }
+
+  // 2. Fallback to local cache only if offline or network fails
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored) {
-        const parsed = JSON.parse(stored).map((product: ProductItem) => {
+        let parsed = JSON.parse(stored).map((product: ProductItem) => {
           const today = new Date().toISOString().slice(0, 10);
           if (product.isSpecialOffer && product.offerEndDate && product.offerEndDate < today) {
             const regularPrice = product.originalPrice || Number(product.price?.replace(/[^\d.]/g, '')) || 0;
@@ -19,8 +40,10 @@ export async function fetchProducts(filter?: string): Promise<ProductItem[]> {
           }
           return product;
         });
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+        if (Array.isArray(parsed)) {
+          if (!options?.includeDrafts) {
+            parsed = parsed.filter((p: ProductItem) => !p.isDraft);
+          }
           if (!filter) return parsed;
           if (filter === 'new-arrival') {
             return parsed.filter((p: ProductItem) => p.isNewArrival !== false && p.isActive !== false);
@@ -39,23 +62,6 @@ export async function fetchProducts(filter?: string): Promise<ProductItem[]> {
     } catch (e) {
       // Ignore cache error
     }
-  }
-
-  // 2. Fresh fetch from API
-  try {
-    const url = filter ? `/api/products?filter=${encodeURIComponent(filter)}` : '/api/products';
-    const res = await fetch(url, { cache: 'no-store' });
-    if (res.ok) {
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        if (!filter && typeof window !== 'undefined') {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(json.data));
-        }
-        return json.data;
-      }
-    }
-  } catch (error) {
-    console.warn('Could not fetch products from API:', error);
   }
 
   return [];

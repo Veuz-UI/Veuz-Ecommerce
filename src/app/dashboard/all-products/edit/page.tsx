@@ -20,6 +20,7 @@ import {
 import { useToast } from '@/context/ToastContext';
 import ColorGalleryDrawerModal from '@/components/dashboard/ColorGalleryDrawerModal';
 import VariantSetupModal from '@/components/dashboard/VariantSetupModal';
+import GenderSetupModal from '@/components/dashboard/GenderSetupModal';
 
 function ProductEditForm() {
   const router = useRouter();
@@ -43,6 +44,7 @@ function ProductEditForm() {
   const [isColorDrawerOpen, setIsColorDrawerOpen] = useState<boolean>(false);
   const [isSizeSetupOpen, setIsSizeSetupOpen] = useState(false);
   const [isColorSetupOpen, setIsColorSetupOpen] = useState(false);
+  const [isGenderSetupOpen, setIsGenderSetupOpen] = useState(false);
   const [autoRemoveBg, setAutoRemoveBg] = useState<boolean>(true);
   const [studioStandardize, setStudioStandardize] = useState<boolean>(true);
   const [studioBgColor, setStudioBgColor] = useState<'transparent' | 'white' | 'neutral'>('transparent');
@@ -56,9 +58,10 @@ function ProductEditForm() {
   const [category, setCategory] = useState<string>('');
   const [categoryId, setCategoryId] = useState<string>('');
   const [desc, setDesc] = useState<string>('');
+  const [gender, setGender] = useState<string>('');
   const [image, setImage] = useState<string>('');
   const [standard, setStandard] = useState<string>('');
-  const [location, setLocation] = useState<string>('Riyadh Central Warehouse');
+  const [location, setLocation] = useState<string>('');
   const [link, setLink] = useState<string>('/product-details');
 
   // Pricing & Special Offer
@@ -115,7 +118,7 @@ function ProductEditForm() {
         let found: ProductItem | undefined = undefined;
         if (!isCreateMode && queryId) {
           try {
-            const singleRes = await fetch(`/api/products?id=${encodeURIComponent(queryId)}`, { cache: 'no-store' });
+            const singleRes = await fetch(`/api/products?id=${encodeURIComponent(queryId)}&includeDrafts=true`, { cache: 'no-store' });
             if (singleRes.ok) {
               const singleJson = await singleRes.json();
               if (singleJson.success && singleJson.data) {
@@ -135,9 +138,10 @@ function ProductEditForm() {
             setCategory(found.category || 'General Safety');
             setCategoryId(found.categoryId || '');
             setDesc(found.desc || '');
+            setGender(found.gender || '');
             setImage(found.image || '');
             setStandard(found.standard || 'Certified Safety Standard');
-            setLocation(found.location || 'Riyadh Central Warehouse');
+            setLocation(found.location || '');
             setLink(found.link || '/product-details');
             
             const basePrice = found.originalPrice || parseFloat(found.price?.replace(/[^\d.]/g, '') || '100');
@@ -175,6 +179,7 @@ function ProductEditForm() {
     setId(`prod-${Date.now()}`);
     setTitle('');
     setDesc('');
+    setGender('');
     setImage('');
     setGalleryImages([]);
     setColorImages({});
@@ -183,7 +188,7 @@ function ProductEditForm() {
     setOfferPercent(15);
     setOfferEndDate('');
     setStandard('');
-    setLocation('Riyadh Central Warehouse');
+    setLocation('');
     setExistingViews(0);
     setExistingClicks(0);
     setExistingCreatedAt(undefined);
@@ -397,102 +402,135 @@ function ProductEditForm() {
     });
   };
 
-  // Handle Form Submission
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  // Validate all mandatory product fields before saving
+  const validateProductPayload = (): boolean => {
     if (!title.trim()) {
       showToast('danger', 'Please enter a product title.');
-      return;
+      return false;
     }
 
     if (!desc.trim()) {
       showToast('danger', 'Please add a product description.');
-      return;
+      return false;
     }
 
-    if (specifications.length === 0) {
-      showToast('danger', 'Please add at least one product specification section.');
-      return;
+    if (!gender || !gender.trim()) {
+      showToast('danger', 'Gender selection is mandatory. Please select Male, Female, or Unisex.', 'Mandatory Selection');
+      setIsGenderSetupOpen(true);
+      return false;
     }
 
     if (originalPrice <= 0) {
       showToast('danger', 'Please enter a valid price greater than 0.');
-      return;
+      return false;
     }
 
-    // Products without color variants use the main gallery (up to 5 photos, minimum 4).
-    // Products with colors are validated per color below instead.
-    const validCover = Boolean(image && image.trim());
-    const validAnglesCount = galleryImages.filter((img) => Boolean(img && img.trim())).length;
-    const mainPhotosCount = (validCover ? 1 : 0) + validAnglesCount;
-
-    if (colors.length === 0 && mainPhotosCount < 4) {
-      showToast(
-        'warning',
-        `Minimum 4 photos are mandatory for the main product! Currently uploaded: ${mainPhotosCount}/5. Please provide Front View and at least 3 other angles.`
-      );
-      return;
-    }
-
-    // Minimum 4 photos mandatory validation for each color variant (if colors are selected)
+    // MANDATORY: If colors are selected, EVERY single selected color requires minimum 4 photos!
     if (colors.length > 0) {
-      const incompleteColors = colors.filter((c) => {
-        const cImgs = (colorImages[c] || []).filter((u) => Boolean(u && u.trim()));
-        return cImgs.length < 4;
-      });
-      if (incompleteColors.length > 0) {
+      const incomplete = colors
+        .map((c) => {
+          const cImgs = (colorImages[c] || []).filter((u) => Boolean(u && u.trim() && !u.includes('p1.jpg')));
+          return { name: c, count: cImgs.length };
+        })
+        .filter((item) => item.count < 4);
+
+      if (incomplete.length > 0) {
+        const details = incomplete.map((ic) => `"${ic.name}" (${ic.count}/4 photos)`).join(', ');
         showToast(
-          'warning',
-          `Each color requires minimum 4 photos (up to 5 photos)! Incomplete for: ${incompleteColors.join(', ')}. Opening Color Galleries...`
+          'danger',
+          `Each selected color requires minimum 4 photos (Mandatory)! Incomplete: ${details}. Opening Color Galleries...`,
+          'Mandatory Photos Required'
         );
         setIsColorDrawerOpen(true);
-        return;
+        return false;
+      }
+    } else {
+      // Products without color variants use the main gallery (minimum 4 photos).
+      const validCover = Boolean(image && image.trim() && !image.includes('p1.jpg'));
+      const validAnglesCount = galleryImages.filter((img) => Boolean(img && img.trim() && !img.includes('p1.jpg'))).length;
+      const mainPhotosCount = (validCover ? 1 : 0) + validAnglesCount;
+
+      if (mainPhotosCount < 4) {
+        showToast(
+          'danger',
+          `Minimum 4 photos are mandatory for the product (${mainPhotosCount}/4 uploaded). Please provide Front View and at least 3 other angles.`,
+          'Mandatory Photos Required'
+        );
+        return false;
       }
     }
 
-    // For products with color variants, the first selected color is the
-    // storefront default. Its first photo becomes the product-card image.
+    return true;
+  };
+
+  // Build complete product payload resolving real uploaded photos and eliminating any dummy fallbacks
+  const buildProductPayload = (): Partial<ProductItem> => {
     const firstColorPhotos = colors.length > 0
-      ? (colorImages[colors[0]] || []).filter((photo) => Boolean(photo && photo.trim()))
+      ? (colorImages[colors[0]] || []).filter((photo) => Boolean(photo && photo.trim() && !photo.includes('p1.jpg')))
       : [];
-    const storefrontImage = colors.length > 0 ? firstColorPhotos[0] : image;
-    const storefrontImages = colors.length > 0 ? firstColorPhotos.slice(1) : galleryImages;
+    
+    // Resolve real primary image
+    let storefrontImage = image && !image.includes('p1.jpg') ? image : '';
+    if (!storefrontImage && firstColorPhotos.length > 0) {
+      storefrontImage = firstColorPhotos[0];
+    } else if (!storefrontImage && colors.length > 0) {
+      const allColorPhotos = Object.values(colorImages).flat().filter((u) => Boolean(u && u.trim() && !u.includes('p1.jpg')));
+      if (allColorPhotos.length > 0) storefrontImage = allColorPhotos[0];
+    }
+
+    const storefrontImages = colors.length > 0
+      ? (firstColorPhotos.length > 1 ? firstColorPhotos.slice(1) : galleryImages.filter((u) => Boolean(u && !u.includes('p1.jpg'))))
+      : galleryImages.filter((u) => Boolean(u && !u.includes('p1.jpg')));
+
+    return {
+      id: id || `prod-${Date.now()}`,
+      title: title.trim(),
+      category: category || 'Safety Equipment',
+      categoryId: categoryId,
+      desc: desc.trim(),
+      gender: gender.trim(),
+      image: storefrontImage,
+      images: storefrontImages,
+      colorImages: colorImages,
+      colorSizes: colorSizes,
+      originalPrice: originalPrice,
+      currentPrice: isSpecialOffer ? calculatedDiscountedPrice : originalPrice,
+      price: `${isSpecialOffer ? calculatedDiscountedPrice : originalPrice} SR`,
+      oldPrice: isSpecialOffer ? `${originalPrice} SR` : undefined,
+      discount: isSpecialOffer ? `${offerPercent}% OFF` : undefined,
+      isSpecialOffer: isSpecialOffer,
+      offerPercent: isSpecialOffer ? offerPercent : undefined,
+      offerEndDate: isSpecialOffer ? offerEndDate : undefined,
+      badge: isSpecialOffer ? (offerPercent ? `${offerPercent}% OFF` : 'Special Offer') : 'New Arrival',
+      badgeClass: isSpecialOffer ? 'sale' : 'new',
+      isNewArrival: isSpecialOffer ? false : true,
+      standard: standard.trim(),
+      link: `/product-details?id=${id || `prod-${Date.now()}`}`,
+      views: isCreateMode ? 0 : existingViews,
+      clicks: isCreateMode ? 0 : existingClicks,
+      isActive: true,
+      createdAt: isCreateMode ? Date.now() : existingCreatedAt,
+      specifications: specifications,
+      sizes: sizes,
+      colors: colors,
+    };
+  };
+
+  // Handle Form Submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateProductPayload()) {
+      return;
+    }
+
+    const payload = {
+      ...buildProductPayload(),
+      isDraft: false,
+    };
 
     setIsSaving(true);
     try {
-      const payload: Partial<ProductItem> = {
-        id: id || `prod-${Date.now()}`,
-        title: title.trim(),
-        category: category || 'Safety Equipment',
-        categoryId: categoryId,
-        desc: desc.trim(),
-        image: storefrontImage,
-        images: storefrontImages,
-        colorImages: colorImages,
-        colorSizes: colorSizes,
-        originalPrice: originalPrice,
-        currentPrice: isSpecialOffer ? calculatedDiscountedPrice : originalPrice,
-        price: `${isSpecialOffer ? calculatedDiscountedPrice : originalPrice} SR`,
-        oldPrice: isSpecialOffer ? `${originalPrice} SR` : undefined,
-        discount: isSpecialOffer ? `${offerPercent}% OFF` : undefined,
-        isSpecialOffer: isSpecialOffer,
-        offerPercent: isSpecialOffer ? offerPercent : undefined,
-        offerEndDate: isSpecialOffer ? offerEndDate : undefined,
-        badge: isSpecialOffer ? (offerPercent ? `${offerPercent}% OFF` : 'Special Offer') : 'New Arrival',
-        badgeClass: isSpecialOffer ? 'sale' : 'new',
-        isNewArrival: isSpecialOffer ? false : true,
-        standard: standard.trim(),
-        link: `/product-details?id=${id}`,
-        views: isCreateMode ? 0 : existingViews,
-        clicks: isCreateMode ? 0 : existingClicks,
-        isActive: true,
-        createdAt: isCreateMode ? Date.now() : existingCreatedAt,
-        specifications: specifications,
-        sizes: sizes,
-        colors: colors,
-      };
-
       if (isCreateMode) {
         const res = await createProduct(payload);
         if (res.success) {
@@ -525,42 +563,29 @@ function ProductEditForm() {
     }
   };
 
+  // Helper to validate only product title before moving into sub-editors
+  const ensureDraftCanBeSaved = (): boolean => {
+    if (!title.trim()) {
+      showToast('danger', 'Please enter a product title first so your draft can be saved.');
+      return false;
+    }
+    return true;
+  };
+
   // Navigate to dedicated Product Specifications & Details builder page
   const handleGoToSpecifications = async () => {
-    const targetTitle = title.trim() || 'New Product';
-    const targetId = id || `prod-${Date.now()}`;
+    if (!ensureDraftCanBeSaved()) {
+      return;
+    }
+
+    const payload = {
+      ...buildProductPayload(),
+      isDraft: true,
+    };
+    const targetId = payload.id || `prod-${Date.now()}`;
 
     setIsSaving(true);
     try {
-      const payload: Partial<ProductItem> = {
-        id: targetId,
-        title: targetTitle,
-        category: category || 'General Safety',
-        categoryId: categoryId,
-        desc: desc.trim(),
-        image,
-        images: galleryImages,
-        colorImages: colorImages,
-        colorSizes: colorSizes,
-        originalPrice: originalPrice,
-        currentPrice: calculatedDiscountedPrice,
-        price: `${calculatedDiscountedPrice} SR`,
-        oldPrice: isSpecialOffer ? `${originalPrice} SR` : undefined,
-        discount: isSpecialOffer ? `${offerPercent}% OFF` : undefined,
-        isSpecialOffer: isSpecialOffer,
-        offerPercent: isSpecialOffer ? offerPercent : undefined,
-        isNewArrival: true,
-        standard: standard.trim(),
-        link: `/product-details?id=${id}`,
-        views: isCreateMode ? 0 : existingViews,
-        clicks: isCreateMode ? 0 : existingClicks,
-        isActive: true,
-        createdAt: isCreateMode ? Date.now() : existingCreatedAt,
-        specifications: specifications,
-        sizes: sizes,
-        colors: colors,
-      };
-
       if (isCreateMode) {
         await createProduct(payload);
       } else {
@@ -577,40 +602,18 @@ function ProductEditForm() {
 
   // Navigate to dedicated Product Sizes manager page
   const handleGoToSizes = async () => {
-    const targetTitle = title.trim() || 'New Product';
-    const targetId = id || `prod-${Date.now()}`;
+    if (!ensureDraftCanBeSaved()) {
+      return;
+    }
+
+    const payload = {
+      ...buildProductPayload(),
+      isDraft: true,
+    };
+    const targetId = payload.id || `prod-${Date.now()}`;
 
     setIsSaving(true);
     try {
-      const payload: Partial<ProductItem> = {
-        id: targetId,
-        title: targetTitle,
-        category: category || 'General Safety',
-        categoryId: categoryId,
-        desc: desc.trim(),
-        image,
-        images: galleryImages,
-        colorImages: colorImages,
-        colorSizes: colorSizes,
-        originalPrice: originalPrice,
-        currentPrice: calculatedDiscountedPrice,
-        price: `${calculatedDiscountedPrice} SR`,
-        oldPrice: isSpecialOffer ? `${originalPrice} SR` : undefined,
-        discount: isSpecialOffer ? `${offerPercent}% OFF` : undefined,
-        isSpecialOffer: isSpecialOffer,
-        offerPercent: isSpecialOffer ? offerPercent : undefined,
-        isNewArrival: true,
-        standard: standard.trim(),
-        link: `/product-details?id=${id}`,
-        views: isCreateMode ? 0 : existingViews,
-        clicks: isCreateMode ? 0 : existingClicks,
-        isActive: true,
-        createdAt: isCreateMode ? Date.now() : existingCreatedAt,
-        specifications: specifications,
-        sizes: sizes,
-        colors: colors,
-      };
-
       if (isCreateMode) {
         await createProduct(payload);
       } else {
@@ -627,40 +630,18 @@ function ProductEditForm() {
 
   // Navigate to dedicated Product Colors manager page
   const handleGoToColors = async () => {
-    const targetTitle = title.trim() || 'New Product';
-    const targetId = id || `prod-${Date.now()}`;
+    if (!ensureDraftCanBeSaved()) {
+      return;
+    }
+
+    const payload = {
+      ...buildProductPayload(),
+      isDraft: true,
+    };
+    const targetId = payload.id || `prod-${Date.now()}`;
 
     setIsSaving(true);
     try {
-      const payload: Partial<ProductItem> = {
-        id: targetId,
-        title: targetTitle,
-        category: category || 'General Safety',
-        categoryId: categoryId,
-        desc: desc.trim(),
-        image,
-        images: galleryImages,
-        colorImages: colorImages,
-        colorSizes: colorSizes,
-        originalPrice: originalPrice,
-        currentPrice: calculatedDiscountedPrice,
-        price: `${calculatedDiscountedPrice} SR`,
-        oldPrice: isSpecialOffer ? `${originalPrice} SR` : undefined,
-        discount: isSpecialOffer ? `${offerPercent}% OFF` : undefined,
-        isSpecialOffer: isSpecialOffer,
-        offerPercent: isSpecialOffer ? offerPercent : undefined,
-        isNewArrival: true,
-        standard: standard.trim(),
-        link: `/product-details?id=${id}`,
-        views: isCreateMode ? 0 : existingViews,
-        clicks: isCreateMode ? 0 : existingClicks,
-        isActive: true,
-        createdAt: isCreateMode ? Date.now() : existingCreatedAt,
-        specifications: specifications,
-        sizes: sizes,
-        colors: colors,
-      };
-
       if (isCreateMode) {
         await createProduct(payload);
       } else {
@@ -873,6 +854,28 @@ function ProductEditForm() {
                     </div>
                   </div>
 
+                  {/* Product Description */}
+                  <div className="mb-3.5">
+                    <div className="d-flex align-items-center justify-content-between mb-1">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-0">
+                        Product Description <span className="text-danger">*</span>
+                      </label>
+                      <span className="text-muted fs-11">Overview &amp; Highlights</span>
+                    </div>
+                    <textarea
+                      className="form-control"
+                      rows={3}
+                      placeholder="Enter a descriptive overview of this product, key protection features, materials, and usage applications..."
+                      value={desc}
+                      onChange={(e) => setDesc(e.target.value)}
+                      required
+                      style={{ borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '14px', lineHeight: '1.5' }}
+                    />
+                    <div className="form-text fs-12 text-muted">
+                      Displayed on storefront and product details. You can also configure structured bullet points in Specifications below.
+                    </div>
+                  </div>
+
                   {/* Product Specifications & Details Card (Well Padded & Aligned) */}
                   <div
                     className="rounded-3 border mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3"
@@ -1070,6 +1073,42 @@ function ProductEditForm() {
                       <span>Manage Images</span>
                     </button>
                   </div>
+
+                  {/* 4. Gender Selection Row (Below Product Images) */}
+                  <div
+                    className="mt-3 rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-3"
+                    style={{ backgroundColor: '#fbfcfe', border: '1px solid #e2e8f0', padding: '16px 20px', minHeight: '70px' }}
+                  >
+                    <div className="d-flex align-items-center gap-2.5">
+                      <span className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '38px', height: '38px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0' }}>
+                        <iconify-icon icon="solar:users-group-rounded-bold" class="fs-18 text-primary"></iconify-icon>
+                      </span>
+                      <div>
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="fs-14 fw-bold text-dark">Gender Selection</span>
+                          {gender ? (
+                            <span className="badge bg-dark text-white border fw-semibold" style={{ fontSize: '11px', padding: '4px 9px', borderRadius: '5px' }}>
+                              {gender}
+                            </span>
+                          ) : (
+                            <span className="badge bg-danger text-white fw-semibold" style={{ fontSize: '11px', padding: '4px 9px', borderRadius: '5px' }}>
+                              Required *
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-muted fs-12 d-block">Target gender: Male, Female, or Unisex (Mandatory).</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsGenderSetupOpen(true)}
+                      className="btn btn-sm btn-dark d-flex align-items-center gap-1.5 fw-medium"
+                      style={{ width: '160px', height: '38px', justifyContent: 'center', borderRadius: '8px', fontSize: '12.5px', padding: '0 12px' }}
+                    >
+                      <iconify-icon icon="solar:user-bold" class="fs-15"></iconify-icon>
+                      <span>{gender ? `Change (${gender})` : 'Select Gender *'}</span>
+                    </button>
+                  </div>
                 </div>
 
                 </div>
@@ -1079,15 +1118,20 @@ function ProductEditForm() {
                 <div className="p-4 rounded-3 mb-4" style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)' }}>
                   <div className="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom" style={{ borderColor: '#f1f5f9' }}>
                     <span className="rounded-3 d-flex align-items-center justify-content-center" style={{ width: '36px', height: '36px', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0' }}><iconify-icon icon="solar:palette-bold" class="fs-18 text-primary"></iconify-icon></span>
-                    <div><h5 className="fs-15 fw-bold text-dark mb-0">Product Management</h5><span className="text-muted fs-12">Manage sizes, colors, and images.</span></div>
+                    <div><h5 className="fs-15 fw-bold text-dark mb-0">Product Management</h5><span className="text-muted fs-12">Manage sizes, colors, images, and gender.</span></div>
                   </div>
                   {[
-                    { label: 'Available Sizes', count: sizes.length, icon: 'solar:ruler-linear', action: () => setIsSizeSetupOpen(true), button: 'Configure Sizes' },
-                    { label: 'Available Colors', count: colors.length, icon: 'solar:palette-linear', action: () => setIsColorSetupOpen(true), button: 'Configure Colors' },
-                    { label: 'Product Images', count: null, icon: 'solar:gallery-wide-bold', action: () => setIsColorDrawerOpen(true), button: 'Manage Images' },
+                    { label: 'Available Sizes', count: sizes.length ? `${sizes.length} selected` : 'None (Regular)', isWarning: false, icon: 'solar:ruler-linear', action: () => setIsSizeSetupOpen(true), button: 'Configure Sizes' },
+                    { label: 'Available Colors', count: `${colors.length} selected`, isWarning: false, icon: 'solar:palette-linear', action: () => setIsColorSetupOpen(true), button: 'Configure Colors' },
+                    { label: 'Product Images', count: '4–5 required', isWarning: false, icon: 'solar:gallery-wide-bold', action: () => setIsColorDrawerOpen(true), button: 'Manage Images' },
+                    { label: 'Gender Selection', count: gender || 'Required *', isWarning: !gender, icon: 'solar:users-group-rounded-bold', action: () => setIsGenderSetupOpen(true), button: gender ? `Gender: ${gender}` : 'Select Gender *' },
                   ].map((item, index) => (
                     <div key={item.label} className={`rounded-3 d-flex align-items-center justify-content-between gap-2 ${index ? 'mt-3' : ''}`} style={{ backgroundColor: '#fbfcfe', border: '1px solid #e2e8f0', padding: '12px 14px' }}>
-                      <div className="d-flex align-items-center gap-2"><iconify-icon icon={item.icon} class="fs-18 text-primary"></iconify-icon><span className="fs-13 fw-bold text-dark">{item.label}</span>{item.count !== null ? <span className="badge bg-light text-dark border">{item.count} selected</span> : <span className="badge bg-light text-dark border">4–5 required</span>}</div>
+                      <div className="d-flex align-items-center gap-2">
+                        <iconify-icon icon={item.icon} class="fs-18 text-primary"></iconify-icon>
+                        <span className="fs-13 fw-bold text-dark">{item.label}</span>
+                        <span className={`badge ${item.isWarning ? 'bg-danger text-white' : 'bg-light text-dark border'}`}>{item.count}</span>
+                      </div>
                       <button type="button" onClick={item.action} className="btn btn-sm btn-dark" style={{ minWidth: '138px', height: '34px', fontSize: '11px' }}>{item.button}</button>
                     </div>
                   ))}
@@ -1377,13 +1421,13 @@ function ProductEditForm() {
                         </span>
                         <span className="text-muted fs-11">Primary product photo</span>
                       </div>
-                      {image !== '/assets/imgs/shop/p1.jpg' && (
+                      {image && (
                         <button
                           type="button"
-                          onClick={() => setImage('/assets/imgs/shop/p1.jpg')}
+                          onClick={() => setImage('')}
                           className="btn btn-sm btn-link text-muted p-0 text-decoration-none fs-11"
                         >
-                          Reset
+                          Clear
                         </button>
                       )}
                     </div>
@@ -1400,14 +1444,19 @@ function ProductEditForm() {
                         borderColor: '#e2e8f0',
                       }}
                     >
-                      <img
-                        src={image}
-                        alt="Front View"
-                        style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '8px' }}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/assets/imgs/shop/p1.jpg';
-                        }}
-                      />
+                      {image && !image.includes('p1.jpg') ? (
+                        <img
+                          src={image}
+                          alt="Front View"
+                          style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '8px' }}
+                        />
+                      ) : (
+                        <div className="text-center p-3 text-muted">
+                          <iconify-icon icon="solar:camera-add-bold" class="fs-32 text-secondary mb-1"></iconify-icon>
+                          <div className="fs-11 fw-semibold">No Cover Photo</div>
+                          <div className="fs-10 text-muted">Click below to upload</div>
+                        </div>
+                      )}
                       {isUploading && angleSlotTarget === null && (
                         <div
                           className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center"
@@ -1427,7 +1476,7 @@ function ProductEditForm() {
                       style={{ borderRadius: '7px', fontSize: '12px', padding: '8px 12px' }}
                     >
                       <iconify-icon icon="solar:upload-track-2-bold" class="fs-16"></iconify-icon>
-                      <span>{image !== '/assets/imgs/shop/p1.jpg' ? 'Replace Main Cover Photo' : 'Upload Main Cover Photo'}</span>
+                      <span>{image && !image.includes('p1.jpg') ? 'Replace Main Cover Photo' : 'Upload Main Cover Photo'}</span>
                     </button>
                   </div>
 
@@ -1500,7 +1549,7 @@ function ProductEditForm() {
                             <button
                               type="button"
                               onClick={() => handleGenerateDirectAngle('side', 0)}
-                              disabled={isGeneratingAngle || isUploading || !image || image === '/assets/imgs/shop/p1.jpg'}
+                              disabled={isGeneratingAngle || isUploading || !image || image.includes('p1.jpg')}
                               className="btn btn-sm btn-dark w-100 d-flex align-items-center justify-content-center gap-1 mb-1"
                               style={{ borderRadius: '5px', fontSize: '10.5px', padding: '4px 6px' }}
                               title="Generate Side Angle"
@@ -1587,7 +1636,7 @@ function ProductEditForm() {
                             <button
                               type="button"
                               onClick={() => handleGenerateDirectAngle('top', 1)}
-                              disabled={isGeneratingAngle || isUploading || !image || image === '/assets/imgs/shop/p1.jpg'}
+                              disabled={isGeneratingAngle || isUploading || !image || image.includes('p1.jpg')}
                               className="btn btn-sm btn-dark w-100 d-flex align-items-center justify-content-center gap-1 mb-1"
                               style={{ borderRadius: '5px', fontSize: '10.5px', padding: '4px 6px' }}
                               title="Generate Top Angle"
@@ -1674,7 +1723,7 @@ function ProductEditForm() {
                             <button
                               type="button"
                               onClick={() => handleGenerateDirectAngle('back', 2)}
-                              disabled={isGeneratingAngle || isUploading || !image || image === '/assets/imgs/shop/p1.jpg'}
+                              disabled={isGeneratingAngle || isUploading || !image || image.includes('p1.jpg')}
                               className="btn btn-sm btn-dark w-100 d-flex align-items-center justify-content-center gap-1 mb-1"
                               style={{ borderRadius: '5px', fontSize: '10.5px', padding: '4px 6px' }}
                               title="Generate Back Angle"
@@ -1730,6 +1779,7 @@ function ProductEditForm() {
           />
           <VariantSetupModal isOpen={isSizeSetupOpen} mode="sizes" selected={sizes} onChange={setSizes} onClose={() => setIsSizeSetupOpen(false)} />
           <VariantSetupModal isOpen={isColorSetupOpen} mode="colors" selected={colors} onChange={setColors} onClose={() => setIsColorSetupOpen(false)} />
+          <GenderSetupModal isOpen={isGenderSetupOpen} selected={gender} onChange={(g) => setGender(g)} onClose={() => setIsGenderSetupOpen(false)} />
           </form>
         </div>
       </div>

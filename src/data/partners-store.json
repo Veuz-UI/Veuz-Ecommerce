@@ -6,8 +6,8 @@
   "partners": [
     {
       "id": "partner-1",
-      "name": "3M Personal Safety",
-      "logo": "/uploads/img_1791555156314_835ae65a7ea73e57d6d6bf268c2bf7fb.jpg",
+      "name": "CAT",
+      "logo": "/uploads/img_1792007386227_a42f02e8d4ab3053b74a7e74dd7bc447.png",
       "link": "/products",
       "isActive": true,
       "order": 1
@@ -15,7 +15,7 @@
     {
       "id": "partner-2",
       "name": "Honeywell Safety Products",
-      "logo": "/uploads/img_1791555161406_84c9e8b43822755dc948da31825c7736.jpg",
+      "logo": "/uploads/img_1792007402773_05122bed8927a72290802a80eb1afc58.png",
       "link": "/products",
       "isActive": true,
       "order": 2
@@ -23,7 +23,7 @@
     {
       "id": "partner-3",
       "name": "MSA Safety Equipment",
-      "logo": "/uploads/img_1791555166566_bb31aa0e4762b652638f5ddc93e259ec.jpg",
+      "logo": "/uploads/img_1792007410101_4e5ff440690cb35fa70ef9a87c1cd2f9.png",
       "link": "/products",
       "isActive": true,
       "order": 3
@@ -31,10 +31,37 @@
     {
       "id": "partner-4",
       "name": "Ansell Healthcare & PPE",
-      "logo": "/uploads/img_1791555173765_c2dc10230e4a3ae0f75a2a196939ff88.jpg",
+      "logo": "/uploads/img_1792007417636_94bceccedc06b30a74fc8f271e93eea2.png",
       "link": "/products",
       "isActive": true,
       "order": 4
+    },
+    {
+      "id": "partner-1792007455041",
+      "name": "3M PRODUCTS",
+      "logo": "/uploads/img_1792007444381_479c7524ce0b645e097f4113abd7ba7e.png",
+      "link": "/products",
+      "order": 5,
+      "isActive": true,
+      "createdAt": "2026-10-14T19:50:55.041Z"
+    },
+    {
+      "id": "partner-1792007496505",
+      "name": "Advanced Safety",
+      "logo": "/uploads/img_1792007487381_e1f4adf6bd767ecd6e0e02651de70c1a.png",
+      "link": "/products",
+      "order": 6,
+      "isActive": true,
+      "createdAt": "2026-10-14T19:51:36.505Z"
+    },
+    {
+      "id": "partner-1792007532802",
+      "name": "PP SAFETY",
+      "logo": "/uploads/img_1792007532053_03ad67453233549a3248cccbef1ae1d5.webp",
+      "link": "/products",
+      "order": 7,
+      "isActive": true,
+      "createdAt": "2026-10-14T19:52:12.802Z"
     }
   ]
 }

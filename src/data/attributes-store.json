@@ -24,6 +24,30 @@
     {
       "name": "Yellow",
       "hex": "#ffc800"
+    },
+    {
+      "name": "Neon Lime",
+      "hex": "#84cc16"
+    },
+    {
+      "name": "Cyan",
+      "hex": "#0cbce9"
+    },
+    {
+      "name": "Royal Blue",
+      "hex": "#0c4ee9"
+    },
+    {
+      "name": "Purple",
+      "hex": "#9333ea"
+    },
+    {
+      "name": "Orange",
+      "hex": "#ea580c"
+    },
+    {
+      "name": "Slate Gray",
+      "hex": "#8f8f8f"
     }
   ],
   "sizes": [

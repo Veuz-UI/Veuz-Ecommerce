@@ -12,6 +12,8 @@ import { ProductItem } from '@/data/categoryProductsData';
 import { fetchPartners, PARTNERS_EVENT } from '@/services/partnersService';
 import { DEFAULT_PARTNERS_DATA, PartnersData } from '@/data/defaultPartners';
 import { ProductCardImageSlider } from '@/components/common/ProductCardImageSlider';
+import { useStore } from '@/context/StoreContext';
+import { useToast } from '@/context/ToastContext';
 
 const VERIFIED_CATEGORY_IMAGES = [
   '/assets/imgs/shop/p1.jpg',
@@ -21,6 +23,313 @@ const VERIFIED_CATEGORY_IMAGES = [
   '/assets/imgs/shop/p5.jpg',
   '/assets/imgs/shop/p6.jpg',
 ];
+
+const PRODUCT_CARD_COLORS: Record<string, { hex: string; border?: string }> = {
+  black: { hex: '#0f172a' },
+  white: { hex: '#ffffff', border: '#cbd5e1' },
+  blue: { hex: '#2563eb' },
+  navy: { hex: '#1e3a8a' },
+  red: { hex: '#dc2626' },
+  green: { hex: '#16a34a' },
+  yellow: { hex: '#facc15' },
+  orange: { hex: '#ea580c' },
+  gray: { hex: '#64748b' },
+  grey: { hex: '#64748b' },
+  darkgray: { hex: '#334155' },
+  darkgrey: { hex: '#334155' },
+  lightgray: { hex: '#e2e8f0', border: '#cbd5e1' },
+  lightgrey: { hex: '#e2e8f0', border: '#cbd5e1' },
+  beige: { hex: '#e7d8c9' },
+  cream: { hex: '#fef3c7', border: '#fde68a' },
+  tan: { hex: '#d2b48c' },
+  brown: { hex: '#78350f' },
+  khaki: { hex: '#c3b091' },
+  silver: { hex: '#94a3b8' },
+  pink: { hex: '#ec4899' },
+  purple: { hex: '#9333ea' },
+  teal: { hex: '#0d9488' },
+};
+
+function getProductColorInfo(colorName: string): { hex: string; border?: string } {
+  if (!colorName) return { hex: '#64748b' };
+  const clean = colorName.toLowerCase().replace(/[\s-_]/g, '');
+  if (PRODUCT_CARD_COLORS[clean]) return PRODUCT_CARD_COLORS[clean];
+  for (const [key, val] of Object.entries(PRODUCT_CARD_COLORS)) {
+    if (clean.includes(key)) return val;
+  }
+  if (colorName.startsWith('#')) {
+    return { hex: colorName, border: colorName.toLowerCase() === '#ffffff' ? '#cbd5e1' : undefined };
+  }
+  return { hex: '#64748b' };
+}
+
+function HomeProductCard({
+  prod,
+  colClass,
+  isWishlisted,
+  onToggleWishlist,
+  onProductClick,
+}: {
+  prod: any;
+  colClass: string;
+  isWishlisted: boolean;
+  onToggleWishlist: (id: string) => void;
+  onProductClick: (id: string) => void;
+}) {
+  const initialColor = Array.isArray(prod.colors) && prod.colors.length > 0 ? prod.colors[0] : '';
+  const [selectedColor, setSelectedColor] = useState<string>(initialColor);
+  const { addToCart } = useStore();
+  const { showToast } = useToast();
+
+  const handleAddToCart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const rawPrice = prod.currentPrice || prod.price;
+    const numPrice = typeof rawPrice === 'number' ? rawPrice : parseFloat(String(rawPrice || '129').replace(/[^\d.]/g, '')) || 129;
+    const idNum = Number(String(prod.id).replace(/[^\d]/g, '')) || Math.floor(Math.random() * 100000) + 1;
+    const cartProduct: any = {
+      id: idNum,
+      name: prod.title,
+      price: numPrice > 0 ? numPrice : 129,
+      image: (prod.image && !prod.image.includes('p1.jpg'))
+        ? prod.image
+        : (prod.img && !prod.img.includes('p1.jpg'))
+          ? prod.img
+          : (prod.images && prod.images[0]) || '/assets/imgs/theme/placeholder.svg',
+      category: prod.category || 'Safety Equipment',
+    };
+    addToCart(cartProduct, 1, selectedColor || (Array.isArray(prod.colors) ? prod.colors[0] : undefined));
+  };
+
+  useEffect(() => {
+    if (Array.isArray(prod.colors) && prod.colors.length > 0) {
+      if (!selectedColor || !prod.colors.some((c: string) => c.toLowerCase() === selectedColor.toLowerCase())) {
+        setSelectedColor(prod.colors[0]);
+      }
+    }
+  }, [prod.colors]);
+
+  const isLimitedOffer = prod.collectionStatus === 'limited' || Boolean(prod.offerEndDate);
+  const hasOffer = prod.collectionStatus === 'offer' || isLimitedOffer || ((prod.isSpecialOffer === true || prod.badgeClass === 'hot') && Boolean(prod.discount || prod.badge));
+  const isNewArrival = prod.collectionStatus === 'new' || (!hasOffer && (prod.badge === 'New Arrival' || prod.badgeClass === 'new'));
+  const isTopSearched = prod.badge === 'Top Searched';
+  const limitedOfferDaysLeft = prod.offerEndDate
+    ? Math.max(0, Math.ceil((new Date(`${prod.offerEndDate}T23:59:59`).getTime() - Date.now()) / 86400000))
+    : null;
+
+  let badgeText = 'New Arrival';
+  if (isTopSearched) {
+    badgeText = 'Top Searched';
+  } else if (hasOffer) {
+    badgeText = prod.discount || 'Special Offer';
+  } else if (prod.badge && prod.badge !== 'Special Offer') {
+    badgeText = prod.badge;
+  }
+
+  const baseLink = prod.link && prod.link.includes('?id=') ? prod.link : `/product-details?id=${prod.id}`;
+  const productDetailLink = selectedColor
+    ? `${baseLink}${baseLink.includes('?') ? '&' : '?'}color=${encodeURIComponent(selectedColor)}`
+    : baseLink;
+
+  return (
+    <div className={colClass}>
+      <div className="product-cart-wrap uniform-product-card w-100 d-flex flex-column">
+        {/* Top image wrap with Top-Left Badge & Top-Right Circular View Button */}
+        <div className="product-img-action-wrap position-relative">
+          {/* Top-Left Badge */}
+          <span className={`ref-card-badge ${isTopSearched ? 'ref-card-badge-top-searched' : hasOffer ? 'ref-card-badge-offer' : isNewArrival ? 'ref-card-badge-new' : ''}`}>{badgeText}</span>
+
+          {/* Top-Right Circular View Button ("Eye" icon) */}
+          <Link
+            href={productDetailLink}
+            className="ref-card-top-view"
+            aria-label="View Product Details"
+            title="View Product Details"
+            onClick={() => onProductClick(prod.id)}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+              <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+              <circle cx="12" cy="12" r="3" fill="#334155" />
+            </svg>
+          </Link>
+
+          {/* Main Image & Multi-Angle Slider with navigation */}
+          <ProductCardImageSlider
+            productId={prod.id}
+            title={prod.title}
+            link={productDetailLink}
+            image={
+              (prod.image && !prod.image.includes('p1.jpg'))
+                ? prod.image
+                : (prod.img && !prod.img.includes('p1.jpg'))
+                  ? prod.img
+                  : (prod.colorImages && Object.values(prod.colorImages).flat().find((u) => Boolean(u && typeof u === 'string' && !u.includes('p1.jpg')))) || ''
+            }
+            images={prod.images}
+            colorImages={prod.colorImages}
+            selectedColor={selectedColor}
+            onProductClick={onProductClick}
+          />
+        </div>
+
+        {/* Product Content Wrap */}
+        <div className="product-content-wrap d-flex flex-column flex-grow-1 justify-content-between">
+          <div>
+            {/* Category above Title (Matching Reference Image) */}
+            <span
+              className="d-block text-muted text-capitalize"
+              style={{
+                fontSize: '12.5px',
+                fontWeight: 500,
+                color: '#8c9097',
+                marginBottom: '3px',
+                letterSpacing: '0.2px',
+              }}
+            >
+              {prod.category
+                ? prod.category.replace(/[-_]/g, ' ').split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+                : 'Safety Equipment'}
+            </span>
+
+            {/* Product Title (20px bold) */}
+            <h2 className="new-prod-title">
+              <Link
+                href={productDetailLink}
+                onClick={() => onProductClick(prod.id)}
+              >
+                {prod.title}
+              </Link>
+            </h2>
+
+            {/* Star Rating with Review Count (Matching Reference Card) */}
+            <div className="product-rate d-flex align-items-center mb-2" style={{ gap: '5px' }}>
+              <span style={{ color: '#f59e0b', fontSize: '14px', lineHeight: 1 }}>★</span>
+              <span className="rating-score fw-bold" style={{ fontSize: '13px', color: '#0f172a' }}>
+                {prod.rating ? String(prod.rating).replace('/5', '') : '4.6'}
+              </span>
+              <span className="rating-reviews" style={{ fontSize: '12.5px', color: '#64748b' }}>
+                ({prod.reviews ? String(prod.reviews).replace(/[^0-9]/g, '') || '89' : '89'} reviews)
+              </span>
+            </div>
+
+            {/* Product Price & Discount Badge */}
+            <div className="new-prod-price-box mb-2">
+              <div className="d-flex align-items-center" style={{ gap: '8px', flexWrap: 'wrap' }}>
+                <span className="new-prod-current-price">{prod.price}</span>
+                {hasOffer && prod.oldPrice && (
+                  <span className="new-prod-old-price">{prod.oldPrice}</span>
+                )}
+                {isLimitedOffer ? (
+                  <span className="badge" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', fontSize: '11px', padding: '4px 7px' }}>
+                    {limitedOfferDaysLeft === null
+                      ? 'LIMITED SALE'
+                      : limitedOfferDaysLeft === 0
+                        ? 'Ends Today'
+                        : `${limitedOfferDaysLeft} ${limitedOfferDaysLeft === 1 ? 'Day' : 'Days'} Left`}
+                  </span>
+                ) : hasOffer ? (
+                  <span className="badge" style={{ backgroundColor: '#dc2626', color: '#ffffff', fontSize: '11px', padding: '4px 7px' }}>OFFER</span>
+                ) : null}
+                {isNewArrival && <span className="badge" style={{ backgroundColor: '#16a34a', color: '#ffffff', fontSize: '11px', padding: '4px 7px' }}>NEW</span>}
+              </div>
+              <div className="new-prod-vat-label">Inclusive of VAT</div>
+
+              {/* Color Swatches below Price (with interactive click to change image) */}
+              <div className="new-prod-colors-wrap d-flex align-items-center gap-1.5" style={{ minHeight: '22px' }}>
+                {Array.isArray(prod.colors) && prod.colors.length > 0 ? (
+                  prod.colors.map((colorName: string, cIdx: number) => {
+                    const colorInfo = getProductColorInfo(colorName);
+                    const isSelected = selectedColor
+                      ? selectedColor.toLowerCase() === colorName.toLowerCase()
+                      : cIdx === 0;
+
+                    return (
+                      <button
+                        key={`${prod.id}-color-${colorName}-${cIdx}`}
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setSelectedColor(colorName);
+                        }}
+                        title={`Color: ${colorName}`}
+                        aria-label={`Select color ${colorName}`}
+                        style={{
+                          width: '14px',
+                          height: '14px',
+                          padding: 0,
+                          borderRadius: '50%',
+                          backgroundColor: colorInfo.hex,
+                          border: colorInfo.border ? `1px solid ${colorInfo.border}` : '1px solid rgba(0, 0, 0, 0.15)',
+                          boxShadow: isSelected
+                            ? '0 0 0 1.5px #ffffff, 0 0 0 2.5px #0f172a'
+                            : 'none',
+                          display: 'inline-block',
+                          cursor: 'pointer',
+                          transition: 'transform 0.15s ease, box-shadow 0.15s ease',
+                          outline: 'none',
+                        }}
+                        onMouseEnter={(e) => {
+                          (e.currentTarget as HTMLElement).style.transform = 'scale(1.25)';
+                        }}
+                        onMouseLeave={(e) => {
+                          (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
+                        }}
+                      />
+                    );
+                  })
+                ) : (
+                  <span style={{ display: 'inline-block', height: '14px', visibility: 'hidden' }}>&nbsp;</span>
+                )}
+              </div>
+            </div>
+
+            {/* Product Description */}
+            <p className="new-prod-desc">{prod.desc}</p>
+
+            {/* Express Delivery Badge & Gender Tag */}
+            <div className="mb-2 d-flex align-items-center gap-2 flex-wrap">
+              <span className="express-delivery-badge">
+                <i className="fi-rs-bolt"></i>Express Delivery
+              </span>
+              {prod.gender && (
+                <span className="product-gender-badge">
+                  {prod.gender}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Reference Card Bottom Action Bar */}
+          <div className="product-card-bottom d-flex align-items-center gap-2 mt-auto">
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              className="btn-add-cart-wide"
+              title="Add to Cart"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+                <line x1="3" y1="6" x2="21" y2="6"></line>
+                <path d="M16 10a4 4 0 0 1-8 0"></path>
+              </svg>
+              Add to Cart
+            </button>
+            <button
+              type="button"
+              aria-label="Add To Wishlist"
+              className={`btn-wishlist-square ${isWishlisted ? 'active' : ''}`}
+              onClick={() => onToggleWishlist(prod.id)}
+              title="Add to Wishlist"
+            >
+              <i className={`fi-rs-heart ${isWishlisted ? 'fill-heart text-danger' : ''}`}></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function HomePage() {
   const [activeSlide, setActiveSlide] = useState(0);
@@ -118,6 +427,24 @@ export default function HomePage() {
       window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
+
+  // Auto-play main hero slider (every 7.5 seconds - smooth & elegant)
+  useEffect(() => {
+    if (heroSlides.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 7500);
+    return () => clearInterval(interval);
+  }, [heroSlides.length]);
+
+  // Auto-play promotion banner slider (every 7 seconds)
+  useEffect(() => {
+    if (sideBannerSlides.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveSideSlide((prev) => (prev + 1) % sideBannerSlides.length);
+    }, 7000);
+    return () => clearInterval(interval);
+  }, [sideBannerSlides.length]);
 
   // Fetch dynamic categories & listen for real-time updates across tabs & dashboard
   useEffect(() => {
@@ -270,18 +597,14 @@ export default function HomePage() {
     }
   }, [shopCategories.length, activeCatIndex]);
 
-  // Bounds safety checks for active slide indices
+  // Bounds safety checks for active slide indices (reset if banner list decreases)
   useEffect(() => {
-    if (activeSlide >= heroSlides.length) {
-      setActiveSlide(0);
-    }
-  }, [heroSlides.length, activeSlide]);
+    setActiveSlide((prev) => (heroSlides.length > 0 && prev >= heroSlides.length ? 0 : prev));
+  }, [heroSlides.length]);
 
   useEffect(() => {
-    if (activeSideSlide >= sideBannerSlides.length) {
-      setActiveSideSlide(0);
-    }
-  }, [sideBannerSlides.length, activeSideSlide]);
+    setActiveSideSlide((prev) => (sideBannerSlides.length > 0 && prev >= sideBannerSlides.length ? 0 : prev));
+  }, [sideBannerSlides.length]);
 
   const scrollNewProd = (direction: 'prev' | 'next') => {
     if (newProdScrollRef.current) {
@@ -308,651 +631,88 @@ export default function HomePage() {
     }
   };
 
-  const [activeNewProdIndex, setActiveNewProdIndex] = useState(0);
   const [wishlist, setWishlist] = useState<{ [key: string]: boolean }>({});
 
   const toggleWishlist = (id: string) => {
     setWishlist((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
-  const newProducts = [
-    {
-      id: 'np-1',
-      title: 'GuardianPro Vented Hard Hat with Ratchet Suspension',
-      desc: 'High-density impact shell with adjustable 4-point ratchet suspension and ventilation slots.',
-      img: '/assets/imgs/shop/pr1.jpg',
+  // Derive dynamic lists strictly from catalogProducts (synced live with dashboard products)
+  // 1. New Arrivals: ONLY show new arrival products from dashboard (strictly NO dummy fallbacks)
+  const displayedNewProducts = catalogProducts
+    .filter((p) => p.isNewArrival !== false && p.isActive !== false)
+    .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
+    .map((p) => ({
+      ...p,
+      id: p.id,
+      title: p.title,
+      category: p.category || (p as any).categoryName || 'Safety Equipment',
+      colors: p.colors || [],
+      colorImages: p.colorImages || {},
+      desc: p.desc || 'Certified workplace safety and protection equipment.',
+      img: p.image || '/assets/imgs/shop/pr1.jpg',
       badge: 'New Arrival',
-      badgeClass: 'new',
-      price: '149 SR',
-      rating: '4.9/5',
-      reviews: '1420 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'np-2',
-      title: 'IronClad S3 Steel Toe Waterproof Work Safety Boots',
-      desc: 'Heavy-duty steel toe cap with puncture-resistant Kevlar midsole and slip-resistant PU outsole.',
-      img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'New Arrival',
-      badgeClass: 'new',
-      price: '289 SR',
-      rating: '4.8/5',
-      reviews: '2190 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'np-3',
-      title: 'ArmorFlex Level 5 Cut Resistant Nitrile Work Gloves',
-      desc: 'Seamless HPPE knit fiber providing maximum Level 5 cut protection with enhanced sandy nitrile grip.',
-      img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'New Arrival',
-      badgeClass: 'new',
-      price: '65 SR',
-      rating: '5.0/5',
-      reviews: '980 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'np-4',
-      title: 'OptiShield Anti-Fog UV400 Industrial Safety Goggles',
-      desc: 'Panoramic wraparound polycarbonate lens with anti-scratch coating and 99.9% UV radiation blocking.',
-      img: '/assets/imgs/shop/pr1.jpg',
-      badge: 'New Arrival',
-      badgeClass: 'new',
-      price: '79 SR',
-      rating: '4.9/5',
-      reviews: '1650 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'np-5',
-      title: 'ProReflect Class 3 High-Visibility Weatherproof Jacket',
-      desc: 'ANSI/ISEA Class 3 compliant waterproof Oxford fabric with 3M reflective tape for night visibility.',
-      img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'New Arrival',
-      badgeClass: 'new',
-      price: '199 SR',
-      rating: '4.7/5',
-      reviews: '890 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'np-6',
-      title: 'Full Body Fall Arrest Safety Harness with Shock Absorber',
-      desc: 'OSHA certified ergonomic fall protection harness with dorsal D-ring and energy-absorbing lanyard.',
-      img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'New Arrival',
-      badgeClass: 'new',
-      price: '349 SR',
-      rating: '5.0/5',
-      reviews: '740 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'np-7',
-      title: 'Half-Face Dual Cartridge Chemical Respirator Mask',
-      desc: 'Medical-grade silicone facepiece with dual cartridge filtration against toxic fumes and dust particles.',
-      img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'New Arrival',
-      badgeClass: 'new',
-      price: '175 SR',
-      rating: '4.9/5',
-      reviews: '1120 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'np-8',
-      title: 'Laser-Gard Heavy Duty Sound Cancelling Ear Defenders',
-      desc: 'Industrial 34dB SNR noise reduction ear muffs with cushioned headband for prolonged loud environments.',
-      img: '/assets/imgs/shop/pr1.jpg',
-      badge: 'New Arrival',
-      badgeClass: 'new',
-      price: '96 SR',
-      rating: '4.9/5',
-      reviews: '1310 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'np-9',
-      title: 'DuraShield Chemical Resistant Heavy Neoprene Coverall',
-      desc: 'Heavyweight chemical splash protective suit with sealed seams for hazardous material operations.',
-      img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'New Arrival',
-      badgeClass: 'new',
-      price: '225 SR',
-      rating: '4.8/5',
-      reviews: '640 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'np-10',
-      title: 'ThermalGrip Insulated Cold-Store Heavy Work Gloves',
-      desc: 'Thermal fleece lined waterproof winter work gloves with textured palm for sub-zero warehouse handling.',
-      img: '/assets/imgs/shop/pr1.jpg',
-      badge: 'New Arrival',
-      badgeClass: 'new',
-      price: '74 SR',
-      rating: '4.9/5',
-      reviews: '830 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'np-11',
-      title: 'AirFlow Powered Air Purifying Heavy Hood System',
-      desc: 'PAPR constant positive pressure blower unit with HEPA filter and wide-vision impact visor.',
-      img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'New Arrival',
-      badgeClass: 'new',
-      price: '480 SR',
-      rating: '5.0/5',
-      reviews: '410 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'np-12',
-      title: 'VoltGuard 1000V Dielectric High-Voltage Safety Boots',
-      desc: 'Individually tested dielectric rubber safety boots certified for high-voltage utility electrical hazard protection.',
-      img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'New Arrival',
-      badgeClass: 'new',
-      price: '310 SR',
-      rating: '4.9/5',
-      reviews: '920 - Reviews',
-      link: '/product-details'
-    }
-  ];
+      badgeClass: 'new' as const,
+      price: p.price,
+      oldPrice: p.oldPrice,
+      discount: p.discount,
+      rating: p.rating ? `${p.rating}/5` : '5.0/5',
+      reviews: p.reviews ? `${p.reviews} - Reviews` : '0 - Reviews',
+      link: `/product-details?id=${p.id}`,
+    }));
 
-
-
-  const mostSearchedProducts = [
-    {
-      id: 'ms-1',
-      title: 'DeltaPlus Diamond V Ergonomic Baseball Hard Hat',
-      desc: 'Innovative baseball cap shape safety helmet with reflective bands and adjustable rotor headband.',
-      img: '/assets/imgs/shop/pr1.jpg',
+  // 2. Most Searched: ONLY show most searched/ranked products from dashboard (strictly NO dummy fallbacks)
+  const displayedMostSearched = [...catalogProducts]
+    .filter((p) => p.isActive !== false)
+    .sort((a, b) => ((b.clicks || 0) + (b.views || 0)) - ((a.clicks || 0) + (a.views || 0)))
+    .map((p) => ({
+      ...p,
+      id: p.id,
+      title: p.title,
+      category: p.category || (p as any).categoryName || 'Safety Equipment',
+      colors: p.colors || [],
+      colorImages: p.colorImages || {},
+      desc: p.desc || 'High-performance certified workplace protection equipment.',
+      img: p.image || '/assets/imgs/shop/pr2.jpg',
       badge: 'Top Searched',
-      badgeClass: 'new',
-      oldPrice: '145 SR',
-      discount: '18% OFF',
-      price: '119 SR',
-      rating: '4.9/5',
-      reviews: '1840 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'ms-2',
-      title: 'Uvex Pheos CX2 Anti-Glare High-Clarity Safety Glasses',
-      desc: 'Direct-injected soft forehead and nose piece with permanent anti-fog interior and scratch-resistant exterior.',
-      img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'Trending',
-      badgeClass: 'hot',
-      oldPrice: '105 SR',
-      discount: '19% OFF',
-      price: '85 SR',
-      rating: '4.8/5',
-      reviews: '2420 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'ms-3',
-      title: 'Ansell HyFlex 11-840 Multi-Purpose Abrasion Resistant Gloves',
-      desc: 'FORTIX abrasive nitrile coating with ultra-thin ergonomic breathable liner for precision manual dexterity.',
-      img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'Best Seller',
-      badgeClass: 'hot',
-      price: '48 SR',
-      rating: '5.0/5',
-      reviews: '3190 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'ms-4',
-      title: 'Caterpillar Holton S3 Heavy Duty Leather Work Boots',
-      desc: 'Full-grain water-repellent leather with Goodyear welted construction and puncture-proof steel midsole.',
-      img: '/assets/imgs/shop/pr1.jpg',
-      badge: 'Top Searched',
-      badgeClass: 'new',
-      oldPrice: '395 SR',
-      discount: '12% OFF',
-      price: '345 SR',
-      rating: '4.9/5',
-      reviews: '1580 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'ms-5',
-      title: 'Portwest Hi-Vis Multi-Pocket Executive Safety Vest',
-      desc: 'Dual ID holder with radio loop, smartphone pocket, and certified EN ISO 20471 Class 2 reflective strips.',
-      img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'Trending',
-      badgeClass: 'hot',
-      oldPrice: '65 SR',
-      discount: '20% OFF',
-      price: '52 SR',
-      rating: '4.7/5',
-      reviews: '920 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'ms-6',
-      title: '3M Aura 9320A+ FFP2 Particulate Foldable Respirator (Box of 20)',
-      desc: '3-panel flat-fold design with low breathing resistance filter technology and sculptured top nose panel.',
-      img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'Top Searched',
-      badgeClass: 'new',
-      price: '135 SR',
-      rating: '4.9/5',
-      reviews: '2750 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'ms-7',
-      title: 'MSA V-Gard 500 Vented Industrial Safety Helmet with Fas-Trac III',
-      desc: 'UV-stabilized ABS shell with cooling vents, rain trough edge, and 4-point ratchet suspension system.',
-      img: '/assets/imgs/shop/pr1.jpg',
-      badge: 'Best Seller',
-      badgeClass: 'hot',
-      oldPrice: '190 SR',
-      discount: '15% OFF',
-      price: '160 SR',
-      rating: '4.8/5',
-      reviews: '1230 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'ms-8',
-      title: 'Honeywell Miller Revolution R2 Full Body Fall Protection Harness',
-      desc: 'DualTech webbing with shape-retention memory, quick-connect chest and leg buckles, and pivotlink design.',
-      img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'Top Searched',
-      badgeClass: 'new',
-      price: '389 SR',
-      rating: '5.0/5',
-      reviews: '690 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'ms-9',
-      title: 'DuPont Tyvek 500 Chemical & Particle Protective Hooded Coverall',
-      desc: 'Breathable high-density polyethylene barrier fabric protecting against airborne particulates and hazardous light chemical splash.',
-      img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'Top Searched',
-      badgeClass: 'new',
-      oldPrice: '95 SR',
-      discount: '15% OFF',
-      price: '80 SR',
-      rating: '4.9/5',
-      reviews: '1940 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'ms-10',
-      title: 'Dräger X-plore 3500 Twin-Filter Chemical Half Mask Respirator',
-      desc: 'Ergonomic DrägerFlex material with low-profile backward filter position providing optimal peripheral vision and seal.',
-      img: '/assets/imgs/shop/pr1.jpg',
-      badge: 'Best Seller',
-      badgeClass: 'hot',
-      price: '165 SR',
-      rating: '4.8/5',
-      reviews: '1150 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'ms-11',
-      title: 'Timberland PRO Pit Boss 6-Inch Steel Toe Heavy Work Boots',
-      desc: 'Rugged oiled leather with PRO 24/7 comfort suspension system and heat/oil resistant non-marking rubber outsole.',
-      img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'Trending',
-      badgeClass: 'hot',
-      oldPrice: '420 SR',
-      discount: '10% OFF',
-      price: '378 SR',
-      rating: '4.9/5',
-      reviews: '2890 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'ms-12',
-      title: 'Bolle Safety Contour Smoke Lens Ultra-Lightweight Eyewear',
-      desc: 'Featherlight 21g frame with non-slip TIPGRIP temples and platinum anti-fog/anti-scratch ballistic lens coating.',
-      img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'In Stock',
-      badgeClass: 'new',
-      price: '62 SR',
-      rating: '4.7/5',
-      reviews: '1430 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'ms-13',
-      title: 'Showa 377 Nitrile Coated Heavy Duty Mechanical Grip Gloves',
-      desc: 'Double nitrile coating with extra foam nitrile palm finish for superior oily grip and mechanical abrasion resistance.',
-      img: '/assets/imgs/shop/pr1.jpg',
-      badge: 'Top Searched',
-      badgeClass: 'new',
-      oldPrice: '75 SR',
-      discount: '20% OFF',
-      price: '60 SR',
-      rating: '5.0/5',
-      reviews: '2210 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'ms-14',
-      title: 'KStrong Kapture Elite Tower Harness with Comfort Lumbar Belt',
-      desc: 'Full body fall protection harness with front, dorsal, and side positioning D-rings plus breathable ergonomic padding.',
-      img: '/assets/imgs/shop/pr2.jpg',
-      badge: 'Limited Stock',
-      badgeClass: 'hot',
-      price: '495 SR',
-      rating: '4.9/5',
-      reviews: '580 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'ms-15',
-      title: '3M Peltor Optime III Extreme High-Noise Ear Muffs (35dB SNR)',
-      desc: 'Double-casing cup technology minimizing resonance in severe high-frequency noise environments like power plants.',
-      img: '/assets/imgs/shop/pr3.jpg',
-      badge: 'Best Seller',
-      badgeClass: 'hot',
-      oldPrice: '155 SR',
-      discount: '16% OFF',
-      price: '130 SR',
-      rating: '4.8/5',
-      reviews: '1720 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'ms-16',
-      title: 'Red Wing PetroKing S3 Anti-Static Oil & Gas Industry Safety Boots',
-      desc: 'Full grain leather with puncture-resistant insole and Vibram rubber sole certified for hazardous refinery sites.',
-      img: '/assets/imgs/shop/pr1.jpg',
-      badge: 'Trending',
-      badgeClass: 'new',
-      price: '520 SR',
-      rating: '5.0/5',
-      reviews: '3410 - Reviews',
-      link: '/product-details'
-    }
-  ];
+      badgeClass: 'top-searched' as const,
+      collectionStatus: p.offerEndDate ? 'limited' : p.isSpecialOffer ? 'offer' : p.isNewArrival !== false ? 'new' : undefined,
+      isSpecialOffer: p.isSpecialOffer,
+      isNewArrival: p.isNewArrival,
+      offerEndDate: p.offerEndDate,
+      price: p.price,
+      oldPrice: p.oldPrice,
+      discount: p.discount,
+      rating: p.rating ? `${p.rating}/5` : '5.0/5',
+      reviews: p.reviews ? `${p.reviews} - Reviews` : '0 - Reviews',
+      link: `/product-details?id=${p.id}`,
+    }));
 
-
-
-  const onsaleProducts = [
-    {
-      id: 'onsale-1',
-      title: 'ErgoGrip Anti-Vibration Heavy Impact Mechanics Gloves',
-      desc: 'Engineered with reinforced palm padding and high-dexterity grip for heavy tools.',
-      img: '/assets/imgs/shop/pr3.jpg',
-      badge: '22% OFF',
-      badgeClass: 'hot',
-      price: '125 SR',
-      oldPrice: '160 SR',
-      discount: '22% OFF',
-      rating: '4.8/5',
-      reviews: '1350 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'onsale-2',
-      title: 'UltraComfort S1P Lightweight Breathable Safety Sneakers',
-      desc: 'Ultra-flexible composite toe protection with breathable mesh lining for all-day wear.',
-      img: '/assets/imgs/shop/pr2.jpg',
-      badge: '16% OFF',
-      badgeClass: 'hot',
-      price: '219 SR',
-      oldPrice: '260 SR',
-      discount: '16% OFF',
-      rating: '4.9/5',
-      reviews: '2850 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'onsale-3',
-      title: 'Multi-Gas Dual Cartridge Respirator Half-Mask Protection',
-      desc: 'Dual filtration system protecting against organic vapors, acid gases and fine dust.',
-      img: '/assets/imgs/shop/pr1.jpg',
-      badge: '14% OFF',
-      badgeClass: 'hot',
-      price: '189 SR',
-      oldPrice: '220 SR',
-      discount: '14% OFF',
-      rating: '4.7/5',
-      reviews: '920 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'onsale-4',
-      title: 'Heavy Duty Fall Arrest Body Harness with Lanyard System',
-      desc: 'Full-body 5-point harness with energy-absorbing lanyard and forged steel carabiners.',
-      img: '/assets/imgs/shop/pr3.jpg',
-      badge: '17% OFF',
-      badgeClass: 'hot',
-      price: '299 SR',
-      oldPrice: '360 SR',
-      discount: '17% OFF',
-      rating: '5.0/5',
-      reviews: '650 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'onsale-5',
-      title: 'High-Visibility Class 2 Reflective Mesh Work Safety Vest',
-      desc: 'Breathable polyester mesh with 360-degree high-reflectivity strips and zipper closure.',
-      img: '/assets/imgs/shop/pr2.jpg',
-      badge: '25% OFF',
-      badgeClass: 'hot',
-      price: '45 SR',
-      oldPrice: '60 SR',
-      discount: '25% OFF',
-      rating: '4.8/5',
-      reviews: '1100 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'onsale-6',
-      title: 'Industrial Emergency 50-Person Workplace OSHA First Aid Kit',
-      desc: 'Complete medical first aid supply box tailored for construction and warehouse crews.',
-      img: '/assets/imgs/shop/pr1.jpg',
-      badge: '18% OFF',
-      badgeClass: 'hot',
-      price: '160 SR',
-      oldPrice: '195 SR',
-      discount: '18% OFF',
-      rating: '4.9/5',
-      reviews: '430 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'onsale-7',
-      title: 'ThermoGuard Flame Retardant Arc Flash Protection Coverall',
-      desc: 'Treated flame-resistant fabric certified for electrical arc flash and heat protection.',
-      img: '/assets/imgs/shop/pr2.jpg',
-      badge: '16% OFF',
-      badgeClass: 'hot',
-      price: '380 SR',
-      oldPrice: '450 SR',
-      discount: '16% OFF',
-      rating: '5.0/5',
-      reviews: '510 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'onsale-8',
-      title: 'OptiClear Anti-Scratch Panoramic Safety Face Shield Visor',
-      desc: 'Full-face polycarbonate shield offering high-velocity impact protection and clarity.',
-      img: '/assets/imgs/shop/pr1.jpg',
-      badge: '20% OFF',
-      badgeClass: 'hot',
-      price: '68 SR',
-      oldPrice: '85 SR',
-      discount: '20% OFF',
-      rating: '4.7/5',
-      reviews: '780 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'onsale-9',
-      title: 'SteelMax Metatarsal Protection S3 Heavy Duty Work Boots',
-      desc: 'Integrated internal metatarsal guard with puncture-resistant steel midsole.',
-      img: '/assets/imgs/shop/pr3.jpg',
-      badge: '18% OFF',
-      badgeClass: 'hot',
-      price: '310 SR',
-      oldPrice: '380 SR',
-      discount: '18% OFF',
-      rating: '4.9/5',
-      reviews: '1420 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'onsale-10',
-      title: 'SilentPro 34dB SNR Helmet-Mounted Industrial Ear Defenders',
-      desc: 'Universal slot-mount hearing protection with soft memory foam acoustic cushions.',
-      img: '/assets/imgs/shop/pr1.jpg',
-      badge: '23% OFF',
-      badgeClass: 'hot',
-      price: '85 SR',
-      oldPrice: '110 SR',
-      discount: '23% OFF',
-      rating: '4.8/5',
-      reviews: '890 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'onsale-11',
-      title: 'ChemicalMaster Heavy Duty Chemical Resistant Gauntlet Gloves',
-      desc: 'Thick chemical-proof nitrile formulation with textured grip for wet chemical handling.',
-      img: '/assets/imgs/shop/pr3.jpg',
-      badge: '24% OFF',
-      badgeClass: 'hot',
-      price: '42 SR',
-      oldPrice: '55 SR',
-      discount: '24% OFF',
-      rating: '4.9/5',
-      reviews: '620 - Reviews',
-      link: '/product-details'
-    },
-    {
-      id: 'onsale-12',
-      title: 'High-Altitude Emergency Rescue Descender Harness System',
-      desc: 'Controlled rate friction descender with durable braided kernmantle rope system.',
-      img: '/assets/imgs/shop/pr2.jpg',
-      badge: '15% OFF',
-      badgeClass: 'hot',
-      price: '460 SR',
-      oldPrice: '540 SR',
-      discount: '15% OFF',
-      rating: '5.0/5',
-      reviews: '310 - Reviews',
-      link: '/product-details'
-    }
-  ];
-
-  // Derive dynamic lists from catalogProducts (synced live with dashboard products)
-  // 1. New Arrivals: ONLY show new products (strictly NO offers/discounts, and ONLY 'New Arrival' label)
-  const dynamicNewProducts = catalogProducts.length > 0
-    ? catalogProducts
-        .filter((p) => p.isNewArrival !== false && p.isActive !== false && p.isSpecialOffer !== true && !p.discount)
-        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))
-        .map((p) => ({
-          id: p.id,
-          title: p.title,
-          desc: p.desc || 'Certified workplace safety and protection equipment.',
-          img: p.image || '/assets/imgs/shop/pr1.jpg',
-          badge: 'New Arrival',
-          badgeClass: 'new' as const,
-          price: p.price,
-          rating: p.rating ? `${p.rating}/5` : '5.0/5',
-          reviews: p.reviews ? `${p.reviews} - Reviews` : '120 - Reviews',
-          link: `/product-details?id=${p.id}`,
-        }))
-    : [];
-
-  const fallbackNewProducts = newProducts.map((p) => ({ ...p, badge: 'New Arrival', link: `/product-details?id=${p.id}` }));
-
-  const displayedNewProducts = dynamicNewProducts.length > 0
-    ? dynamicNewProducts
-    : fallbackNewProducts;
-
-  // 2. Most Searched: ONLY show most searched products
-  const displayedMostSearched = catalogProducts.length > 0
-    ? [...catalogProducts]
-        .filter((p) => (p.isMostSearched === true || (p.clicks || 0) + (p.views || 0) > 0 || p.badgeClass === 'hot') && p.isActive !== false)
-        .sort((a, b) => ((b.clicks || 0) + (b.views || 0)) - ((a.clicks || 0) + (a.views || 0)))
-        .map((p) => ({
-          id: p.id,
-          title: p.title,
-          desc: p.desc || 'High-performance certified workplace protection equipment.',
-          img: p.image || '/assets/imgs/shop/pr2.jpg',
-          badge: 'Top Searched',
-          badgeClass: 'top-searched' as const,
-          collectionStatus: p.offerEndDate ? 'limited' : p.isSpecialOffer ? 'offer' : p.isNewArrival !== false ? 'new' : undefined,
-          isSpecialOffer: p.isSpecialOffer,
-          isNewArrival: p.isNewArrival,
-          offerEndDate: p.offerEndDate,
-          price: p.price,
-          oldPrice: p.oldPrice,
-          discount: p.discount,
-          rating: p.rating ? `${p.rating}/5` : '4.9/5',
-          reviews: p.reviews ? `${p.reviews} - Reviews` : '200 - Reviews',
-          link: `/product-details?id=${p.id}`,
-        }))
-    : mostSearchedProducts.map((p) => ({
+  // 3. Special Offers: ONLY show products where isSpecialOffer is explicitly TRUE from dashboard (strictly NO dummy fallbacks)
+  const displayedOnsale = catalogProducts
+    .filter((p) => (p.isSpecialOffer === true || Boolean(p.discount)) && !p.offerEndDate && p.isActive !== false)
+    .map((p) => {
+      const discountText = p.discount || (p.offerPercent ? `${p.offerPercent}% OFF` : '');
+      return {
         ...p,
-        badge: 'Top Searched',
-        badgeClass: 'top-searched' as const,
-        collectionStatus: p.discount ? 'offer' : p.badgeClass === 'new' ? 'new' : undefined,
+        id: p.id,
+        title: p.title,
+        category: p.category || (p as any).categoryName || 'Safety Equipment',
+        colors: p.colors || [],
+        colorImages: p.colorImages || {},
+        desc: p.desc || 'Special discounted offer on certified PPE supplies.',
+        img: p.image || '/assets/imgs/shop/pr3.jpg',
+        badge: discountText || p.badge || 'Special Offer',
+        badgeClass: 'hot' as const,
+        isSpecialOffer: true,
+        price: p.price,
+        oldPrice: p.oldPrice,
+        discount: discountText,
+        rating: p.rating ? `${p.rating}/5` : '5.0/5',
+        reviews: p.reviews ? `${p.reviews} - Reviews` : '0 - Reviews',
         link: `/product-details?id=${p.id}`,
-      }));
-
-  // 3. Special Offers: ONLY show products where isSpecialOffer is explicitly TRUE
-  const dynamicOnsale = catalogProducts.length > 0
-    ? catalogProducts
-        .filter((p) => p.isSpecialOffer === true && !p.offerEndDate && p.isActive !== false)
-        .map((p) => {
-          const discountText = p.discount || (p.offerPercent ? `${p.offerPercent}% OFF` : '');
-          return {
-            id: p.id,
-            title: p.title,
-            desc: p.desc || 'Special discounted offer on certified PPE supplies.',
-            img: p.image || '/assets/imgs/shop/pr3.jpg',
-            badge: discountText || p.badge || 'Special Offer',
-            badgeClass: 'hot' as const,
-            isSpecialOffer: true,
-            price: p.price,
-            oldPrice: p.oldPrice,
-            discount: discountText,
-            rating: p.rating ? `${p.rating}/5` : '5.0/5',
-            reviews: p.reviews ? `${p.reviews} - Reviews` : '150 - Reviews',
-            link: `/product-details?id=${p.id}`,
-          };
-        })
-    : [];
-
-  const displayedOnsale = dynamicOnsale.length > 0
-    ? dynamicOnsale
-    : onsaleProducts.map((p) => ({ ...p, link: `/product-details?id=${p.id}` }));
-
-  const newProductPairs: any[] = [];
-  const halfCount = Math.ceil(displayedNewProducts.length / 2);
-  for (let i = 0; i < halfCount; i++) {
-    newProductPairs.push([displayedNewProducts[i], displayedNewProducts[i + halfCount]].filter(Boolean));
-  }
-
-  const mostSearchedPairs: any[] = [];
-  for (let i = 0; i < displayedMostSearched.length; i += 2) {
-    mostSearchedPairs.push(displayedMostSearched.slice(i, i + 2));
-  }
-
-  // Auto slide for Main Hero Slider (5300ms)
-  useEffect(() => {
-    const mainTimer = setInterval(() => {
-      setActiveSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 5300);
-    return () => clearInterval(mainTimer);
-  }, [heroSlides.length]);
+      };
+    });
 
     // Smooth scroll handler for Browse by Safety Categories
   const scrollBrowseCat = (direction: 'prev' | 'next') => {
@@ -989,14 +749,6 @@ export default function HomePage() {
     }, 3500);
     return () => clearInterval(catTimer);
   }, [isCatHovered]);
-
-  // Auto slide for Second Banner Slider (3800ms)
-  useEffect(() => {
-    const sideTimer = setInterval(() => {
-      setActiveSideSlide((prev) => (prev + 1) % sideBannerSlides.length);
-    }, 3800);
-    return () => clearInterval(sideTimer);
-  }, [sideBannerSlides.length]);
 
   const handlePrevCat = () => {
     scrollBrowseCat('prev');
@@ -1054,153 +806,19 @@ export default function HomePage() {
     }
   };
 
-  const handlePrevNewProd = () => {
-    setActiveNewProdIndex((prev) => (prev <= 0 ? newProducts.length - 4 : prev - 1));
-  };
 
-  const handleNextNewProd = () => {
-    setActiveNewProdIndex((prev) => (prev >= newProducts.length - 4 ? 0 : prev + 1));
-  };
 
-  // Reusable 2-Row Product Card Renderer (Reference Shoe Card Layout)
-  const renderProductCard = (prod: any, colClass: string) => {
-    const isWishlisted = Boolean(wishlist[prod.id]);
-    const isLimitedOffer = prod.collectionStatus === 'limited' || Boolean(prod.offerEndDate);
-    const hasOffer = prod.collectionStatus === 'offer' || isLimitedOffer || ((prod.isSpecialOffer === true || prod.badgeClass === 'hot') && Boolean(prod.discount || prod.badge));
-    const isNewArrival = prod.collectionStatus === 'new' || (!hasOffer && (prod.badge === 'New Arrival' || prod.badgeClass === 'new'));
-    const isTopSearched = prod.badge === 'Top Searched';
-    const limitedOfferDaysLeft = prod.offerEndDate
-      ? Math.max(0, Math.ceil((new Date(`${prod.offerEndDate}T23:59:59`).getTime() - Date.now()) / 86400000))
-      : null;
-    
-    let badgeText = 'New Arrival';
-    if (isTopSearched) {
-      badgeText = 'Top Searched';
-    } else if (hasOffer) {
-      badgeText = prod.discount || 'Special Offer';
-    } else if (prod.badge && prod.badge !== 'Special Offer') {
-      badgeText = prod.badge;
-    }
+  const renderProductCard = (prod: any, colClass: string) => (
+    <HomeProductCard
+      key={prod.id}
+      prod={prod}
+      colClass={colClass}
+      isWishlisted={false}
+      onToggleWishlist={() => {}}
+      onProductClick={recordProductClick}
+    />
+  );
 
-    return (
-      <div key={prod.id} className={colClass}>
-        <div className="product-cart-wrap uniform-product-card w-100 d-flex flex-column">
-          {/* Top image wrap with Top-Left Badge & Top-Right Circular Wishlist Heart */}
-          <div className="product-img-action-wrap position-relative">
-            {/* Top-Left Badge */}
-            <span className={`ref-card-badge ${isTopSearched ? 'ref-card-badge-top-searched' : hasOffer ? 'ref-card-badge-offer' : isNewArrival ? 'ref-card-badge-new' : ''}`}>{badgeText}</span>
-
-            {/* Top-Right Circular Wishlist Button */}
-            <button
-              type="button"
-              aria-label="Add To Wishlist"
-              className={`ref-card-top-wishlist ${isWishlisted ? 'active' : ''}`}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                toggleWishlist(prod.id);
-              }}
-              title="Add to Wishlist"
-            >
-              <i className={`fi-rs-heart ${isWishlisted ? 'fill-heart text-danger' : ''}`}></i>
-            </button>
-
-            {/* Main Image & Multi-Angle Slider with navigation */}
-            <ProductCardImageSlider
-              productId={prod.id}
-              title={prod.title}
-              link={prod.link || '/product-details'}
-              image={prod.img || prod.image || '/assets/imgs/shop/pr1.jpg'}
-              images={prod.images}
-              onProductClick={recordProductClick}
-            />
-          </div>
-
-          {/* Product Content Wrap */}
-          <div className="product-content-wrap d-flex flex-column flex-grow-1 justify-content-between">
-            <div>
-              {/* Product Title (20px bold) */}
-              <h2 className="new-prod-title">
-                <Link
-                  href={prod.link && prod.link.includes('?id=') ? prod.link : `/product-details?id=${prod.id}`}
-                  onClick={() => recordProductClick(prod.id)}
-                >
-                  {prod.title}
-                </Link>
-              </h2>
-
-              {/* Star Rating with Review Count (Matching Reference Card) */}
-              <div className="product-rate d-flex align-items-center mb-2">
-                <div className="ref-card-stars me-2">
-                  <span style={{ color: '#0f172a', fontSize: '13px', letterSpacing: '1px' }}>★★★★★</span>
-                </div>
-                <span className="rating-score fw-bold" style={{ fontSize: '13px', color: '#0f172a', marginRight: '4px' }}>
-                  {prod.rating || '4.9/5'}
-                </span>
-                <span className="rating-reviews" style={{ fontSize: '13px', color: '#64748b' }}>
-                  ({prod.reviews || '120 - Reviews'})
-                </span>
-              </div>
-
-              {/* Product Price & Discount Badge (22px bold current price + 14px old price + solid black discount badge) */}
-              <div className="new-prod-price-box mb-2">
-                <div className="d-flex align-items-center" style={{ gap: '8px', flexWrap: 'wrap' }}>
-                  <span className="new-prod-current-price">{prod.price}</span>
-                  {hasOffer && prod.oldPrice && (
-                    <span className="new-prod-old-price">{prod.oldPrice}</span>
-                  )}
-                  {isLimitedOffer ? (
-                    <span className="badge" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', fontSize: '11px', padding: '4px 7px' }}>
-                      {limitedOfferDaysLeft === null
-                        ? 'LIMITED SALE'
-                        : limitedOfferDaysLeft === 0
-                          ? 'Ends Today'
-                          : `${limitedOfferDaysLeft} ${limitedOfferDaysLeft === 1 ? 'Day' : 'Days'} Left`}
-                    </span>
-                  ) : hasOffer ? (
-                    <span className="badge" style={{ backgroundColor: '#dc2626', color: '#ffffff', fontSize: '11px', padding: '4px 7px' }}>OFFER</span>
-                  ) : null}
-                  {isNewArrival && <span className="badge" style={{ backgroundColor: '#16a34a', color: '#ffffff', fontSize: '11px', padding: '4px 7px' }}>NEW</span>}
-                </div>
-                <div className="new-prod-vat-label">Inclusive of VAT</div>
-              </div>
-
-              {/* Product Description (14px, 2 lines clamp, placed below price) */}
-              <p className="new-prod-desc">{prod.desc}</p>
-
-              {/* Express Delivery Badge */}
-              <div className="mb-2">
-                <span className="express-delivery-badge">
-                  <i className="fi-rs-bolt"></i>Express Delivery
-                </span>
-              </div>
-            </div>
-
-            {/* Reference Card Bottom Action Bar (Wide Black Add to Cart + Square Wishlist Button) */}
-            <div className="product-card-bottom d-flex align-items-center gap-2 mt-auto">
-              <Link href="/cart" className="btn-add-cart-wide">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-                  <line x1="3" y1="6" x2="21" y2="6"></line>
-                  <path d="M16 10a4 4 0 0 1-8 0"></path>
-                </svg>
-                Add to Cart
-              </Link>
-              <button
-                type="button"
-                aria-label="Add To Wishlist"
-                className={`btn-wishlist-square ${isWishlisted ? 'active' : ''}`}
-                onClick={() => toggleWishlist(prod.id)}
-                title="Add to Wishlist"
-              >
-                <i className={`fi-rs-heart ${isWishlisted ? 'fill-heart text-danger' : ''}`}></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   // Reusable Product Section Slider:
   // Desktop & Tablet: strictly ONE row of 4 cards per view, smoothly sliding with arrow keys
@@ -1241,120 +859,203 @@ export default function HomePage() {
 
   return (
     <main className="main">
-      {/* 1. Hero Slider Section (Expanded 530px Height & Perfect Image Fitting) */}
-      <section className="home-slider style-2 position-relative section-spacer-mb">
-        <div className="container-fluid">
-          <div className="row">
+      {/* 1. Hero Dual Banner Section (Matching Reference Design & Header Alignment) */}
+      <section className="hero-banner-section section-spacer-mb">
+        <div className="container">
+          <div className="hero-banner-row">
             
-            {/* Left: Main Slider (Expanded Height + Perfect Background Fit + Hover Nav Buttons) */}
-            <div className="col-xl-8 px-0 col-lg-12">
-              <div className="home-slide-cover position-relative">
-                <div className="hero-slider-1 style-4 hero-slider-height-custom position-relative overflow-hidden">
-                  {heroSlides.map((slide, idx) => (
+            {/* Left: Main Hero Slider (Sleek Dark Indigo/Navy Card) */}
+            <div className="hero-main-col">
+              <div className="hero-slider-card">
+                {heroSlides.map((slide, idx) => {
+                  const subtitleText = slide.subtitle || '';
+                  const titleText = slide.title || '';
+                  const descText = slide.desc || '';
+                  const bgImage = slide.image || '/assets/imgs/banner/hero-iphone-16.jpg';
+
+                  return (
                     <div
                       key={slide.id || idx}
-                      className={"hero-fade-slide " + (idx === activeSlide ? "active" : "")}
-                      style={{
-                        backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.75) 0%, rgba(15, 23, 42, 0.45) 45%, rgba(15, 23, 42, 0.1) 100%), url(${(slide as any).image || (slide as any).bg})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center center',
-                        backgroundRepeat: 'no-repeat',
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        padding: '0 60px',
-                        opacity: idx === activeSlide ? 1 : 0,
-                        visibility: idx === activeSlide ? 'visible' : 'hidden',
-                        transition: 'opacity 0.8s ease-in-out, visibility 0.8s ease-in-out',
-                        zIndex: idx === activeSlide ? 2 : 1
-                      }}
+                      className={`hero-slide-item ${idx === activeSlide ? 'active' : ''}`}
                     >
-                      <div className="slider-content" style={{ maxWidth: '620px' }}>
-                        <h1 className="display-2 mb-35 text-white" style={{ whiteSpace: 'pre-line', textShadow: '0 2px 8px rgba(0,0,0,0.5)', fontWeight: '800' }}>
-                          {slide.title}
+                      {/* Background Visual */}
+                      <div
+                        className="hero-slide-bg"
+                        style={{
+                          backgroundImage: `url(${bgImage})`,
+                        }}
+                      />
+                      <div className="hero-slide-bg-overlay" />
+
+                      {/* Left Typography & CTA */}
+                      <div className="hero-slide-content">
+                        {subtitleText && (
+                          <div className="hero-slide-subtitle">
+                            {subtitleText}
+                          </div>
+                        )}
+                        <h1 className="hero-slide-title">
+                          {titleText}
                         </h1>
-                        <Link href={slide.link || '/products'} className="ordr" style={{ fontSize: '15px', padding: '12px 32px' }}>
-                          {slide.buttonText || 'Explore Catalog'}
+                        {descText && (
+                          <p className="hero-slide-desc">
+                            {descText}
+                          </p>
+                        )}
+                        <Link href={slide.link || '/products'} className="hero-slide-btn">
+                          {slide.buttonText || 'Shop Now'}
                         </Link>
                       </div>
                     </div>
-                  ))}
+                  );
+                })}
 
-                  {/* Main Slider Navigation buttons: Visible only when user hovers over slider */}
-                  <div className="slider-arrow hero-slider-1-arrow" style={{ zIndex: 10 }}>
-                    <span
-                      className="slider-btn slider-prev"
+                {/* Left & Right Arrow Buttons on Hover */}
+                {heroSlides.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      className="hero-nav-arrow prev"
                       onClick={() => setActiveSlide((prev) => (prev === 0 ? heroSlides.length - 1 : prev - 1))}
-                      style={{ cursor: 'pointer' }}
-                      title="Previous Slide"
+                      aria-label="Previous Slide"
+                      title="Previous"
                     >
-                      <i className="fi-rs-angle-left"></i>
-                    </span>
-                    <span
-                      className="slider-btn slider-next"
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="15 18 9 12 15 6" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className="hero-nav-arrow next"
                       onClick={() => setActiveSlide((prev) => (prev + 1) % heroSlides.length)}
-                      style={{ cursor: 'pointer' }}
-                      title="Next Slide"
+                      aria-label="Next Slide"
+                      title="Next"
                     >
-                      <i className="fi-rs-angle-right"></i>
-                    </span>
-                  </div>
-                </div>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </button>
+                  </>
+                )}
               </div>
             </div>
 
-            {/* Right: Second Banner (Expanded Height + Perfect Background Fit) */}
-            <div className="col-lg-4 px-0 d-none d-xl-block">
-              <div
-                className="second-banner-container position-relative overflow-hidden"
-              >
-                {sideBannerSlides.map((slide, idx) => (
-                  <div
-                    key={slide.id || idx}
-                    className={"side-fade-slide " + (idx === activeSideSlide ? "active" : "")}
-                    style={{
-                      backgroundImage: `linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.25) 50%, rgba(0, 0, 0, 0.15) 100%), url(${(slide as any).image || (slide as any).bg})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center center',
-                      backgroundRepeat: 'no-repeat',
-                      position: 'absolute',
-                      top: 0,
-                      left: 0,
-                      width: '100%',
-                      height: '100%',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      opacity: idx === activeSideSlide ? 1 : 0,
-                      visibility: idx === activeSideSlide ? 'visible' : 'hidden',
-                      transition: 'opacity 0.8s ease-in-out, visibility 0.8s ease-in-out',
-                      zIndex: idx === activeSideSlide ? 2 : 1
-                    }}
-                  >
-                    <div className="banner-text text-center" style={{ position: 'relative', zIndex: 3, padding: '30px' }}>
-                      <h2 className="mb-10 text-white" style={{ fontWeight: '800', letterSpacing: '0.5px', textShadow: '0 2px 6px rgba(0,0,0,0.6)' }}>
-                        {slide.title}
-                      </h2>
-                      <h5 className="mb-20" style={{ color: 'rgba(255,255,255,0.95)', fontSize: '15px', fontWeight: '600', textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>
-                        {slide.subtitle}
-                      </h5>
-                      <h1 className="mb-25" style={{ color: '#FDC839', fontWeight: '900', fontSize: '36px', textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}>
-                        {slide.price}
-                      </h1>
-                      <Link href={slide.link || '/products'} className="ordr" style={{ fontSize: '14px', padding: '10px 28px' }}>
-                        {slide.buttonText || 'Order Now'}
-                      </Link>
+            {/* Right: Side Promo Banner Slider Card */}
+            <div className="hero-promo-col">
+              <div className="hero-promo-slider-card">
+                {sideBannerSlides.map((slide, idx) => {
+                  const saleBadge = slide.saleBadge || 'SALE';
+                  const upToText = slide.subtitle || 'UP TO';
+                  const discountText = slide.discount || slide.price || '50%';
+                  const promoImage = slide.image || '/assets/imgs/banner/promo-shoe-sale.jpg';
+
+                  return (
+                    <Link
+                      key={slide.id || idx}
+                      href={slide.link || '/products'}
+                      className={`hero-promo-slide-item ${idx === activeSideSlide ? 'active' : ''}`}
+                      style={{
+                        backgroundImage: `url(${promoImage})`,
+                      }}
+                    >
+                      <div className="hero-promo-card-overlay" />
+
+                      {/* Top-Left Promotional Badge */}
+                      <div className="hero-promo-badge-box">
+                        <div className="hero-promo-sale-text">{saleBadge}</div>
+                        <div className="hero-promo-upto-row">
+                          <span className="hero-promo-upto-text">{upToText}</span>
+                          {/* Puma / Athletic silhouette emblem SVG */}
+                          <svg width="22" height="14" viewBox="0 0 24 16" fill="#ffffff" style={{ opacity: 0.95 }}>
+                            <path d="M22.8 1.4c-.6-.5-1.5-.7-2.3-.4-.5.2-1 .5-1.5.9-.6.5-1.3 1.1-2.1 1.7-1.1.8-2.3 1.4-3.6 1.8-1.5.5-3.1.6-4.7.4-1.2-.2-2.3-.6-3.4-1.2C3.8 3.8 2.5 2.7 1.4 1.4.9.8.3 1.2.1 1.8c-.3 1 .1 2.2.9 2.9 1 1 2.3 1.7 3.6 2.3 1.5.6 3.1.9 4.8.9 1.4 0 2.8-.2 4.1-.7 1.1-.4 2.2-1 3.2-1.7.7-.5 1.4-1.1 2-1.7.5-.5 1.1-.9 1.8-1.2.6-.3 1.3-.3 1.8.1.3.3.4.7.3 1.1-.1.4-.4.8-.8 1-.8.5-1.8.8-2.7 1-.7.1-1.4.2-2.1.2H16c-.6 0-1 .4-1 1s.4 1 1 1h.5c1 0 2-.1 3-.3 1.2-.2 2.4-.7 3.4-1.4.7-.5 1.2-1.1 1.4-1.9.2-.8 0-1.6-.5-2.2z" />
+                          </svg>
+                        </div>
+                        <div className="hero-promo-discount-num">
+                          {discountText.replace(/[^\d]/g, '') || '50'}
+                          <span className="hero-promo-discount-unit">%</span>
+                          <span className="hero-promo-discount-off">OFF</span>
+                        </div>
+                        {slide.desc && (
+                          <div className="hero-promo-desc-text">
+                            {slide.desc}
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
+
+                {/* Left & Right Arrow Buttons on Hover for Promo Slider */}
+                {sideBannerSlides.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      className="hero-nav-arrow prev hero-promo-arrow"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setActiveSideSlide((prev) => (prev === 0 ? sideBannerSlides.length - 1 : prev - 1));
+                      }}
+                      aria-label="Previous Offer"
+                      title="Previous"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="15 18 9 12 15 6" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className="hero-nav-arrow next hero-promo-arrow"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setActiveSideSlide((prev) => (prev + 1) % sideBannerSlides.length);
+                      }}
+                      aria-label="Next Offer"
+                      title="Next"
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
+                    </button>
+
+                    {/* Floating Pagination Dots inside the Promo Slider Card */}
+                    <div className="hero-promo-dots-wrapper">
+                      {sideBannerSlides.map((_, pIdx) => (
+                        <button
+                          key={pIdx}
+                          type="button"
+                          className={`hero-promo-dot ${pIdx === activeSideSlide ? 'active' : ''}`}
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setActiveSideSlide(pIdx);
+                          }}
+                          aria-label={`Go to offer ${pIdx + 1}`}
+                        />
+                      ))}
                     </div>
-                  </div>
-                ))}
+                  </>
+                )}
               </div>
             </div>
 
           </div>
+
+          {/* Interactive Pagination Dots (Under hero section) */}
+          {heroSlides.length > 1 && (
+            <div className="hero-pagination-wrapper">
+              {heroSlides.map((_, dotIdx) => (
+                <button
+                  key={dotIdx}
+                  type="button"
+                  className={`hero-dot ${dotIdx === activeSlide ? 'active' : ''}`}
+                  onClick={() => setActiveSlide(dotIdx)}
+                  aria-label={`Go to slide ${dotIdx + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -1621,14 +1322,16 @@ export default function HomePage() {
                   className="partner-card-box"
                   title={partner.name}
                 >
-                  <img
-                    src={partner.logo}
-                    alt={partner.name}
-                    className="partner-logo-img"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/assets/imgs/client/partner1.svg';
-                    }}
-                  />
+                  <div className="partner-logo-frame">
+                    <img
+                      src={partner.logo}
+                      alt={partner.name}
+                      className="partner-logo-img"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/assets/imgs/client/partner1.svg';
+                      }}
+                    />
+                  </div>
                 </Link>
               ))}
             </div>
@@ -1649,47 +1352,49 @@ export default function HomePage() {
       </section>
 
       {/* 6. ONSALE PRODUCTS Section (Slider + View All Button Style + Arrow Keys) */}
-      <section className="onsal section-spacer-mb">
-        <div className="container">
-          <div className="section-title wow animate__animated animate__fadeIn d-flex align-items-center justify-content-between mb-25 flex-wrap gap-3" data-wow-delay="0">
-            <div className="title">
-              <h3 className="mb-0" style={{ fontSize: '24px', fontWeight: '700' }}>Special Offers & Bulk PPE Deals</h3>
-            </div>
-            
-            <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-              <Link className="show-all btn-view-all-pill" href="/offer-products">
-                View All
-              </Link>
+      {displayedOnsale.length > 0 && (
+        <section className="onsal section-spacer-mb">
+          <div className="container">
+            <div className="section-title wow animate__animated animate__fadeIn d-flex align-items-center justify-content-between mb-25 flex-wrap gap-3" data-wow-delay="0">
+              <div className="title">
+                <h3 className="mb-0" style={{ fontSize: '24px', fontWeight: '700' }}>Special Offers & Bulk PPE Deals</h3>
+              </div>
               
-              <div className="d-flex align-items-center" style={{ gap: '6px' }}>
-                <button
-                  type="button"
-                  onClick={() => scrollProductSlider('onsale', 'prev')}
-                  className="btn-slider-nav-pill"
-                  aria-label="Previous"
-                  title="Previous"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="15 18 9 12 15 6"></polyline>
-                  </svg>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => scrollProductSlider('onsale', 'next')}
-                  className="btn-slider-nav-pill"
-                  aria-label="Next"
-                  title="Next"
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="9 18 15 12 9 6"></polyline>
-                  </svg>
-                </button>
+              <div className="d-flex align-items-center" style={{ gap: '8px' }}>
+                <Link className="show-all btn-view-all-pill" href="/offer-products">
+                  View All
+                </Link>
+                
+                <div className="d-flex align-items-center" style={{ gap: '6px' }}>
+                  <button
+                    type="button"
+                    onClick={() => scrollProductSlider('onsale', 'prev')}
+                    className="btn-slider-nav-pill"
+                    aria-label="Previous"
+                    title="Previous"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => scrollProductSlider('onsale', 'next')}
+                    className="btn-slider-nav-pill"
+                    aria-label="Next"
+                    title="Next"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                  </button>
+                </div>
               </div>
             </div>
+            {renderProductSectionSlider(displayedOnsale, 'onsale')}
           </div>
-          {renderProductSectionSlider(displayedOnsale, 'onsale')}
-        </div>
-      </section>
+        </section>
+      )}
     </main>
   );
 }

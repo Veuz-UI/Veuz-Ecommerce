@@ -54,12 +54,54 @@ export interface MainMenuItem {
   isActive: boolean;
 }
 
+export interface DeliveryOptionItem {
+  id: string;
+  name: string;
+  charge: number;
+  description?: string;
+  estimatedDays?: string;
+  isActive: boolean;
+  order?: number;
+}
+
 export interface ShopSettingsData {
   categories: ShopCategory[];
   mainMenu: MainMenuItem[];
+  deliveryOptions?: DeliveryOptionItem[];
 }
 
+export const DEFAULT_DELIVERY_OPTIONS: DeliveryOptionItem[] = [
+  {
+    id: 'del-free',
+    name: 'Free Delivery',
+    charge: 0,
+    estimatedDays: '5-7 Business Days',
+    description: 'Complimentary standard shipping on all regular orders',
+    isActive: true,
+    order: 1,
+  },
+  {
+    id: 'del-standard',
+    name: 'Standard Delivery',
+    charge: 15,
+    estimatedDays: '3-5 Business Days',
+    description: 'Fast and reliable ground doorstep delivery across all regions',
+    isActive: true,
+    order: 2,
+  },
+  {
+    id: 'del-express',
+    name: 'Express Delivery',
+    charge: 30,
+    estimatedDays: '1-2 Business Days',
+    description: 'Priority courier handling with expedited transit and tracking',
+    isActive: true,
+    order: 3,
+  },
+];
+
 export const DEFAULT_SHOP_SETTINGS: ShopSettingsData = {
+  deliveryOptions: DEFAULT_DELIVERY_OPTIONS,
   "categories": [
     {
       "id": "cat-1",

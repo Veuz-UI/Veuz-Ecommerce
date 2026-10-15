@@ -10,12 +10,17 @@ import { ProductItem } from '@/data/categoryProductsData';
 import { useToast } from '@/context/ToastContext';
 import { validateImageFile, compressImage } from '@/utils/imageSecurity';
 import { ClientPortal } from '@/components/common/ClientPortal';
+import { getMenuBadgeColor } from '@/components/layout/Header';
 
-const ALLOWED_MENU_BADGES = ['NEW', 'OFFER', 'LIMITED SALE'];
+const ALLOWED_MENU_BADGES = ['NEW', 'OFFER SALES', 'LIMITED SALES', 'HOT', 'TRENDING'];
 const BADGE_DESTINATIONS: Record<string, string> = {
   NEW: '/new-arrival-products',
+  'OFFER SALES': '/offer-products',
   OFFER: '/offer-products',
+  'LIMITED SALES': '/limited-offers',
   'LIMITED SALE': '/limited-offers',
+  HOT: '/offer-products',
+  TRENDING: '/products',
 };
 
 const getWordCount = (value: string) => value.trim() ? value.trim().split(/\s+/).length : 0;
@@ -88,6 +93,51 @@ export default function MenuEditPage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Target Destination URL Custom Dropdown State & Ref
+  const [targetUrlDropdownOpen, setTargetUrlDropdownOpen] = useState(false);
+  const targetUrlDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (targetUrlDropdownRef.current && !targetUrlDropdownRef.current.contains(e.target as Node)) {
+        setTargetUrlDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const getSelectedDestinationLabel = () => {
+    if (!link || link === '#' || link === '/products') return 'All Products';
+    if (link === '/new-arrival-products' || link === '/products?filter=new-arrival') return 'New Arrivals';
+    if (link === '/offer-products' || link === '/products?filter=special-offers') return 'Offer Products';
+    if (link === '/limited-offers') return 'Limited Offers';
+    if (link === '/most-searched-products' || link === '/products?filter=most-searched') return 'Most Searched';
+
+    const decodedLink = decodeURIComponent(link);
+    const matched = availableCategories.find(
+      (c) =>
+        c.link === link ||
+        (c.link && decodeURIComponent(c.link) === decodedLink) ||
+        link === `/products?category=${encodeURIComponent(c.name)}` ||
+        link === `/products?category=${c.name}` ||
+        decodedLink === `/products?category=${c.name}` ||
+        decodedLink.toLowerCase() === `/products?category=${c.name.toLowerCase()}`
+    );
+    if (matched) return matched.name;
+
+    if (link.startsWith('/products?category=')) {
+      const catParam = decodeURIComponent(link.replace('/products?category=', ''));
+      const catFound = availableCategories.find(
+        (c) => c.name.toLowerCase() === catParam.toLowerCase() || (c.link && c.link.includes(catParam))
+      );
+      if (catFound) return catFound.name;
+      return catParam;
+    }
+
+    return link;
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
@@ -108,9 +158,11 @@ export default function MenuEditPage() {
           const found = settings.mainMenu.find((m) => m.id === menuId);
           if (found) {
             setName(found.name);
-            setLink(BADGE_DESTINATIONS[found.badge || ''] || found.link || '/products');
-            setHasMegaMenu(found.badge ? false : found.hasMegaMenu);
-            setBadge(ALLOWED_MENU_BADGES.includes(found.badge || '') ? found.badge || '' : '');
+            setLink(found.link || (found.badge ? BADGE_DESTINATIONS[found.badge] : '/products') || '/products');
+            setHasMegaMenu(Boolean(found.hasMegaMenu));
+            const rawBadge = found.badge ? found.badge.toUpperCase().trim() : '';
+            const normalizedBadge = rawBadge === 'OFFER' ? 'OFFER SALES' : (rawBadge === 'LIMITED SALE' || rawBadge === 'LIMTED SALE' ? 'LIMITED SALES' : rawBadge);
+            setBadge(normalizedBadge);
             setIsActive(found.isActive !== false);
             setColumns(found.columns ? JSON.parse(JSON.stringify(found.columns)) : []);
             if (found.banner) {
@@ -375,9 +427,8 @@ export default function MenuEditPage() {
       return;
     }
     const menuTitle = name.trim();
-    const wordCount = getWordCount(menuTitle);
-    if (wordCount < 2 || wordCount > 3 || menuTitle.length < 10 || menuTitle.length > 15) {
-      showToast('danger', 'Menu title must contain 2–3 words and 10–15 characters.');
+    if (menuTitle.length > 25) {
+      showToast('danger', 'Menu title cannot exceed 25 characters.');
       return;
     }
 
@@ -393,27 +444,29 @@ export default function MenuEditPage() {
           return;
         }
 
+        const finalLink = link.trim() || '/products';
         const newMenuItem: MainMenuItem = {
           id: `menu-${Date.now()}`,
           name: name.trim(),
-          link: BADGE_DESTINATIONS[badge] || link.trim() || '/products',
-          hasMegaMenu: badge ? false : hasMegaMenu,
-          badge: badge.trim() || undefined,
+          link: finalLink,
+          hasMegaMenu: Boolean(hasMegaMenu),
+          badge: badge.trim() ? badge.toUpperCase().trim() : undefined,
           isActive,
           columns: hasMegaMenu ? columns : undefined,
           banner: hasMegaMenu ? banner : undefined,
         };
         updatedMenu.push(newMenuItem);
       } else {
+        const finalLink = link.trim() || '/products';
         updatedMenu = updatedMenu.map((m) =>
           m.id === menuId
             ? {
                 ...m,
                 name: name.trim(),
-                link: BADGE_DESTINATIONS[badge] || link.trim() || m.link,
-                hasMegaMenu: badge ? false : hasMegaMenu,
+                link: finalLink,
+                hasMegaMenu: Boolean(hasMegaMenu),
                 isHotDeal: undefined,
-                badge: badge.trim() || undefined,
+                badge: badge.trim() ? badge.toUpperCase().trim() : undefined,
                 isActive,
                 columns: hasMegaMenu ? columns : undefined,
                 banner: hasMegaMenu ? banner : undefined,
@@ -423,8 +476,10 @@ export default function MenuEditPage() {
       }
 
       const saveRes = await saveShopSettings({
+        ...settings,
         categories: settings.categories,
         mainMenu: updatedMenu,
+        deliveryOptions: settings.deliveryOptions,
       });
 
       if (saveRes.success) {
@@ -441,16 +496,9 @@ export default function MenuEditPage() {
   };
 
   const handleBadgeChange = (nextBadge: string) => {
-    setBadge(nextBadge);
-    if (nextBadge) {
-      setHasMegaMenu(false);
-    } else {
-      setHasMegaMenu(true);
-      setLink('/products');
-    }
-    if (BADGE_DESTINATIONS[nextBadge]) {
-      setLink(BADGE_DESTINATIONS[nextBadge]);
-    }
+    const clean = nextBadge.toUpperCase().trim();
+    const finalBadge = clean === 'OFFER' ? 'OFFER SALES' : (clean === 'LIMITED SALE' || clean === 'LIMTED SALE' ? 'LIMITED SALES' : clean);
+    setBadge(finalBadge);
   };
 
   const destinationFilteredProducts = availableProducts.filter((product) => {
@@ -458,6 +506,10 @@ export default function MenuEditPage() {
     if (link === '/products?filter=special-offers' || link === '/offer-products') return product.isSpecialOffer === true && !product.offerEndDate;
     if (link === '/products?filter=most-searched' || link === '/most-searched-products') return product.isMostSearched === true;
     if (link === '/limited-offers') return product.isSpecialOffer === true && Boolean(product.offerEndDate);
+    if (link.startsWith('/products?category=')) {
+      const catParam = decodeURIComponent(link.replace('/products?category=', ''));
+      return product.category?.toLowerCase() === catParam.toLowerCase();
+    }
     return true;
   });
 
@@ -465,7 +517,7 @@ export default function MenuEditPage() {
     product.categoryId === category.id || product.category?.toLowerCase() === category.name.toLowerCase();
 
   // All Products exposes every category. Other destinations expose only categories with matching products.
-  const destinationCategories = link === '/products'
+  const destinationCategories = link === '/products' || link.startsWith('/products?category=')
     ? availableCategories
     : availableCategories.filter((category) =>
       destinationFilteredProducts.some((product) => productBelongsToCategory(product, category))
@@ -597,84 +649,213 @@ export default function MenuEditPage() {
                     <label className="form-label fs-13 fw-semibold text-dark mb-2">
                       Menu Title <span className="text-danger">*</span>
                     </label>
-                      <input
-                        type="text"
-                        className="form-control fs-14"
-                        placeholder="e.g. Gift Products, Accessories"
-                        value={name}
-                        onChange={(e) => {
-                          const nextName = e.target.value;
-                          if (getWordCount(nextName) <= 3) {
-                            setName(nextName);
-                          }
-                        }}
-                        minLength={10}
-                        maxLength={15}
-                        required
+                    <input
+                      type="text"
+                      className="form-control fs-14"
+                      placeholder="e.g. Hot Sales, Shoes, Accessories"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      maxLength={25}
+                      required
                       style={{
                         borderRadius: '8px',
                         padding: '10px 16px',
                         borderColor: '#cbd5e1',
                         height: '46px',
                       }}
-                      />
-                    <div className={`fs-11 mt-1 ${getWordCount(name) >= 2 && getWordCount(name) <= 3 && name.trim().length >= 10 ? 'text-success' : 'text-muted'}`}>
-                      Use 2–3 words and 10–15 characters ({getWordCount(name)} words, {name.trim().length}/15 characters).
+                    />
+                    <div className="fs-11 mt-1 text-muted">
+                      Maximum 25 characters ({name.trim().length}/25 characters).
                     </div>
                   </div>
 
-                  {/* Target Destination URL (system store pages only) */}
-                  <div className="col-md-5">
-                    <div className="d-flex align-items-center mb-2">
-                      <label className="form-label fs-13 fw-semibold text-dark mb-0">
-                        Target Destination URL <span className="text-danger">*</span>
-                      </label>
-                    </div>
+                  {/* Target Destination URL (System Store Pages & Categories) */}
+                  <div className="col-md-4">
+                    <label className="form-label fs-13 fw-semibold text-dark mb-2">
+                      Target Destination URL <span className="text-danger">*</span>
+                    </label>
 
-                    <div className="input-group">
-                      <select
-                        className="form-select fs-13 fw-medium"
-                        value={['/products', '/new-arrival-products', '/offer-products', '/most-searched-products', '/limited-offers'].includes(link) ? link : '/products'}
-                        onChange={(e) => setLink(e.target.value)}
+                    <div ref={targetUrlDropdownRef} className="position-relative w-100">
+                      <button
+                        type="button"
+                        className="form-select fs-13 fw-medium w-100 d-flex align-items-center justify-content-between text-start"
+                        onClick={() => setTargetUrlDropdownOpen((prev) => !prev)}
                         style={{
                           borderRadius: '8px',
-                          borderColor: '#cbd5e1',
+                          borderColor: targetUrlDropdownOpen ? '#0f172a' : '#cbd5e1',
                           height: '46px',
-                          maxWidth: '185px',
                           backgroundColor: '#f8fafc',
-                          fontSize: '13px',
+                          color: '#0f172a',
+                          padding: '10px 16px',
+                          cursor: 'pointer',
                         }}
                       >
-                        <optgroup label="System Store Pages">
-                          <option value="/products">All Products</option>
-                          <option value="/new-arrival-products">New Arrivals</option>
-                          <option value="/offer-products">Offer Products</option>
-                          <option value="/limited-offers">Limited Offers</option>
-                          <option value="/most-searched-products">Most Searched</option>
-                        </optgroup>
-                      </select>
+                        <span className="text-truncate" style={{ maxWidth: '90%' }}>
+                          {getSelectedDestinationLabel()}
+                        </span>
+                      </button>
+
+                      {targetUrlDropdownOpen && (
+                        <div
+                          className="position-absolute shadow-lg bg-white border"
+                          style={{
+                            top: 'calc(100% + 4px)',
+                            left: 0,
+                            right: 0,
+                            zIndex: 1050,
+                            borderRadius: '8px',
+                            borderColor: '#cbd5e1',
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <div
+                            style={{
+                              maxHeight: '215px', /* Exactly 5 visible items before scrolling */
+                              overflowY: 'auto',
+                              scrollbarWidth: 'thin',
+                            }}
+                          >
+                            {/* Group 1: System Store Pages */}
+                            <div
+                              className="px-3 py-1.5 text-uppercase fw-bold text-muted border-bottom bg-light"
+                              style={{ fontSize: '11px', letterSpacing: '0.5px' }}
+                            >
+                              System Store Pages
+                            </div>
+
+                            {[
+                              { label: 'All Products', value: '/products' },
+                              { label: 'New Arrivals', value: '/new-arrival-products' },
+                              { label: 'Offer Products', value: '/offer-products' },
+                              { label: 'Limited Offers', value: '/limited-offers' },
+                              { label: 'Most Searched', value: '/most-searched-products' },
+                            ].map((item) => {
+                              const isSelected = link === item.value;
+                              return (
+                                <button
+                                  key={item.value}
+                                  type="button"
+                                  className={`w-100 text-start px-3 py-2 border-0 d-flex align-items-center justify-content-between ${
+                                    isSelected ? 'bg-primary text-white fw-semibold' : 'bg-transparent text-dark'
+                                  }`}
+                                  style={{
+                                    fontSize: '13px',
+                                    cursor: 'pointer',
+                                    transition: 'background-color 0.15s ease',
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    if (!isSelected) e.currentTarget.style.backgroundColor = '#f1f5f9';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+                                  }}
+                                  onClick={() => {
+                                    setLink(item.value);
+                                    setTargetUrlDropdownOpen(false);
+                                  }}
+                                >
+                                  <span>{item.label}</span>
+                                  {isSelected && <iconify-icon icon="solar:check-circle-bold" class="fs-15 text-white"></iconify-icon>}
+                                </button>
+                              );
+                            })}
+
+                            {/* Group 2: Shop by Category */}
+                            {availableCategories.length > 0 && (
+                              <>
+                                <div
+                                  className="px-3 py-1.5 text-uppercase fw-bold text-muted border-bottom border-top bg-light"
+                                  style={{ fontSize: '11px', letterSpacing: '0.5px' }}
+                                >
+                                  Shop by Category
+                                </div>
+
+                                {availableCategories.map((cat) => {
+                                  const targetCatUrl = cat.link || `/products?category=${encodeURIComponent(cat.name)}`;
+                                  const decodedLink = decodeURIComponent(link);
+                                  const isSelected =
+                                    link === targetCatUrl ||
+                                    link === cat.link ||
+                                    (cat.link && decodeURIComponent(cat.link) === decodedLink) ||
+                                    link === `/products?category=${encodeURIComponent(cat.name)}` ||
+                                    link === `/products?category=${cat.name}` ||
+                                    decodedLink === `/products?category=${cat.name}`;
+                                  return (
+                                    <button
+                                      key={cat.id}
+                                      type="button"
+                                      className={`w-100 text-start px-3 py-2 border-0 d-flex align-items-center justify-content-between ${
+                                        isSelected ? 'bg-primary text-white fw-semibold' : 'bg-transparent text-dark'
+                                      }`}
+                                      style={{
+                                        fontSize: '13px',
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.15s ease',
+                                      }}
+                                      onMouseEnter={(e) => {
+                                        if (!isSelected) e.currentTarget.style.backgroundColor = '#f1f5f9';
+                                      }}
+                                      onMouseLeave={(e) => {
+                                        if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent';
+                                      }}
+                                      onClick={() => {
+                                        setLink(targetCatUrl);
+                                        setTargetUrlDropdownOpen(false);
+                                      }}
+                                    >
+                                      <span>{cat.name}</span>
+                                      {isSelected && <iconify-icon icon="solar:check-circle-bold" class="fs-15 text-white"></iconify-icon>}
+                                    </button>
+                                  );
+                                })}
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
-                  <div className="col-md-3">
-                    <label className="form-label fs-13 fw-semibold text-dark mb-2">
-                      Badge Text (Optional)
-                    </label>
+                  <div className="col-md-4">
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-0">
+                        Badge Text (Optional)
+                      </label>
+                      {badge && (
+                        <span
+                          className="nav-speech-badge"
+                          style={{
+                            position: 'static',
+                            '--badge-bg': getMenuBadgeColor(badge),
+                            fontSize: '9.5px',
+                            padding: '2px 7px',
+                            letterSpacing: '0.3px',
+                          } as React.CSSProperties}
+                        >
+                          {badge.toUpperCase() === 'OFFER' ? 'OFFER SALES' : (badge.toUpperCase() === 'LIMITED SALE' || badge.toUpperCase() === 'LIMTED SALE' ? 'LIMITED SALES' : badge.toUpperCase())}
+                        </span>
+                      )}
+                    </div>
                     <select
-                      className="form-select fs-14"
-                      value={badge}
+                      className="form-select fs-14 fw-bold"
+                      value={
+                        badge
+                          ? (badge.toUpperCase() === 'OFFER' ? 'OFFER SALES' : (badge.toUpperCase() === 'LIMITED SALE' || badge.toUpperCase() === 'LIMTED SALE' ? 'LIMITED SALES' : badge.toUpperCase()))
+                          : ''
+                      }
                       onChange={(e) => handleBadgeChange(e.target.value)}
                       style={{
                         borderRadius: '8px',
                         padding: '10px 16px',
                         borderColor: '#cbd5e1',
                         height: '46px',
+                        textTransform: 'uppercase',
                       }}
                     >
-                      <option value="">No Badge</option>
-                      <option value="NEW">New</option>
-                      <option value="OFFER">Offer</option>
-                      <option value="LIMITED SALE">Limited Sale</option>
+                      <option value="">NO BADGE</option>
+                      <option value="NEW">NEW</option>
+                      <option value="OFFER SALES">OFFER SALES</option>
+                      <option value="LIMITED SALES">LIMITED SALES</option>
                     </select>
                   </div>
 
@@ -704,17 +885,16 @@ export default function MenuEditPage() {
                             {hasMegaMenu ? 'Enabled' : 'Disabled'}
                           </span>
                         </div>
-                        <p className="text-muted fs-12 mb-0">{badge ? 'Disabled while a navigation badge is active' : 'Expandable 3-column dropdown & banner'}</p>
+                        <p className="text-muted fs-12 mb-0">Expandable 3-column dropdown &amp; banner</p>
                       </div>
                       <div className="form-check form-switch m-0 flex-shrink-0">
                         <input
                           className="form-check-input"
                           type="checkbox"
                           checked={hasMegaMenu}
-                          disabled={Boolean(badge)}
                           onChange={(e) => setHasMegaMenu(e.target.checked)}
                           style={{
-                            cursor: badge ? 'not-allowed' : 'pointer',
+                            cursor: 'pointer',
                             width: '2.8em',
                             height: '1.4em',
                             backgroundColor: hasMegaMenu ? '#16a34a' : '#cbd5e1',

@@ -313,26 +313,46 @@ export default function ColorGalleryDrawerModal({
     showToast('success', `Size "${trimmed}" added to this product.`, 'Size Added');
   };
 
-  // Save and validate
+  // Save and validate - Strictly enforce minimum 4 photos for EVERY selected color!
   const handleSaveAndClose = () => {
-    // Check if any colors have fewer than 4 photos
-    const warnings: string[] = [];
-    colors.forEach((col) => {
-      const imgs = (localColorImages[col] || []).filter((u) => Boolean(u && u.trim()));
-      if (imgs.length > 0 && imgs.length < 4) {
-        warnings.push(`"${col}" has only ${imgs.length} photos (minimum 4 mandatory)`);
-      }
-    });
+    if (colors.length > 0) {
+      const incompleteColors: { name: string; count: number }[] = [];
+      colors.forEach((col) => {
+        const imgs = (localColorImages[col] || []).filter((u) => Boolean(u && u.trim()));
+        if (imgs.length < 4) {
+          incompleteColors.push({ name: col, count: imgs.length });
+        }
+      });
 
-    if (warnings.length > 0) {
-      showToast('warning', `Notice: ${warnings.join('; ')}. Please add at least 4 photos per color for best customer experience.`);
+      if (incompleteColors.length > 0) {
+        const details = incompleteColors.map((ic) => `"${ic.name}" (${ic.count}/4 photos)`).join(', ');
+        showToast(
+          'danger',
+          `Each selected color requires minimum 4 photos (Mandatory)! Incomplete: ${details}. Please upload at least 4 photos for each color.`,
+          'Mandatory Photos Required'
+        );
+        // Automatically switch to first incomplete color tab so user can upload right away
+        setActiveColor(incompleteColors[0].name);
+        return;
+      }
+    } else {
+      // If no color variants, check main photos
+      const mainList = (localColorImages['__main__'] || []).filter((u) => Boolean(u && u.trim()));
+      if (mainList.length < 4) {
+        showToast(
+          'danger',
+          `Minimum 4 photos are mandatory for the product (${mainList.length}/4 uploaded). Please upload at least 4 angles.`,
+          'Mandatory Photos Required'
+        );
+        return;
+      }
     }
 
     const { __main__: mainPhotosForProduct, ...variantImages } = localColorImages;
     onSaveColorImages(variantImages);
     if (mainPhotosForProduct) onSaveMainPhotos?.(mainPhotosForProduct.slice(0, 5));
     onSaveColorSizes(localColorSizes);
-    showToast('success', 'Color variant photo galleries saved!', 'Galleries Saved');
+    showToast('success', 'All color variant galleries validated and saved successfully!', 'Galleries Saved');
     onClose();
   };
 
@@ -399,22 +419,69 @@ export default function ColorGalleryDrawerModal({
         `}</style>
 
         {/* 1. DRAWER HEADER */}
-        <div className="px-4 py-3 border-bottom d-flex align-items-center justify-content-between flex-shrink-0" style={{ borderColor: '#edf0f3', backgroundColor: '#ffffff' }}>
+        <div
+          className="border-bottom d-flex align-items-center justify-content-between flex-shrink-0"
+          style={{
+            padding: '24px 28px 20px 28px',
+            borderColor: '#e2e8f0',
+            backgroundColor: '#ffffff',
+          }}
+        >
           <div>
-            <h4 className="fs-18 fw-semibold text-dark mb-1">Variants &amp; Product Images</h4>
-            <span className="text-muted fs-12">
+            <div className="d-flex align-items-center gap-2 mb-1">
+              <h4 className="fs-18 fw-bold text-dark mb-0">Variants &amp; Product Images</h4>
+              <span className="badge bg-light text-muted border px-2 py-0.5" style={{ fontSize: '11px' }}>
+                Multi-Angle Studio
+              </span>
+            </div>
+            <p className="text-muted fs-12 mb-0">
               {productTitle ? productTitle : 'Set each color, its available sizes, and up to 5 images.'}
-            </span>
+            </p>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="btn btn-sm border-0 rounded-circle d-flex align-items-center justify-content-center"
-            style={{ width: '32px', height: '32px', backgroundColor: '#f1f5f9', color: '#475569', fontSize: '20px', lineHeight: 1 }}
+            className="btn p-0 d-flex align-items-center justify-content-center transition-all flex-shrink-0"
+            style={{
+              width: '36px',
+              height: '36px',
+              borderRadius: '50%',
+              backgroundColor: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              color: '#475569',
+              boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#0f172a';
+              e.currentTarget.style.color = '#ffffff';
+              e.currentTarget.style.borderColor = '#0f172a';
+              e.currentTarget.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#f8fafc';
+              e.currentTarget.style.color = '#475569';
+              e.currentTarget.style.borderColor = '#e2e8f0';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+            aria-label="Close"
             title="Close Drawer"
           >
-            ×
+            <svg
+              width="15"
+              height="15"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
         </div>
 
@@ -577,7 +644,7 @@ export default function ColorGalleryDrawerModal({
         )}
 
         {/* 3. ACTIVE COLOR GALLERY CONTENT (SCROLLABLE) */}
-        <div className="flex-grow-1 p-4 overflow-y-auto" style={{ backgroundColor: '#ffffff' }}>
+        <div className="flex-grow-1 overflow-y-auto" style={{ padding: '24px 28px', backgroundColor: '#ffffff' }}>
           {!activeColor ? (
             colors.length === 0 ? (
               <div className="text-center py-4">
@@ -701,25 +768,38 @@ export default function ColorGalleryDrawerModal({
                   return (
                     <div key={slot.index} className={slot.index === 0 ? 'col-12' : 'col-6'}>
                       <div
-                        className="p-2.5 rounded-3 border h-100 d-flex flex-column justify-content-between position-relative"
+                        className="rounded-3 border h-100 d-flex flex-column justify-content-between position-relative"
                         style={{
+                          padding: '12px 14px',
                           backgroundColor: hasPhoto ? '#ffffff' : '#f8fafc',
                           borderColor: hasPhoto ? '#cbd5e1' : '#e2e8f0',
                           borderStyle: hasPhoto ? 'solid' : 'dashed',
+                          borderWidth: hasPhoto ? '1px' : '1.5px',
                           boxShadow: hasPhoto ? '0 1px 4px rgba(0,0,0,0.03)' : 'none',
                         }}
                       >
                         {/* Slot Header */}
-                        <div className="d-flex align-items-center justify-content-between mb-2">
+                        <div className="d-flex align-items-center justify-content-between mb-1.5">
                           <div className="d-flex align-items-center gap-1.5">
                             <span
-                              className={`badge ${slot.index === 0 ? 'bg-primary text-white' : slot.required ? 'bg-dark text-white' : 'bg-light text-muted border'}`}
-                              style={{ fontSize: '10px', padding: '3px 7px', borderRadius: '5px' }}
+                              className={`badge ${
+                                slot.index === 0
+                                  ? 'bg-dark text-white'
+                                  : slot.required
+                                  ? 'bg-secondary text-white'
+                                  : 'bg-light text-muted border'
+                              }`}
+                              style={{
+                                fontSize: '10.5px',
+                                padding: '3.5px 7px',
+                                borderRadius: '5px',
+                                fontWeight: 600,
+                              }}
                             >
                               {slot.label}
                             </span>
                             {slot.required && (
-                              <span className="text-danger fs-11" title="Mandatory photo">*</span>
+                              <span className="text-danger fs-12 fw-bold" title="Mandatory photo">*</span>
                             )}
                           </div>
 
@@ -727,8 +807,8 @@ export default function ColorGalleryDrawerModal({
                             <button
                               type="button"
                               onClick={() => handleRemovePhoto(slot.index)}
-                              className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1"
-                              style={{ fontSize: '10px', padding: '3px 7px', borderRadius: '5px' }}
+                              className="btn btn-sm d-flex align-items-center gap-1 text-danger border-0 px-2 py-0.5"
+                              style={{ fontSize: '11px', borderRadius: '5px', backgroundColor: '#fef2f2', fontWeight: 500 }}
                               title="Remove photo"
                             >
                               <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-13"></iconify-icon>
@@ -742,9 +822,8 @@ export default function ColorGalleryDrawerModal({
                           className="rounded-2 border overflow-hidden position-relative mx-auto d-flex align-items-center justify-content-center my-1"
                           style={{
                             width: '100%',
-                            height: slot.index === 0 ? '160px' : '110px',
-                            backgroundColor: 'transparent',
-                            backgroundImage: 'repeating-conic-gradient(#f1f5f9 0% 25%, #ffffff 0% 50%) 50% / 12px 12px',
+                            height: slot.index === 0 ? '128px' : '96px',
+                            backgroundColor: hasPhoto ? '#ffffff' : '#f8fafc',
                             borderColor: '#e2e8f0',
                           }}
                         >
@@ -758,9 +837,25 @@ export default function ColorGalleryDrawerModal({
                               }}
                             />
                           ) : (
-                            <div className="text-center py-2 text-muted">
-                              <iconify-icon icon={slot.icon} class="fs-24 mb-1 text-secondary opacity-50"></iconify-icon>
-                              <span className="d-block" style={{ fontSize: '10.5px' }}>Empty Slot</span>
+                            <div className="text-center py-2 px-2 d-flex flex-column align-items-center justify-content-center">
+                              <div
+                                className="rounded-circle d-flex align-items-center justify-content-center mb-1"
+                                style={{
+                                  width: slot.index === 0 ? '36px' : '28px',
+                                  height: slot.index === 0 ? '36px' : '28px',
+                                  backgroundColor: '#f1f5f9',
+                                  color: '#64748b',
+                                  border: '1px solid #e2e8f0',
+                                }}
+                              >
+                                <iconify-icon icon={slot.icon} class={slot.index === 0 ? 'fs-18' : 'fs-14'}></iconify-icon>
+                              </div>
+                              <span className="fw-semibold text-secondary" style={{ fontSize: '11px', letterSpacing: '0.1px' }}>
+                                {slot.label} Placeholder
+                              </span>
+                              <span className="text-muted" style={{ fontSize: '9.5px' }}>
+                                {slot.required ? 'Mandatory slot' : 'Optional angle'}
+                              </span>
                             </div>
                           )}
 
@@ -768,7 +863,7 @@ export default function ColorGalleryDrawerModal({
                           {isCurrentUploading && (
                             <div
                               className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center"
-                              style={{ backgroundColor: 'rgba(255, 255, 255, 0.88)' }}
+                              style={{ backgroundColor: 'rgba(255, 255, 255, 0.92)' }}
                             >
                               <div className="spinner-border spinner-border-sm text-dark mb-1" role="status"></div>
                               <span className="fs-10 fw-bold text-dark">Uploading...</span>
@@ -777,18 +872,42 @@ export default function ColorGalleryDrawerModal({
                         </div>
 
                         {/* Slot Action Button */}
-                        <div className="mt-2 pt-1.5 border-top" style={{ borderColor: '#f1f5f9' }}>
+                        <div className="mt-2 pt-2 border-top" style={{ borderColor: '#f1f5f9' }}>
                           <button
                             type="button"
                             onClick={() => handleSlotUploadClick(slot.index)}
                             disabled={isUploading}
-                            className={`btn btn-sm w-100 d-flex align-items-center justify-content-center gap-1 ${
-                              hasPhoto ? 'btn-light border' : slot.index === 0 ? 'btn-dark' : 'btn-outline-dark'
-                            }`}
-                            style={{ borderRadius: '6px', fontSize: '11px', padding: '5px 8px' }}
+                            className="btn btn-sm w-100 d-flex align-items-center justify-content-center gap-1.5 fw-semibold transition-all"
+                            style={{
+                              height: '34px',
+                              borderRadius: '7px',
+                              fontSize: '11.5px',
+                              backgroundColor: hasPhoto
+                                ? '#ffffff'
+                                : slot.index === 0
+                                ? '#0f172a'
+                                : '#ffffff',
+                              color: hasPhoto
+                                ? '#1e293b'
+                                : slot.index === 0
+                                ? '#ffffff'
+                                : '#0f172a',
+                              border: hasPhoto
+                                ? '1px solid #cbd5e1'
+                                : slot.index === 0
+                                ? 'none'
+                                : '1px solid #cbd5e1',
+                              boxShadow: slot.index === 0 && !hasPhoto
+                                ? '0 2px 4px rgba(15, 23, 42, 0.15)'
+                                : '0 1px 2px rgba(0, 0, 0, 0.04)',
+                              cursor: isUploading ? 'not-allowed' : 'pointer',
+                            }}
                           >
-                            <iconify-icon icon="solar:upload-track-2-bold" class="fs-13"></iconify-icon>
-                            <span>{hasPhoto ? 'Replace Photo' : 'Upload Photo'}</span>
+                            <iconify-icon
+                              icon={hasPhoto ? 'solar:refresh-bold' : 'solar:camera-add-bold'}
+                              class="fs-14"
+                            ></iconify-icon>
+                            <span>{hasPhoto ? 'Replace Image' : 'Upload Image'}</span>
                           </button>
                         </div>
                       </div>
@@ -801,19 +920,28 @@ export default function ColorGalleryDrawerModal({
         </div>
 
         {/* 4. DRAWER FOOTER (SAVE & APPLY) */}
-        <div className="px-4 border-top d-flex align-items-center justify-content-between flex-shrink-0" style={{ minHeight: '70px', paddingTop: '14px', paddingBottom: '14px', backgroundColor: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 -4px 12px rgba(15, 23, 42, 0.04)' }}>
+        <div
+          className="border-top d-flex align-items-center justify-content-between flex-shrink-0"
+          style={{
+            minHeight: '74px',
+            padding: '16px 28px',
+            backgroundColor: '#ffffff',
+            borderColor: '#e2e8f0',
+            boxShadow: '0 -4px 16px rgba(15, 23, 42, 0.04)',
+          }}
+        >
           <div className="d-flex align-items-center gap-2">
-            <span className="fs-12 text-muted">
+            <span className="fs-12 text-muted fw-medium">
               {colors.length} color{colors.length === 1 ? '' : 's'} configured
             </span>
           </div>
 
-          <div className="d-flex align-items-center gap-2">
+          <div className="d-flex align-items-center gap-2.5">
             <button
               type="button"
               onClick={onClose}
-              className="btn btn-sm btn-light border"
-              style={{ width: '92px', height: '36px', borderRadius: '5px', fontSize: '13px' }}
+              className="btn btn-sm btn-light border fw-medium"
+              style={{ minWidth: '96px', height: '38px', borderRadius: '7px', fontSize: '13px' }}
             >
               Cancel
             </button>
@@ -821,7 +949,7 @@ export default function ColorGalleryDrawerModal({
               type="button"
               onClick={handleSaveAndClose}
               className="btn btn-sm btn-dark px-3.5 d-flex align-items-center gap-1.5 fw-semibold"
-              style={{ minWidth: '158px', height: '36px', justifyContent: 'center', borderRadius: '5px', fontSize: '13px' }}
+              style={{ minWidth: '165px', height: '38px', justifyContent: 'center', borderRadius: '7px', fontSize: '13px', boxShadow: '0 2px 6px rgba(15, 23, 42, 0.16)' }}
             >
               <iconify-icon icon="solar:check-circle-bold" class="fs-16 text-success"></iconify-icon>
               <span>Apply Color Photos</span>

@@ -68,33 +68,22 @@ export const QuickViewModal: React.FC = () => {
         {/* Product Details Area */}
         <div className="md:w-1/2 p-6 md:p-8 flex flex-col justify-between overflow-y-auto">
           <div>
-            <span className="text-xs font-semibold text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2.5 py-1 rounded-full">
+            <span className="text-xs font-medium text-slate-400 capitalize block mb-1">
               {quickViewProduct.category}
             </span>
 
-            <h2 className="text-xl md:text-2xl font-bold text-slate-900 mt-2 mb-2 leading-tight">
+            <h2 className="text-xl md:text-2xl font-bold text-slate-900 mb-2 leading-tight">
               {quickViewProduct.name}
             </h2>
 
-            {/* Rating & Reviews */}
-            <div className="flex items-center gap-2 mb-4">
-              <div className="flex text-amber-400">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    className={`w-4 h-4 ${
-                      i < Math.floor(quickViewProduct.rating)
-                        ? 'fill-current text-amber-400'
-                        : 'text-slate-200'
-                    }`}
-                  />
-                ))}
-              </div>
-              <span className="text-sm font-semibold text-slate-800">
-                {quickViewProduct.rating}
+            {/* Rating & Reviews (Matching Reference Image) */}
+            <div className="flex items-center gap-1.5 mb-4">
+              <span className="text-amber-500 text-lg leading-none">★</span>
+              <span className="text-sm font-bold text-slate-900">
+                {quickViewProduct.rating || '4.6'}
               </span>
               <span className="text-xs text-slate-400">
-                ({quickViewProduct.reviewsCount} customer reviews)
+                ({quickViewProduct.reviewsCount || 89} reviews)
               </span>
             </div>
 

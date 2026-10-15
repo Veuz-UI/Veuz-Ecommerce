@@ -1,6 +1,6 @@
 'use client';
 
-import { ShopSettingsData } from '@/data/defaultShopSettings';
+import { ShopSettingsData, DEFAULT_DELIVERY_OPTIONS } from '@/data/defaultShopSettings';
 
 const STORAGE_KEY = 'veuz_shop_settings_cache';
 export const SHOP_SETTINGS_EVENT = 'veuz:shop-settings-updated';
@@ -14,7 +14,12 @@ export async function fetchShopSettings(): Promise<ShopSettingsData> {
       if (stored) {
         const parsed = JSON.parse(stored);
         if (parsed && Array.isArray(parsed.categories) && Array.isArray(parsed.mainMenu)) {
-          cached = parsed;
+          cached = {
+            ...parsed,
+            deliveryOptions: Array.isArray(parsed.deliveryOptions) && parsed.deliveryOptions.length > 0
+              ? parsed.deliveryOptions
+              : DEFAULT_DELIVERY_OPTIONS,
+          };
         }
       }
     } catch (e) {
@@ -28,10 +33,16 @@ export async function fetchShopSettings(): Promise<ShopSettingsData> {
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.data) {
+        const fullData: ShopSettingsData = {
+          ...json.data,
+          deliveryOptions: Array.isArray(json.data.deliveryOptions) && json.data.deliveryOptions.length > 0
+            ? json.data.deliveryOptions
+            : DEFAULT_DELIVERY_OPTIONS,
+        };
         if (typeof window !== 'undefined') {
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(json.data));
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(fullData));
         }
-        return json.data;
+        return fullData;
       }
     }
   } catch (error) {
@@ -39,7 +50,7 @@ export async function fetchShopSettings(): Promise<ShopSettingsData> {
   }
 
   // Never replace the storefront with demo/default navigation if current settings are unavailable.
-  return cached || { categories: [], mainMenu: [] };
+  return cached || { categories: [], mainMenu: [], deliveryOptions: DEFAULT_DELIVERY_OPTIONS };
 }
 
 export async function saveShopSettings(data: ShopSettingsData): Promise<{ success: boolean; message?: string }> {

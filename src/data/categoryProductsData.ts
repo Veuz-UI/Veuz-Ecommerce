@@ -32,10 +32,14 @@ export const PRESET_SIZES = [
   'Free Size'
 ];
 
+export const GENDER_OPTIONS = ['Male', 'Female', 'Unisex'] as const;
+export type ProductGender = typeof GENDER_OPTIONS[number];
+
 export interface ProductItem {
   id: string;
   title: string;
   desc?: string;
+  gender?: 'Male' | 'Female' | 'Unisex' | string;
   category: string;
   categoryId?: string;
   price: string;
@@ -62,6 +66,7 @@ export interface ProductItem {
   clicks?: number;
   createdAt?: number;
   isActive?: boolean;
+  isDraft?: boolean;
   specifications?: ProductDetailSection[];
   sizes?: string[];
   colors?: string[];
@@ -85,7 +90,6 @@ export const CATEGORY_PRODUCTS_DATA: ProductItem[] = [
     image: '/assets/imgs/shop/p1.jpg',
     badge: 'OSHA EN 397',
     badgeClass: 'new',
-    location: 'Riyadh Central Warehouse',
     standard: 'EN 397 & ANSI Z89.1',
     inStock: true,
     link: '/product-details',
@@ -141,7 +145,6 @@ export const CATEGORY_PRODUCTS_DATA: ProductItem[] = [
     image: '/assets/imgs/shop/p1.jpg',
     badge: 'Dielectric 20kV',
     badgeClass: 'new',
-    location: 'Riyadh Central Warehouse',
     standard: 'ANSI Class E Dielectric',
     inStock: true,
     link: '/product-details',
@@ -162,7 +165,6 @@ export const CATEGORY_PRODUCTS_DATA: ProductItem[] = [
     image: '/assets/imgs/shop/p2.jpg',
     badge: 'EN ISO 20345',
     badgeClass: 'new',
-    location: 'Riyadh Central Warehouse',
     standard: 'S3 SRC Certified',
     inStock: true,
     link: '/product-details',
@@ -217,7 +219,6 @@ export const CATEGORY_PRODUCTS_DATA: ProductItem[] = [
     image: '/assets/imgs/shop/p2.jpg',
     badge: 'Metal-Free ESD',
     badgeClass: 'featured',
-    location: 'Riyadh Central Warehouse',
     standard: 'S1P ESD Standard',
     inStock: true,
     link: '/product-details',
@@ -238,7 +239,6 @@ export const CATEGORY_PRODUCTS_DATA: ProductItem[] = [
     image: '/assets/imgs/shop/p3.jpg',
     badge: 'Class 3 High-Vis',
     badgeClass: 'new',
-    location: 'Riyadh Central Warehouse',
     standard: 'EN ISO 20471 Class 3',
     inStock: true,
     link: '/product-details',
@@ -296,7 +296,6 @@ export const CATEGORY_PRODUCTS_DATA: ProductItem[] = [
     image: '/assets/imgs/shop/p4.jpg',
     badge: 'UV400 Anti-Fog',
     badgeClass: 'new',
-    location: 'Riyadh Central Warehouse',
     standard: 'EN 166 1BT Certified',
     inStock: true,
     link: '/product-details',
@@ -333,7 +332,6 @@ export const CATEGORY_PRODUCTS_DATA: ProductItem[] = [
     image: '/assets/imgs/shop/p4.jpg',
     badge: 'Chemical Splash',
     badgeClass: 'featured',
-    location: 'Riyadh Central Warehouse',
     standard: 'EN 166 3 4 B',
     inStock: true,
     link: '/product-details',
@@ -354,7 +352,6 @@ export const CATEGORY_PRODUCTS_DATA: ProductItem[] = [
     image: '/assets/imgs/shop/p5.jpg',
     badge: 'Level 5 Cut',
     badgeClass: 'hot',
-    location: 'Riyadh Central Warehouse',
     standard: 'EN 388: 4X44D Certified',
     inStock: true,
     link: '/product-details',
@@ -413,7 +410,6 @@ export const CATEGORY_PRODUCTS_DATA: ProductItem[] = [
     image: '/assets/imgs/shop/p6.jpg',
     badge: 'SNR 34dB',
     badgeClass: 'new',
-    location: 'Riyadh Central Warehouse',
     standard: 'EN 352-1 Standard',
     inStock: true,
     link: '/product-details',
@@ -452,7 +448,6 @@ export const CATEGORY_PRODUCTS_DATA: ProductItem[] = [
     image: '/assets/imgs/shop/card.jpg',
     badge: 'Dual Cartridge',
     badgeClass: 'hot',
-    location: 'Riyadh Central Warehouse',
     standard: 'NIOSH TC-84A Approved',
     inStock: true,
     link: '/product-details',
@@ -491,7 +486,6 @@ export const CATEGORY_PRODUCTS_DATA: ProductItem[] = [
     image: '/assets/imgs/shop/cup.jpg',
     badge: 'OSHA 1926.502',
     badgeClass: 'hot',
-    location: 'Riyadh Central Warehouse',
     standard: 'EN 361 & EN 355 Compliant',
     inStock: true,
     link: '/product-details',

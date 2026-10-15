@@ -4,6 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import { useStore } from '@/context/StoreContext';
 import { ShopSettingsData, ShopCategory, MainMenuItem } from '@/data/defaultShopSettings';
 import { fetchShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsService';
 
@@ -15,29 +16,68 @@ const getMegaProductPreview = (label: string) => {
   return words.length > 4 ? `${words.slice(0, 4).join(' ')}…` : label;
 };
 
+export const formatMenuBadgeLabel = (badge?: string): string => {
+  if (!badge) return '';
+  const clean = badge.toUpperCase().trim();
+  if (clean === 'OFFER' || clean === 'OFFER SALES' || clean === 'OFFER SALE') return 'OFFER SALES';
+  if (clean.includes('LIMITED') || clean === 'SALE') return 'LIMITED SALES';
+  return clean;
+};
+
+export const getMenuBadgeColor = (badge?: string): string => {
+  if (!badge) return '#2563eb';
+  const clean = badge.toUpperCase().trim();
+  if (clean === 'NEW') return '#16a34a'; // Vibrant bright green
+  if (clean === 'OFFER' || clean === 'OFFER SALES' || clean === 'OFFER SALE') return '#dc2626'; // Vibrant bright red
+  if (clean.includes('LIMITED') || clean === 'SALE') return '#ea580c'; // Vibrant bright orange
+  if (clean === 'HOT') return '#e11d48'; // Vibrant hot crimson/pink
+  if (clean === 'TRENDING') return '#2563eb'; // Vibrant royal electric blue (reference style)
+  return '#2563eb';
+};
+
 const getMenuBadgeStyle = (badge?: string): React.CSSProperties => {
-  if (badge === 'NEW') return { backgroundColor: '#16a34a', color: '#ffffff', border: '1px solid #16a34a' };
-  if (badge === 'OFFER') return { backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fecaca' };
-  if (badge === 'LIMITED SALE') return { backgroundColor: '#ca8a04', color: '#ffffff', border: '1px solid #ca8a04' };
-  return { backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1' };
+  const bg = getMenuBadgeColor(badge);
+  return { backgroundColor: bg, color: '#ffffff', border: `1px solid ${bg}` };
 };
 
 const getMenuDestination = (menu: MainMenuItem) => {
-  if (menu.badge === 'NEW') return '/new-arrival-products';
-  if (menu.badge === 'OFFER') return '/offer-products';
-  if (menu.badge === 'LIMITED SALE') return '/limited-offers';
+  if (menu.link && menu.link !== '#' && menu.link !== '/products') return menu.link;
+  const badgeClean = (menu.badge || '').toUpperCase().trim();
+  if (badgeClean === 'NEW') return '/new-arrival-products';
+  if (badgeClean.includes('OFFER') || badgeClean === 'HOT') return '/offer-products';
+  if (badgeClean.includes('LIMITED')) return '/limited-offers';
   return menu.link || '/products';
 };
 
 export const Header: React.FC = () => {
   const router = useRouter();
   const { user, logout, isAdmin } = useAuth();
+  const { totalCartItems } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchCatOpen, setSearchCatOpen] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('Search by CATEGORIES');
+  const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [searchInput, setSearchInput] = useState('');
   const [shopCatOpen, setShopCatOpen] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState<ShopCategory | null>(null);
+  const shopCatTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  const handleShopCatMouseEnter = () => {
+    if (shopCatTimerRef.current) {
+      clearTimeout(shopCatTimerRef.current);
+      shopCatTimerRef.current = null;
+    }
+    setShopCatOpen(true);
+  };
+
+  const handleShopCatMouseLeave = () => {
+    if (shopCatTimerRef.current) {
+      clearTimeout(shopCatTimerRef.current);
+    }
+    shopCatTimerRef.current = setTimeout(() => {
+      setShopCatOpen(false);
+      setHoveredCategory(null);
+    }, 180);
+  };
   const [langOpen, setLangOpen] = useState(false);
   const [mobileLangOpen, setMobileLangOpen] = useState(false);
   const [selectedLang, setSelectedLang] = useState('English');
@@ -88,7 +128,7 @@ export const Header: React.FC = () => {
   const accountRef = useRef<HTMLDivElement>(null);
   const mobileAccountRef = useRef<HTMLDivElement>(null);
   const locationRef = useRef<HTMLDivElement>(null);
-  const langRef = useRef<HTMLLIElement>(null);
+  const langRef = useRef<HTMLDivElement>(null);
   const searchCatRef = useRef<HTMLDivElement>(null);
   const shopCatRef = useRef<HTMLDivElement>(null);
 
@@ -116,7 +156,10 @@ export const Header: React.FC = () => {
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      if (shopCatTimerRef.current) clearTimeout(shopCatTimerRef.current);
+    };
   }, []);
 
   const toggleAccordion = (id: string) => {
@@ -202,83 +245,10 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header className="header-area header-style-1 header-height-2" style={{ backgroundColor: '#ffffff' }}>
+      <header className="header-area header-style-1 header-height-2" style={{ backgroundColor: '#ffffff', position: 'relative', zIndex: 1045 }}>
         
         {/* ========================================================
-            1. TOP BAR (Language, Order Tracking, Sign In)
-           ======================================================== */}
-        <div className="header-top header-top-ptb-1 d-none d-xl-block">
-          <div className="container">
-            <div className="row align-items-center">
-              <div className="col-xl-12 col-lg-12">
-                <div className="header-info header-info-right">
-                  <ul>
-                    {/* Language Dropdown */}
-                    <li ref={langRef} className="position-relative">
-                      <a
-                        className="language-dropdown-active"
-                        href="#"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setLangOpen(!langOpen);
-                        }}
-                      >
-                        <span className="box1">
-                          <img
-                            src={selectedLang === 'English' ? '/assets/imgs/theme/flag-en.jpg' : '/assets/imgs/theme/flag-ar.jpg'}
-                            alt=""
-                            className="img-fluid"
-                          />
-                        </span>
-                        {selectedLang === 'English' ? 'Select Language' : 'عربى'}
-                      </a>
-                      <ul className={"language-dropdown " + (langOpen ? "d-block" : "")} style={{ display: langOpen ? 'block' : 'none' }}>
-                        <li>
-                          <a
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setSelectedLang('English');
-                              setLangOpen(false);
-                            }}
-                          >
-                            <img src="/assets/imgs/theme/flag-en.jpg" alt="" />
-                            English
-                          </a>
-                        </li>
-                        <li>
-                          <a
-                            href="#"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              setSelectedLang('Arabic');
-                              setLangOpen(false);
-                            }}
-                          >
-                            <img src="/assets/imgs/theme/flag-ar.jpg" alt="" />
-                            عربى
-                          </a>
-                        </li>
-                      </ul>
-                    </li>
-
-                    <li>
-                      <Link href="/order-tracking">
-                        <span className="box2">
-                          <img src="/assets/imgs/theme/track.png" alt="" className="img-fluid" />
-                        </span>
-                        Track Order
-                      </Link>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* ========================================================
-            2. MAIN HEADER (Logo Left Corner, Search Bar, Action Icons + Hamburger Right)
+            MAIN HEADER (Logo Left Corner, Search Bar, Location & Language, Action Icons)
            ======================================================== */}
         <div className="header-middle header-middle-ptb-1" style={{ padding: '16px 0', backgroundColor: '#ffffff' }}>
           <div className="container">
@@ -296,61 +266,100 @@ export const Header: React.FC = () => {
                 <div className="search-style-2 w-100">
                   <form
                     action="#"
+                    className="custom-header-search-form"
                     onSubmit={(e) => {
                       e.preventDefault();
                       const params = new URLSearchParams();
                       if (searchInput.trim()) {
                         params.set('q', searchInput.trim());
                       }
-                      if (selectedCategory && selectedCategory !== 'Search by CATEGORIES') {
+                      if (selectedCategory && selectedCategory !== 'All Categories') {
                         params.set('category', selectedCategory);
                       }
                       router.push(`/products${params.toString() ? `?${params.toString()}` : ''}`);
                     }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      width: '100%',
+                      height: '46px',
+                      backgroundColor: '#eef1f5',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px',
+                      boxShadow: 'none',
+                      position: 'relative',
+                      overflow: 'visible',
+                      padding: '4px 6px 4px 4px',
+                    }}
                   >
-                    <div ref={searchCatRef} style={{ position: 'relative' }}>
-                      <a
-                        href="#"
-                        className={"categories-button-active " + (searchCatOpen ? "open" : "")}
-                        onClick={(e) => {
-                          e.preventDefault();
-                          setSearchCatOpen(!searchCatOpen);
+                    <div
+                      ref={searchCatRef}
+                      className="search-category-pill-wrap"
+                      style={{
+                        position: 'relative',
+                        flexShrink: 0,
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
+                        height: '38px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        overflow: 'visible',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        className="search-category-btn"
+                        onClick={() => setSearchCatOpen(!searchCatOpen)}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          height: '36px',
+                          padding: '0 14px',
+                          border: 'none',
+                          borderRadius: '6px',
+                          backgroundColor: '#ffffff',
+                          fontSize: '13px',
+                          fontWeight: '600',
+                          color: '#0f172a',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          outline: 'none',
+                          flexShrink: 0,
                         }}
                       >
-                        <div
-                          className="search-cat"
+                        <span className="category-label" style={{ whiteSpace: 'nowrap', fontWeight: '600', color: '#0f172a', fontSize: '13px' }}>
+                          {selectedCategory}
+                        </span>
+                        <svg
+                          width="11"
+                          height="11"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#64748b"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
                           style={{
-                            fontSize: '13px',
-                            whiteSpace: 'nowrap',
-                            justifyContent: 'flex-start',
-                            paddingLeft: '18px',
-                            paddingRight: '28px',
-                            textAlign: 'left',
+                            transition: 'transform 0.2s ease',
+                            transform: searchCatOpen ? 'rotate(180deg)' : 'none',
                           }}
                         >
-                          <div
-                            style={{
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap',
-                              textAlign: 'left',
-                              maxWidth: '130px',
-                              fontWeight: '600',
-                              color: '#253D4E',
-                            }}
-                          >
-                            {selectedCategory}
-                          </div>
-                          <span></span>
-                        </div>
-                      </a>
+                          <polyline points="6 9 12 15 18 9"></polyline>
+                        </svg>
+                      </button>
                       
                       {searchCatOpen && (
                         <div
                           className="categories-dropdown-wrap categories-dropdown-active-large font-heading open"
                           style={{
                             display: 'block',
-                            minWidth: '225px',
+                            position: 'absolute',
+                            top: 'calc(100% + 4px)',
+                            left: 0,
+                            minWidth: '220px',
                             background: '#ffffff',
                             borderRadius: '8px',
                             boxShadow: '0 10px 30px rgba(0,0,0,0.12)',
@@ -366,7 +375,7 @@ export const Header: React.FC = () => {
                                 listStyle: 'none',
                                 margin: 0,
                                 padding: 0,
-                                maxHeight: '232px', /* Always shows maximum 6 items before scrolling */
+                                maxHeight: '232px',
                                 overflowY: 'auto',
                                 overflowX: 'hidden',
                                 scrollbarWidth: 'thin',
@@ -375,21 +384,21 @@ export const Header: React.FC = () => {
                             >
                               <li
                                 onClick={() => {
-                                  setSelectedCategory('Search by CATEGORIES');
+                                  setSelectedCategory('All Categories');
                                   setSearchCatOpen(false);
                                 }}
                                 style={{
                                   padding: '9.5px 18px',
                                   cursor: 'pointer',
                                   fontSize: '13px',
-                                  fontWeight: selectedCategory === 'Search by CATEGORIES' ? '600' : '400',
-                                  color: selectedCategory === 'Search by CATEGORIES' ? '#3BB77E' : '#253D4E',
-                                  backgroundColor: selectedCategory === 'Search by CATEGORIES' ? '#f0fdf4' : 'transparent',
+                                  fontWeight: selectedCategory === 'All Categories' ? '600' : '400',
+                                  color: selectedCategory === 'All Categories' ? '#0f172a' : '#475569',
+                                  backgroundColor: selectedCategory === 'All Categories' ? '#f8fafc' : 'transparent',
                                   borderBottom: '1px solid #f1f5f9',
                                   textAlign: 'left',
                                 }}
                               >
-                                Search by CATEGORIES
+                                All Categories
                               </li>
                               {categories.map((cat, idx) => (
                                 <li
@@ -403,8 +412,8 @@ export const Header: React.FC = () => {
                                     cursor: 'pointer',
                                     fontSize: '13px',
                                     fontWeight: selectedCategory === cat.name ? '600' : '400',
-                                    color: selectedCategory === cat.name ? '#3BB77E' : '#475569',
-                                    backgroundColor: selectedCategory === cat.name ? '#f0fdf4' : 'transparent',
+                                    color: selectedCategory === cat.name ? '#0f172a' : '#475569',
+                                    backgroundColor: selectedCategory === cat.name ? '#f8fafc' : 'transparent',
                                     borderBottom: idx === categories.length - 1 ? 'none' : '1px solid #f8fafc',
                                     textAlign: 'left',
                                     whiteSpace: 'nowrap',
@@ -424,22 +433,205 @@ export const Header: React.FC = () => {
                     <input
                       type="text"
                       id="searchInput"
-                      placeholder="Search Products ..."
+                      placeholder="Search"
                       value={searchInput}
                       onChange={(e) => setSearchInput(e.target.value)}
+                      style={{
+                        flex: 1,
+                        height: '38px',
+                        border: 'none',
+                        background: 'transparent',
+                        padding: '0 12px 0 14px',
+                        fontSize: '13.5px',
+                        fontWeight: '400',
+                        color: '#0f172a',
+                        outline: 'none',
+                        boxShadow: 'none',
+                      }}
                     />
                     
-                    <button type="submit" className="search-btn">
-                      <i className="fi-rs-search"></i>Search
+                    <button
+                      type="submit"
+                      className="search-btn"
+                      aria-label="Search"
+                      title="Search"
+                      style={{
+                        position: 'relative',
+                        width: '38px',
+                        height: '38px',
+                        minWidth: '38px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        border: 'none',
+                        backgroundColor: 'transparent',
+                        color: '#1e293b',
+                        cursor: 'pointer',
+                        padding: 0,
+                        marginRight: '4px',
+                        outline: 'none',
+                        transition: 'opacity 0.15s ease',
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.65')}
+                      onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                    >
+                      <svg
+                        width="19"
+                        height="19"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#1e293b"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                      </svg>
                     </button>
                   </form>
                 </div>
               </div>
 
-              {/* Right: Location Selector & Action Icons + Hamburger Menu (Mobile/Tablet Right Corner) */}
+              {/* Right: Language, Location & Action Icons + Hamburger Menu (Mobile/Tablet Right Corner) */}
               <div className="header-action-right d-flex align-items-center gap-3">
                 
-                {/* Location Dropdown (Desktop & Larger Screens) */}
+                {/* 1. Language Switcher: Pill shaped matching location selector size, placed between search and location (Desktop) */}
+                <div ref={langRef} className="position-relative d-none d-xl-block">
+                  <div
+                    className="language-pill"
+                    onClick={() => setLangOpen(!langOpen)}
+                    style={{
+                      background: '#f4f5f9',
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: '#253D4E',
+                      border: '1px solid #e2e8f0',
+                      height: '42px',
+                      boxSizing: 'border-box',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    <img
+                      src={selectedLang === 'English' ? '/assets/imgs/theme/flag-en.jpg' : '/assets/imgs/theme/flag-ar.jpg'}
+                      alt={selectedLang}
+                      style={{
+                        width: '18px',
+                        height: '18px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span>{selectedLang}</span>
+                    <i className="fi-rs-angle-small-down" style={{ fontSize: '11px', color: '#64748b' }}></i>
+                  </div>
+
+                  {/* Dropdown with flags when clicked */}
+                  {langOpen && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 6px)',
+                        left: 0,
+                        backgroundColor: '#ffffff',
+                        borderRadius: '10px',
+                        boxShadow: '0 10px 25px rgba(0, 0, 0, 0.12)',
+                        border: '1px solid #e2e8f0',
+                        padding: '6px',
+                        zIndex: 1000,
+                        minWidth: '140px',
+                      }}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedLang('English');
+                          setLangOpen(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '8px 12px',
+                          border: 'none',
+                          borderRadius: '6px',
+                          backgroundColor: selectedLang === 'English' ? '#f1f5f9' : 'transparent',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          color: '#0f172a',
+                          textAlign: 'left',
+                          transition: 'background-color 0.15s ease',
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            overflow: 'hidden',
+                            display: 'inline-flex',
+                            flexShrink: 0,
+                            border: '1px solid #e2e8f0',
+                          }}
+                        >
+                          <img src="/assets/imgs/theme/flag-en.jpg" alt="English" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </span>
+                        <span>English</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedLang('Arabic');
+                          setLangOpen(false);
+                        }}
+                        style={{
+                          width: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          padding: '8px 12px',
+                          border: 'none',
+                          borderRadius: '6px',
+                          backgroundColor: selectedLang === 'Arabic' ? '#f1f5f9' : 'transparent',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: 600,
+                          color: '#0f172a',
+                          textAlign: 'left',
+                          marginTop: '3px',
+                          transition: 'background-color 0.15s ease',
+                        }}
+                      >
+                        <span
+                          style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            overflow: 'hidden',
+                            display: 'inline-flex',
+                            flexShrink: 0,
+                            border: '1px solid #e2e8f0',
+                          }}
+                        >
+                          <img src="/assets/imgs/theme/flag-ar.jpg" alt="Arabic" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </span>
+                        <span>عربى</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2. Location Dropdown (Desktop & Larger Screens) */}
                 <div ref={locationRef} className="search-location position-relative d-none d-xl-block">
                   <div
                     className="location-pill"
@@ -454,7 +646,10 @@ export const Header: React.FC = () => {
                       fontSize: '13px',
                       fontWeight: '600',
                       color: '#253D4E',
-                      border: '1px solid #e2e8f0'
+                      border: '1px solid #e2e8f0',
+                      height: '42px',
+                      boxSizing: 'border-box',
+                      transition: 'all 0.15s ease',
                     }}
                     onClick={() => setLocationOpen(!locationOpen)}
                   >
@@ -519,7 +714,7 @@ export const Header: React.FC = () => {
                   <div className="header-action-icon-2">
                     <Link className="mini-cart-icon position-relative" href="/cart" title="Cart">
                       <img alt="Cart" src="/assets/imgs/theme/icons/icon-cart.svg" />
-                      <span className="pro-count blue">2</span>
+                      <span className="pro-count blue">{totalCartItems}</span>
                     </Link>
                   </div>
 
@@ -551,7 +746,7 @@ export const Header: React.FC = () => {
                             height: '26px',
                             borderRadius: '50%',
                             objectFit: 'cover',
-                            border: isAdmin ? '2px solid #2563eb' : '2px solid #3BB77E'
+                            border: '2px solid rgb(231, 231, 231)'
                           }}
                         />
                       ) : (
@@ -692,61 +887,82 @@ export const Header: React.FC = () => {
               </div>
             </div>
 
-            {/* Mobile-only Search Bar: Styled with yellow Search button matching desktop */}
+            {/* Mobile-only Search Bar: Matching reference style */}
             <div className="d-block d-xl-none mt-3 pt-1">
               <div className="search-style-2 w-100">
                 <form
                   action="#"
-                  onSubmit={(e) => e.preventDefault()}
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    if (searchInput.trim()) {
+                      router.push(`/products?q=${encodeURIComponent(searchInput.trim())}`);
+                    }
+                  }}
                   style={{
                     display: 'flex',
+                    alignItems: 'center',
                     width: '100%',
-                    height: '46px',
+                    height: '44px',
                     backgroundColor: '#ffffff',
-                    border: '1px solid #E2E2E2',
-                    borderRadius: '6px',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
-                    position: 'relative'
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                    position: 'relative',
                   }}
                 >
                   <input
                     type="text"
-                    placeholder="Search Products ..."
+                    placeholder="Search"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
                     style={{
                       flex: 1,
                       height: '100%',
                       border: 'none',
                       background: 'transparent',
-                      padding: '0 16px',
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      color: '#253D4E',
-                      outline: 'none'
+                      padding: '0 14px',
+                      fontSize: '13.5px',
+                      fontWeight: '400',
+                      color: '#0f172a',
+                      outline: 'none',
+                      boxShadow: 'none',
                     }}
                   />
                   <button
                     type="submit"
                     className="search-btn"
+                    aria-label="Search"
+                    title="Search"
                     style={{
-                      backgroundColor: '#FDC839',
-                      color: '#000000',
-                      fontSize: '14px',
-                      fontWeight: '700',
+                      position: 'relative',
+                      width: '40px',
                       height: '100%',
-                      minHeight: '46px',
-                      padding: '0 18px 0 38px',
-                      borderRadius: '0 5px 5px 0',
-                      border: 'none',
-                      cursor: 'pointer',
-                      display: 'flex',
+                      minWidth: '40px',
+                      display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      position: 'relative',
-                      whiteSpace: 'nowrap'
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      color: '#1e293b',
+                      cursor: 'pointer',
+                      padding: 0,
+                      marginRight: '4px',
+                      outline: 'none',
                     }}
                   >
-                    <i className="fi-rs-search" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', fontSize: '15px' }}></i>
-                    Search
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#1e293b"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
                   </button>
                 </form>
               </div>
@@ -758,40 +974,72 @@ export const Header: React.FC = () => {
         {/* ========================================================
             3. DESKTOP & LAPTOP NAVIGATION BAR (header-bottom)
            ======================================================== */}
-        <div className="header-bottom header-bottom-bg-color sticky-bar d-none d-xl-block" style={{ backgroundColor: '#ffffff' }}>
+        <div className="header-bottom header-bottom-bg-color sticky-bar d-none d-xl-block" style={{ backgroundColor: '#ffffff', position: 'relative', zIndex: 1045 }}>
           <div className="container">
             <div className="header-wrap header-space-between position-relative">
               
               {/* Desktop Nav Items */}
               <div className="header-nav d-flex align-items-center">
                 
-                {/* Shop by Categories Button & Dropdown */}
-                <div ref={shopCatRef} className="main-categori-wrap">
-                  <a
-                    className={"categories-button-active " + (shopCatOpen ? "open" : "")}
-                    href="#"
+                {/* All Categories Trigger & Dropdown */}
+                <div
+                  ref={shopCatRef}
+                  className="main-categori-wrap ref-all-categories-wrap position-relative d-inline-flex align-items-center"
+                  onMouseEnter={handleShopCatMouseEnter}
+                  onMouseLeave={handleShopCatMouseLeave}
+                >
+                  <button
+                    type="button"
+                    className={`ref-all-categories-trigger ${shopCatOpen ? "open" : ""}`}
                     onClick={(e) => {
                       e.preventDefault();
-                      setShopCatOpen(!shopCatOpen);
+                      setShopCatOpen(prev => !prev);
                       if (shopCatOpen) setHoveredCategory(null);
                     }}
+                    aria-expanded={shopCatOpen}
+                    title="All Categories"
                   >
-                    <span className="fi-rs-apps"></span>
-                    <span className="et">Shop by Categories</span>
-                  </a>
+                    <svg
+                      width="17"
+                      height="17"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+                      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+                      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+                      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+                    </svg>
+                    <span>All Categories</span>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{
+                        color: '#64748b',
+                        marginLeft: '2px',
+                        transition: 'transform 0.2s ease',
+                        transform: shopCatOpen ? 'rotate(180deg)' : 'none',
+                      }}
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
+                  <span className="ref-nav-divider" />
                   
                   <div
-                    className={"categories-dropdown-wrap categories-dropdown-active-large font-heading " + (shopCatOpen ? "open d-block" : "")}
+                    className={"classic-categories-dropdown categories-dropdown-wrap categories-dropdown-active-large font-heading " + (shopCatOpen ? "open d-block" : "")}
                     onMouseLeave={() => setHoveredCategory(null)}
                     style={{
-                      position: 'absolute',
-                      top: '100%',
-                      left: 0,
-                      zIndex: 999,
-                      background: '#ffffff',
-                      border: '1px solid #BCE3C9',
-                      borderRadius: '8px',
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
                       display: shopCatOpen ? 'flex' : 'none',
                     }}
                   >
@@ -801,8 +1049,8 @@ export const Header: React.FC = () => {
                         style={{
                           listStyle: 'none',
                           margin: 0,
-                          padding: '6px 0',
-                          maxHeight: '252px', /* Always show 6 items only before scrolling */
+                          padding: '4px 0',
+                          maxHeight: '380px',
                           overflowY: 'auto',
                           overflowX: 'hidden',
                           scrollbarWidth: 'thin',
@@ -811,11 +1059,12 @@ export const Header: React.FC = () => {
                         }}
                       >
                         {categories.map((cat, idx) => {
-                          const hasSub = cat.hasSubItems === true && Boolean(cat.subItems && cat.subItems.length > 0);
+                          const hasSub = Boolean(cat.subItems && cat.subItems.length > 0 && cat.hasSubItems !== false);
                           const isHovered = hasSub && ((hoveredCategory?.id && hoveredCategory.id === cat.id) || (hoveredCategory?.name === cat.name));
                           return (
                             <li
                               key={cat.id || idx}
+                              className={`classic-cat-item ${isHovered ? 'active-sub' : ''}`}
                               onMouseEnter={() => {
                                 if (hasSub) {
                                   setHoveredCategory(cat);
@@ -823,45 +1072,29 @@ export const Header: React.FC = () => {
                                   setHoveredCategory(null);
                                 }
                               }}
-                              style={{
-                                height: '42px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                padding: '0 20px',
-                                backgroundColor: isHovered ? '#FDC839' : 'transparent',
-                                transition: 'background-color 0.2s',
-                                cursor: 'pointer',
-                              }}
                             >
                               <Link
                                 href={cat.link}
+                                className="classic-cat-link"
                                 onClick={() => {
                                   setShopCatOpen(false);
                                   setHoveredCategory(null);
                                 }}
-                                style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  width: '100%',
-                                  color: isHovered ? '#000000' : '#253D4E',
-                                  fontWeight: isHovered ? '700' : '600',
-                                  fontSize: '14px',
-                                  textDecoration: 'none',
-                                }}
                               >
-                                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: hasSub ? '200px' : '230px' }}>
-                                  {cat.name}
+                                <span style={{ display: 'inline-flex', alignItems: 'center', minWidth: 0, flexGrow: 1 }}>
+                                  {cat.image ? (
+                                    <img
+                                      src={cat.image}
+                                      alt=""
+                                      className="classic-cat-thumb"
+                                    />
+                                  ) : null}
+                                  <span className="classic-cat-name">
+                                    {cat.name}
+                                  </span>
                                 </span>
                                 {hasSub && (
-                                  <i
-                                    className="fi-rs-angle-right"
-                                    style={{
-                                      fontSize: '11px',
-                                      color: isHovered ? '#000000' : '#4bb34d',
-                                      flexShrink: 0,
-                                    }}
-                                  ></i>
+                                  <i className="fi-rs-angle-right classic-cat-arrow"></i>
                                 )}
                               </Link>
                             </li>
@@ -871,56 +1104,20 @@ export const Header: React.FC = () => {
                     </div>
 
                     {/* Flyout Sub-menu positioned outside scroll container so it NEVER gets clipped */}
-                    {hoveredCategory && hoveredCategory.hasSubItems === true && hoveredCategory.subItems && hoveredCategory.subItems.length > 0 && (
-                      <div
-                        className="shop-categories-flyout-menu"
-                        style={{
-                          position: 'absolute',
-                          left: '100%',
-                          top: '-1px',
-                          width: '240px',
-                          minHeight: '254px',
-                          maxHeight: '360px',
-                          overflowY: 'auto',
-                          backgroundColor: '#ffffff',
-                          border: '1px solid #BCE3C9',
-                          borderRadius: '0 8px 8px 0',
-                          boxShadow: '8px 10px 25px rgba(0, 0, 0, 0.08)',
-                          zIndex: 1000,
-                          padding: '6px 0',
-                          scrollbarWidth: 'thin',
-                          scrollbarColor: '#cbd5e1 transparent',
-                        }}
-                      >
+                    {hoveredCategory && hoveredCategory.subItems && hoveredCategory.subItems.length > 0 && (
+                      <div className="classic-flyout-menu shop-categories-flyout-menu">
                         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                           {hoveredCategory.subItems.map((sub, sIdx) => (
                             <li
                               key={sub.id || sIdx}
-                              style={{
-                                height: '40px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                padding: '0 20px',
-                                transition: 'background-color 0.15s',
-                              }}
-                              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#f8f9fa')}
-                              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
+                              className="classic-flyout-item"
                             >
                               <Link
                                 href={sub.link}
+                                className="classic-flyout-link"
                                 onClick={() => {
                                   setShopCatOpen(false);
                                   setHoveredCategory(null);
-                                }}
-                                style={{
-                                  color: '#253D4E',
-                                  fontSize: '13px',
-                                  fontWeight: '500',
-                                  textDecoration: 'none',
-                                  width: '100%',
-                                  overflow: 'hidden',
-                                  textOverflow: 'ellipsis',
-                                  whiteSpace: 'nowrap',
                                 }}
                               >
                                 {sub.name}
@@ -938,7 +1135,7 @@ export const Header: React.FC = () => {
                   <nav>
                     <ul>
                       {mainMenuItems.filter(m => m.isActive !== false).slice(0, 6).map((menuItem) => {
-                        const hasMega = !menuItem.badge && menuItem.hasMegaMenu && menuItem.columns && menuItem.columns.length > 0;
+                        const hasMega = menuItem.hasMegaMenu && menuItem.columns && menuItem.columns.length > 0;
                         const menuDestination = getMenuDestination(menuItem);
                         const isMenuOpen = activeMegaMenu === menuItem.id;
 
@@ -950,13 +1147,16 @@ export const Header: React.FC = () => {
                               onMouseEnter={() => handleMegaMenuEnter(menuItem.id)}
                               onMouseLeave={handleMegaMenuLeave}
                             >
-                              <Link href={menuItem.link} onClick={() => setActiveMegaMenu(null)}>
-                                {formatNavigationLabel(menuItem.name)}
+                              <Link href={menuItem.link} onClick={() => setActiveMegaMenu(null)} className="nav-item-link-wrap">
                                 {menuItem.badge && (
-                                  <span className="badge ms-1" style={{ fontSize: '10px', ...getMenuBadgeStyle(menuItem.badge) }}>
-                                    {menuItem.badge}
+                                  <span
+                                    className="nav-speech-badge"
+                                    style={{ '--badge-bg': getMenuBadgeColor(menuItem.badge) } as React.CSSProperties}
+                                  >
+                                    {formatMenuBadgeLabel(menuItem.badge)}
                                   </span>
                                 )}
+                                <span>{formatNavigationLabel(menuItem.name)}</span>
                                 <i className="fi-rs-plus"></i>
                               </Link>
                               <ul
@@ -1068,20 +1268,22 @@ export const Header: React.FC = () => {
                         }
 
                         // Direct link (no mega menu)
-                        const isSpecial = menuItem.link.includes('offer') || menuItem.name.toLowerCase().includes('offer');
                         return (
                           <li key={menuItem.id} onMouseEnter={() => handleMegaMenuEnter('')}>
                             <Link
                               href={menuDestination}
-                              className={isSpecial ? 'spcl' : ''}
                               onClick={() => setActiveMegaMenu(null)}
+                              className="nav-item-link-wrap"
                             >
-                              {formatNavigationLabel(menuItem.name)}
                               {menuItem.badge && (
-                                <span className="badge ms-1" style={{ fontSize: '10px', ...getMenuBadgeStyle(menuItem.badge) }}>
-                                  {menuItem.badge}
+                                <span
+                                  className="nav-speech-badge"
+                                  style={{ '--badge-bg': getMenuBadgeColor(menuItem.badge) } as React.CSSProperties}
+                                >
+                                  {formatMenuBadgeLabel(menuItem.badge)}
                                 </span>
                               )}
+                              <span>{formatNavigationLabel(menuItem.name)}</span>
                             </Link>
                           </li>
                         );
@@ -1099,7 +1301,7 @@ export const Header: React.FC = () => {
                   <div className="header-action-icon-2">
                     <Link className="mini-cart-icon position-relative" href="/cart" title="View Cart">
                       <img alt="Cart" src="/assets/imgs/theme/icons/icon-cart.svg" />
-                      <span className="pro-count blue">2</span>
+                      <span className="pro-count blue">{totalCartItems}</span>
                     </Link>
                   </div>
 
@@ -1116,6 +1318,7 @@ export const Header: React.FC = () => {
                     className={"header-action-icon-2 header-action-user-profile " + (accountOpen ? "active" : "")}
                     onMouseEnter={handleAccountMouseEnter}
                     onMouseLeave={handleAccountMouseLeave}
+                    style={{ position: 'relative', zIndex: 1047 }}
                   >
                     <a
                       href={user ? "#" : "/login"}
@@ -1140,7 +1343,7 @@ export const Header: React.FC = () => {
                               target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name || 'User')}`;
                             }}
                             style={{
-                              border: isAdmin ? '2px solid #2563eb' : '2px solid #3BB77E'
+                              border: '2px solid rgb(231, 231, 231)'
                             }}
                           />
                           <span className="header-user-name">
@@ -1157,7 +1360,7 @@ export const Header: React.FC = () => {
                       className={"cart-dropdown-wrap cart-dropdown-hm2 account-dropdown " + (accountOpen ? "open" : "")}
                       onMouseEnter={handleAccountMouseEnter}
                       onMouseLeave={handleAccountMouseLeave}
-                      style={{ minWidth: '220px' }}
+                      style={{ minWidth: '220px', zIndex: 99999 }}
                     >
                       {user ? (
                         <ul>
@@ -1511,7 +1714,7 @@ export const Header: React.FC = () => {
 
                 {/* Dynamic Main Menu items in Mobile Drawer */}
                 {mainMenuItems.filter(m => m.isActive !== false).slice(0, 6).map((menuItem) => {
-                  const hasSub = !menuItem.badge && menuItem.hasMegaMenu && menuItem.columns && menuItem.columns.length > 0;
+                  const hasSub = menuItem.hasMegaMenu && menuItem.columns && menuItem.columns.length > 0;
                   const menuDestination = getMenuDestination(menuItem);
                   const isAccordionOpen = openAccordion === menuItem.id;
 
@@ -1527,7 +1730,17 @@ export const Header: React.FC = () => {
                           onClick={() => toggleAccordion(menuItem.id)}
                           style={{ cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#253D4E' }}
                         >
-                          <span>{formatNavigationLabel(menuItem.name)}</span>
+                          <span className="d-flex align-items-center gap-2">
+                            {formatNavigationLabel(menuItem.name)}
+                            {menuItem.badge && (
+                              <span
+                                className="nav-speech-badge-mobile"
+                                style={{ '--badge-bg': getMenuBadgeColor(menuItem.badge) } as React.CSSProperties}
+                              >
+                                {formatMenuBadgeLabel(menuItem.badge)}
+                              </span>
+                            )}
+                          </span>
                           <span className="menu-expand"><i className="fi-rs-angle-small-down"></i></span>
                         </div>
                         <div className={`mobile-accordion-collapse ${isAccordionOpen ? 'is-open' : ''}`}>
@@ -1552,23 +1765,30 @@ export const Header: React.FC = () => {
                     );
                   }
 
-                  const isOffer = menuItem.link.includes('offer') || menuItem.name.toLowerCase().includes('offer');
                   const mobileMenuLabelColor = '#253D4E';
                   return (
                     <li key={menuItem.id} className="py-2 border-bottom">
                       <Link
                         href={menuDestination}
                         onClick={() => setMobileMenuOpen(false)}
-                        className="d-flex align-items-center"
+                        className="d-flex align-items-center justify-content-between"
                         style={{
                           fontSize: '14px',
                           fontWeight: '600',
                           color: mobileMenuLabelColor,
-                          gap: '7px',
                         }}
                       >
-                        <span>{formatNavigationLabel(menuItem.name)}</span>
-                        {menuItem.badge && <span className="badge" style={getMenuBadgeStyle(menuItem.badge)}>{menuItem.badge}</span>}
+                        <span className="d-flex align-items-center gap-2">
+                          {formatNavigationLabel(menuItem.name)}
+                          {menuItem.badge && (
+                            <span
+                              className="nav-speech-badge-mobile"
+                              style={{ '--badge-bg': getMenuBadgeColor(menuItem.badge) } as React.CSSProperties}
+                            >
+                              {formatMenuBadgeLabel(menuItem.badge)}
+                            </span>
+                          )}
+                        </span>
                       </Link>
                     </li>
                   );
