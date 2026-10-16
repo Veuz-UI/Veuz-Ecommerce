@@ -1,13 +1,17 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectParam = searchParams.get('redirect');
+  const redirectTarget = redirectParam && redirectParam.startsWith('/') ? redirectParam : '/';
+
   const { login, user, isLoading } = useAuth();
   const { showToast } = useToast();
 
@@ -25,10 +29,10 @@ export default function LoginPage() {
       if (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN') {
         router.replace('/dashboard');
       } else {
-        router.replace('/');
+        router.replace(redirectTarget);
       }
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, router, redirectTarget]);
 
   // Restore remembered credentials on initial mount and scroll to top
   useEffect(() => {
@@ -112,7 +116,7 @@ export default function LoginPage() {
       if (res.user.role === 'ADMIN' || res.user.role === 'SUPER_ADMIN') {
         router.push('/dashboard', { scroll: true });
       } else {
-        router.push('/', { scroll: true });
+        router.push(redirectTarget, { scroll: true });
       }
     } else {
       showToast('danger', res.message || 'Invalid email or password.', 'Error Message');
@@ -179,6 +183,9 @@ export default function LoginPage() {
                 type="email"
                 id="email"
                 required
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -226,6 +233,9 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   id="password"
                   required
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck="false"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
@@ -329,12 +339,23 @@ export default function LoginPage() {
         {/* Footer Link */}
         <p style={{ textAlign: 'center', fontSize: '13px', color: '#64748b', marginTop: '20px' }}>
           New here?{' '}
-          <Link href="/register" style={{ color: '#2563eb', fontWeight: '700', textDecoration: 'none' }}>
+          <Link
+            href={redirectParam ? `/register?redirect=${encodeURIComponent(redirectParam)}` : "/register"}
+            style={{ color: '#2563eb', fontWeight: '700', textDecoration: 'none' }}
+          >
             Create Customer Account
           </Link>
         </p>
 
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', backgroundColor: '#f1f5f9' }} />}>
+      <LoginForm />
+    </Suspense>
   );
 }

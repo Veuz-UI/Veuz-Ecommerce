@@ -48,7 +48,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedToken = typeof window !== 'undefined' ? localStorage.getItem('veuz_token') : null;
     const savedUser = typeof window !== 'undefined' ? localStorage.getItem('veuz_user') : null;
 
-    if (savedToken && savedUser) {
+    // Detect and discard fake legacy mock tokens immediately
+    const isMockToken =
+      savedToken === 'super-admin-token' ||
+      savedToken === 'demo-admin-token' ||
+      savedToken === 'demo-customer-token';
+
+    if (savedToken && !isMockToken && savedUser) {
       try {
         setToken(savedToken);
         const parsedUser = JSON.parse(savedUser);
@@ -60,8 +66,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (e) {
         console.error('Failed to parse saved user:', e);
       }
+    } else if (isMockToken) {
+      // Clear out fake dummy session from localStorage
+      localStorage.removeItem('veuz_token');
+      localStorage.removeItem('veuz_user');
+      setToken(null);
+      setUser(null);
     }
-    setIsLoading(false);
+
+    // Always fetch fresh profile from backend if a real token exists
+    if (savedToken && !isMockToken) {
+      authService.getMe()
+        .then((res) => {
+          if (res?.success && res.user) {
+            setUser(res.user);
+            localStorage.setItem('veuz_user', JSON.stringify(res.user));
+          }
+        })
+        .catch((err) => {
+          console.warn('Backend user profile check:', err?.message || err);
+          if (err?.status === 401) {
+            setToken(null);
+            setUser(null);
+            localStorage.removeItem('veuz_token');
+            localStorage.removeItem('veuz_user');
+          }
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    } else {
+      setIsLoading(false);
+    }
 
     if (typeof window === 'undefined') return;
 
@@ -172,67 +208,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { success: true, user: data.user };
     } catch (error: any) {
-      console.warn('Backend API connection failed, checking for local demo credentials...');
-      
-      // Smart Fallback for instantaneous testing if backend DB is not yet running
-      if (email.toLowerCase().includes('super')) {
-        const superAdmin: User = {
-          id: 1,
-          name: 'Super Admin',
-          email: 'super@gmail.com',
-          role: 'SUPER_ADMIN',
-          avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-          isEmailVerified: true,
-          phone: '+966 50 123 4567',
-          alternatePhone: '+966 55 987 6543',
-          gender: 'Female',
-          dateOfBirth: '1990-05-15',
-        };
-        setToken('super-admin-token');
-        setUser(superAdmin);
-        localStorage.setItem('veuz_token', 'super-admin-token');
-        localStorage.setItem('veuz_user', JSON.stringify(superAdmin));
-        broadcastAuthLogin(superAdmin, 'super-admin-token');
-        return { success: true, user: superAdmin };
-      } else if (email.toLowerCase().includes('admin')) {
-        const demoAdmin: User = {
-          id: 2,
-          name: 'Admin User',
-          email: 'admin@gmail.com',
-          role: 'ADMIN',
-          avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80',
-          isEmailVerified: true,
-          phone: '+966 50 234 5678',
-          alternatePhone: '+966 54 876 5432',
-          gender: 'Male',
-          dateOfBirth: '1988-11-20',
-        };
-        setToken('demo-admin-token');
-        setUser(demoAdmin);
-        localStorage.setItem('veuz_token', 'demo-admin-token');
-        localStorage.setItem('veuz_user', JSON.stringify(demoAdmin));
-        broadcastAuthLogin(demoAdmin, 'demo-admin-token');
-        return { success: true, user: demoAdmin };
-      } else {
-        const demoCustomer: User = {
-          id: 3,
-          name: 'Customer User',
-          email: 'customer@gmail.com',
-          role: 'CUSTOMER',
-          avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Customer%20User',
-          isEmailVerified: true,
-          phone: '+966 50 345 6789',
-          alternatePhone: '+966 56 765 4321',
-          gender: 'Male',
-          dateOfBirth: '1995-08-10',
-        };
-        setToken('demo-customer-token');
-        setUser(demoCustomer);
-        localStorage.setItem('veuz_token', 'demo-customer-token');
-        localStorage.setItem('veuz_user', JSON.stringify(demoCustomer));
-        broadcastAuthLogin(demoCustomer, 'demo-customer-token');
-        return { success: true, user: demoCustomer };
-      }
+      console.error('Login failed:', error);
+      const message = error.data?.message || error.message || 'Invalid email or password. Please try again.';
+      return { success: false, message };
     }
   };
 
@@ -248,23 +226,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       return { success: true, user: data.user };
     } catch (error: any) {
-      console.warn('Backend API connection failed, creating demo customer session...');
-      const demoCustomer: User = {
-        id: Date.now(),
-        name,
-        email,
-        role: 'CUSTOMER',
-        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`,
-        isEmailVerified: false,
-        mobile,
-        phone: mobile,
-      };
-      setToken('demo-customer-token');
-      setUser(demoCustomer);
-      localStorage.setItem('veuz_token', 'demo-customer-token');
-      localStorage.setItem('veuz_user', JSON.stringify(demoCustomer));
-      broadcastAuthLogin(demoCustomer, 'demo-customer-token');
-      return { success: true, user: demoCustomer };
+      console.error('Registration failed:', error);
+      const message = error.data?.message || error.message || 'Registration failed. Please check your information.';
+      return { success: false, message };
     }
   };
 
@@ -362,6 +326,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       localStorage.removeItem('veuz_token');
       localStorage.removeItem('veuz_user');
+      localStorage.removeItem('veuz_cart_guest');
+      localStorage.removeItem('veuz_wishlist_guest');
+      localStorage.removeItem('veuz_cart');
+      localStorage.removeItem('veuz_wishlist');
       sessionStorage.clear();
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
       if (wasAdmin) {

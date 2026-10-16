@@ -5,6 +5,23 @@ import { DEFAULT_BANNER_SETTINGS, BannerSettingsData, MainBannerItem, PromoBanne
 const STORAGE_KEY = 'veuz_banners_cache';
 export const BANNER_SETTINGS_EVENT = 'veuz:banners-updated';
 
+export function getCachedBannerSettings(): BannerSettingsData {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && Array.isArray(parsed.mainBanners) && Array.isArray(parsed.promoBanners)) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      // Ignore cache read error
+    }
+  }
+  return DEFAULT_BANNER_SETTINGS;
+}
+
 export async function fetchBannerSettings(): Promise<BannerSettingsData> {
   // 1. Try local cache first for instant render
   let cached: BannerSettingsData | null = null;

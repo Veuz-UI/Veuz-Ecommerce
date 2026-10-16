@@ -1,9 +1,26 @@
 'use client';
 
-import { ProductItem } from '@/data/categoryProductsData';
+import { ProductItem, CATEGORY_PRODUCTS_DATA } from '@/data/categoryProductsData';
 
 const STORAGE_KEY = 'veuz_products_cache';
 export const PRODUCTS_EVENT = 'veuz:products-updated';
+
+export function getCachedProducts(): ProductItem[] {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.filter((p: any) => !p.isDraft && p.isActive !== false);
+        }
+      }
+    } catch (e) {
+      // Ignore cache read error
+    }
+  }
+  return CATEGORY_PRODUCTS_DATA.filter((p) => !p.isDraft && p.isActive !== false);
+}
 
 export async function fetchProducts(filter?: string, options?: { includeDrafts?: boolean }): Promise<ProductItem[]> {
   // 1. Fresh fetch from API first so dashboard products are always live and accurate

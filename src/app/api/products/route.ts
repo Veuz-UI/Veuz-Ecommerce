@@ -223,6 +223,10 @@ export async function POST(req: Request) {
         sizes: Array.isArray(newProductData.sizes) ? newProductData.sizes : [],
         colors: Array.isArray(newProductData.colors) ? newProductData.colors : [],
         gender: newProductData.gender ? String(newProductData.gender).trim() : 'Unisex',
+        deliveryOptionId: newProductData.deliveryOptionId || 'del-standard',
+        deliveryOptionName: newProductData.deliveryOptionName || 'Standard Delivery',
+        deliveryCharge: newProductData.deliveryCharge !== undefined ? Number(newProductData.deliveryCharge) : 15,
+        deliveryEstimatedDays: newProductData.deliveryEstimatedDays || '3-5 Business Days',
         colorImages: typeof newProductData.colorImages === 'object' && newProductData.colorImages !== null ? newProductData.colorImages : {},
         colorSizes: typeof newProductData.colorSizes === 'object' && newProductData.colorSizes !== null ? newProductData.colorSizes : {},
         images: galleryPhotos,
@@ -303,6 +307,10 @@ export async function POST(req: Request) {
         colors: Array.isArray(updateData.colors) ? updateData.colors : (existing.colors || []),
         colorImages: updateData.colorImages !== undefined ? updateData.colorImages : (existing.colorImages || {}),
         colorSizes: updateData.colorSizes !== undefined ? updateData.colorSizes : (existing.colorSizes || {}),
+        deliveryOptionId: updateData.deliveryOptionId !== undefined ? updateData.deliveryOptionId : (existing.deliveryOptionId || 'del-standard'),
+        deliveryOptionName: updateData.deliveryOptionName !== undefined ? updateData.deliveryOptionName : (existing.deliveryOptionName || 'Standard Delivery'),
+        deliveryCharge: updateData.deliveryCharge !== undefined ? Number(updateData.deliveryCharge) : (existing.deliveryCharge !== undefined ? existing.deliveryCharge : 15),
+        deliveryEstimatedDays: updateData.deliveryEstimatedDays !== undefined ? updateData.deliveryEstimatedDays : (existing.deliveryEstimatedDays || '3-5 Business Days'),
         images: Array.isArray(updateData.images) ? updateData.images : (existing.images || []),
       };
 

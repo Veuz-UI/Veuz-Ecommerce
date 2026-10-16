@@ -1,9 +1,12 @@
 import rateLimit from 'express-rate-limit';
 
-// Strict rate limiter for Login and Register (Max 5 attempts per 15 min window)
+const IS_PROD = process.env.NODE_ENV === 'production';
+
+// Strict rate limiter for Login and Register (Max 10 in production, disabled/relaxed in development)
 export const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 10 requests per window
+  max: IS_PROD ? 10 : 10000,
+  skip: () => !IS_PROD, // Do not lock out during local development / testing
   standardHeaders: true,
   legacyHeaders: false,
   message: {
@@ -15,7 +18,8 @@ export const authRateLimiter = rateLimit({
 // General API rate limiter
 export const apiRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 200,
+  max: IS_PROD ? 200 : 20000,
+  skip: () => !IS_PROD,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

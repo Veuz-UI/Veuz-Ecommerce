@@ -1,9 +1,31 @@
 'use client';
 
-import { ShopSettingsData, DEFAULT_DELIVERY_OPTIONS } from '@/data/defaultShopSettings';
+import { ShopSettingsData, DEFAULT_DELIVERY_OPTIONS, DEFAULT_SHOP_SETTINGS } from '@/data/defaultShopSettings';
 
 const STORAGE_KEY = 'veuz_shop_settings_cache';
 export const SHOP_SETTINGS_EVENT = 'veuz:shop-settings-updated';
+
+export function getCachedShopSettings(): ShopSettingsData {
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed && Array.isArray(parsed.categories) && Array.isArray(parsed.mainMenu)) {
+          return {
+            ...parsed,
+            deliveryOptions: Array.isArray(parsed.deliveryOptions) && parsed.deliveryOptions.length > 0
+              ? parsed.deliveryOptions
+              : DEFAULT_DELIVERY_OPTIONS,
+          };
+        }
+      }
+    } catch (e) {
+      // Ignore cache read error
+    }
+  }
+  return DEFAULT_SHOP_SETTINGS;
+}
 
 export async function fetchShopSettings(): Promise<ShopSettingsData> {
   // 1. Try local cache first for instant render

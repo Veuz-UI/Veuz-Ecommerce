@@ -1,8 +1,9 @@
 'use client';
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { Product, FEATURED_PRODUCTS } from '@/data/mockData';
 import { triggerGlobalToast } from '@/context/ToastContext';
+import { useAuth } from '@/context/AuthContext';
 
 export interface CartItem {
   product: Product;
@@ -42,48 +43,183 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [isCartOpen, setIsCartOpen] = useState<boolean>(false);
   const [isMobileNavOpen, setIsMobileNavOpen] = useState<boolean>(false);
 
-  // Load cart and wishlist from localStorage on client mount
+  // User-scoped storage keys
+  let userId: number | string | null = null;
+  try {
+    const auth = useAuth();
+    userId = auth?.user?.id ?? null;
+  } catch (e) {
+    // Fallback if rendered outside AuthProvider
+  }
+
+  const prevUserIdRef = useRef<number | string | null | undefined>(undefined);
+  const isUserCartActionRef = useRef<boolean>(false);
+  const isUserWishlistActionRef = useRef<boolean>(false);
+
+  const getCartKey = (uid: number | string | null) => (uid ? `veuz_cart_user_${uid}` : 'veuz_cart_guest');
+  const getWishlistKey = (uid: number | string | null) => (uid ? `veuz_wishlist_user_${uid}` : 'veuz_wishlist_guest');
+
+  // Helper to fetch server cart for logged in user
+  const fetchServerCart = async (uid: number | string) => {
+    try {
+      const res = await fetch(`/api/cart?userId=${uid}`);
+      const data = await res.json();
+      if (data?.success) {
+        if (Array.isArray(data.cart)) {
+          if (data.cart.length > 0) {
+            setCart(data.cart);
+            localStorage.setItem(getCartKey(uid), JSON.stringify(data.cart));
+          } else {
+            // Server cart is empty for this user. Check if local storage has existing items to push
+            const localRaw = localStorage.getItem(getCartKey(uid));
+            if (localRaw) {
+              try {
+                const parsed = JSON.parse(localRaw);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  setCart(parsed);
+                  fetch('/api/cart', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: uid, cart: parsed }),
+                  }).catch(() => {});
+                }
+              } catch (e) {}
+            }
+          }
+        }
+        if (Array.isArray(data.wishlist)) {
+          if (data.wishlist.length > 0) {
+            setWishlist(data.wishlist);
+            localStorage.setItem(getWishlistKey(uid), JSON.stringify(data.wishlist));
+          } else {
+            const localRaw = localStorage.getItem(getWishlistKey(uid));
+            if (localRaw) {
+              try {
+                const parsed = JSON.parse(localRaw);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  setWishlist(parsed);
+                  fetch('/api/cart', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ userId: uid, wishlist: parsed }),
+                  }).catch(() => {});
+                }
+              } catch (e) {}
+            }
+          }
+        }
+      }
+    } catch (e) {
+      // Ignore network errors
+    }
+  };
+
+  // Load cart and wishlist on client mount
   useEffect(() => {
     try {
-      const savedCart = localStorage.getItem('veuz_cart');
+      const activeCartKey = getCartKey(userId);
+      const savedCart = localStorage.getItem(activeCartKey) || (!userId ? localStorage.getItem('veuz_cart') : null);
       if (savedCart) {
         const parsed = JSON.parse(savedCart);
         if (Array.isArray(parsed)) setCart(parsed);
       }
-      const savedWishlist = localStorage.getItem('veuz_wishlist');
+
+      const activeWishlistKey = getWishlistKey(userId);
+      const savedWishlist = localStorage.getItem(activeWishlistKey) || (!userId ? localStorage.getItem('veuz_wishlist') : null);
       if (savedWishlist) {
         const parsed = JSON.parse(savedWishlist);
         if (Array.isArray(parsed)) setWishlist(parsed);
       }
+
+      // Cleanup legacy global keys if migrated
+      if (localStorage.getItem('veuz_cart')) {
+        localStorage.removeItem('veuz_cart');
+      }
+      if (localStorage.getItem('veuz_wishlist')) {
+        localStorage.removeItem('veuz_wishlist');
+      }
     } catch (e) {
       // Ignore parse errors
     }
+
+    if (userId) {
+      fetchServerCart(userId);
+    }
+
+    prevUserIdRef.current = userId;
     setIsHydrated(true);
   }, []);
 
-  // Save cart to localStorage
+  // When user changes (login, logout, switch user)
   useEffect(() => {
-    if (isHydrated) {
-      try {
-        localStorage.setItem('veuz_cart', JSON.stringify(cart));
-      } catch (e) {
-        // Ignore write errors
+    if (!isHydrated) return;
+    if (prevUserIdRef.current === undefined) {
+      prevUserIdRef.current = userId;
+      if (userId) {
+        fetchServerCart(userId);
       }
+      return;
     }
-  }, [cart, isHydrated]);
 
-  // Save wishlist to localStorage
+    if (prevUserIdRef.current !== userId) {
+      const prevUid = prevUserIdRef.current;
+      prevUserIdRef.current = userId;
+
+      if (userId === null) {
+        // User logged out! Clean in-memory state
+        setCart([]);
+        setWishlist([]);
+        localStorage.removeItem('veuz_cart_guest');
+        localStorage.removeItem('veuz_wishlist_guest');
+      } else {
+        // Logged in or switched user
+        fetchServerCart(userId);
+      }
+    }
+  }, [userId, isHydrated]);
+
+  // Save cart to user-scoped localStorage and sync to server only on user action
   useEffect(() => {
     if (isHydrated) {
       try {
-        localStorage.setItem('veuz_wishlist', JSON.stringify(wishlist));
+        localStorage.setItem(getCartKey(userId), JSON.stringify(cart));
       } catch (e) {
         // Ignore write errors
       }
+
+      if (userId && isUserCartActionRef.current) {
+        isUserCartActionRef.current = false;
+        fetch('/api/cart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, cart }),
+        }).catch(() => {});
+      }
     }
-  }, [wishlist, isHydrated]);
+  }, [cart, userId, isHydrated]);
+
+  // Save wishlist to user-scoped localStorage and sync to server only on user action
+  useEffect(() => {
+    if (isHydrated) {
+      try {
+        localStorage.setItem(getWishlistKey(userId), JSON.stringify(wishlist));
+      } catch (e) {
+        // Ignore write errors
+      }
+
+      if (userId && isUserWishlistActionRef.current) {
+        isUserWishlistActionRef.current = false;
+        fetch('/api/cart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId, wishlist }),
+        }).catch(() => {});
+      }
+    }
+  }, [wishlist, userId, isHydrated]);
 
   const addToCart = (product: Product, quantity = 1, selectedColor?: string, selectedSize?: string) => {
+    isUserCartActionRef.current = true;
     setCart((prev) => {
       const existing = prev.find(
         (item) =>
@@ -102,6 +238,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removeFromCart = (productId: number, selectedColor?: string, selectedSize?: string) => {
+    isUserCartActionRef.current = true;
     setCart((prev) =>
       prev.filter((item) => {
         if (item.product.id !== productId) return true;
@@ -119,6 +256,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     selectedColor?: string,
     selectedSize?: string
   ) => {
+    isUserCartActionRef.current = true;
     if (quantity <= 0) {
       removeFromCart(productId, selectedColor, selectedSize);
       return;
@@ -135,6 +273,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const clearCart = () => {
+    isUserCartActionRef.current = true;
     setCart([]);
     triggerGlobalToast('info', 'Your shopping cart has been cleared.', 'Cart Cleared');
   };
@@ -145,6 +284,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     newSize?: string,
     newImage?: string
   ) => {
+    isUserCartActionRef.current = true;
     setCart((prev) => {
       if (index < 0 || index >= prev.length) return prev;
       return prev.map((item, idx) => {
@@ -171,6 +311,14 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   };
 
   const toggleWishlist = (productId: number) => {
+    if (!userId) {
+      triggerGlobalToast('warning', 'Please sign in to save items to your wishlist.', 'Login Required');
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login?redirect=/wishlist';
+      }
+      return;
+    }
+    isUserWishlistActionRef.current = true;
     setWishlist((prev) => {
       const exists = prev.includes(productId);
       if (exists) {

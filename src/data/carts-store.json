@@ -1,0 +1,54 @@
+{
+  "3": {
+    "cart": [
+      {
+        "product": {
+          "id": 1792088421327,
+          "name": "3M Hard Hat SecureFit H-700 Series Cap Style Safety Helmet with Uvicator Sensor, 4-Point Pressure Diffusion Ratchet Suspension",
+          "price": 320,
+          "image": "/uploads/img_1792094049136_45487352b9d15e40f208bc9ff0ade528.png",
+          "category": "Safety Helmet"
+        },
+        "quantity": 1,
+        "selectedColor": "Green"
+      },
+      {
+        "product": {
+          "id": 1792058077081,
+          "name": "DMG Anti Fog Safety Glasses, 3 Pcs Safety Goggles over Eyeglasses, Anti Dust Impact, Scratch Resistant Splash Proof Chemical Clear Lens Wrap Around, Eye Protection, for Nurses Workers Architect Etc",
+          "price": 120,
+          "image": "/uploads/img_1792058231896_da3210dddefa74a8f78ea344ea88ec6e.png",
+          "category": "Safety Goggles"
+        },
+        "quantity": 1,
+        "selectedColor": "",
+        "selectedSize": "Regular Size"
+      }
+    ],
+    "wishlist": [],
+    "updatedAt": "2026-10-16T10:22:48.575Z"
+  },
+  "4": {
+    "cart": [
+      {
+        "product": {
+          "id": 1792088421327,
+          "name": "3M Hard Hat SecureFit H-700 Series Cap Style Safety Helmet with Uvicator Sensor, 4-Point Pressure Diffusion Ratchet Suspension",
+          "price": 320,
+          "image": "/uploads/img_1792094049136_45487352b9d15e40f208bc9ff0ade528.png",
+          "category": "Safety Helmet"
+        },
+        "quantity": 1,
+        "selectedColor": "Green",
+        "selectedSize": "Adjustable"
+      }
+    ],
+    "wishlist": [],
+    "updatedAt": "2026-10-16T12:22:29.824Z"
+  },
+  "5": {
+    "cart": [],
+    "wishlist": [],
+    "updatedAt": "2026-10-16T08:32:44.554Z"
+  }
+}

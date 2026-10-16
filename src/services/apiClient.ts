@@ -4,7 +4,15 @@
  * and attaches JWT authorization tokens.
  */
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+export const getApiBaseUrl = (): string => {
+  // In the browser, always use relative '/api' so all requests route through the active origin (port 3000).
+  // This ensures phones on LAN IP (192.168.1.106:3000) and PCs (localhost:3000) both work seamlessly
+  // via Next.js reverse-proxy rewrites without firewall or CORS failures.
+  if (typeof window !== 'undefined') {
+    return '/api';
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+};
 
 export interface ApiResponse<T = any> {
   success: boolean;
@@ -31,7 +39,7 @@ class ApiClient {
   }
 
   public async get<T = any>(endpoint: string, headers: Record<string, string> = {}): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const url = `${getApiBaseUrl()}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
     const res = await fetch(url, {
       method: 'GET',
       headers: this.getHeaders(headers),
@@ -40,7 +48,7 @@ class ApiClient {
   }
 
   public async post<T = any>(endpoint: string, body?: any, headers: Record<string, string> = {}): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const url = `${getApiBaseUrl()}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
     const res = await fetch(url, {
       method: 'POST',
       headers: this.getHeaders(headers),
@@ -50,7 +58,7 @@ class ApiClient {
   }
 
   public async put<T = any>(endpoint: string, body?: any, headers: Record<string, string> = {}): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const url = `${getApiBaseUrl()}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
     const res = await fetch(url, {
       method: 'PUT',
       headers: this.getHeaders(headers),
@@ -60,7 +68,7 @@ class ApiClient {
   }
 
   public async patch<T = any>(endpoint: string, body?: any, headers: Record<string, string> = {}): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const url = `${getApiBaseUrl()}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
     const res = await fetch(url, {
       method: 'PATCH',
       headers: this.getHeaders(headers),
@@ -70,7 +78,7 @@ class ApiClient {
   }
 
   public async delete<T = any>(endpoint: string, headers: Record<string, string> = {}): Promise<T> {
-    const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const url = `${getApiBaseUrl()}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
     const res = await fetch(url, {
       method: 'DELETE',
       headers: this.getHeaders(headers),

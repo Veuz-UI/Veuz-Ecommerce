@@ -7,7 +7,7 @@ import { fetchProducts, createProduct, updateProduct } from '@/services/products
 import { fetchShopSettings } from '@/services/shopSettingsService';
 import { ProductItem, ProductDetailSection, SYSTEM_COLORS, PRESET_SIZES, SystemColor } from '@/data/categoryProductsData';
 import { fetchAttributes } from '@/services/attributesService';
-import { ShopCategory } from '@/data/defaultShopSettings';
+import { ShopCategory, DeliveryOptionItem, DEFAULT_DELIVERY_OPTIONS } from '@/data/defaultShopSettings';
 import { validateImageFile } from '@/utils/imageSecurity';
 import {
   processProductStudioPhoto,
@@ -21,6 +21,7 @@ import { useToast } from '@/context/ToastContext';
 import ColorGalleryDrawerModal from '@/components/dashboard/ColorGalleryDrawerModal';
 import VariantSetupModal from '@/components/dashboard/VariantSetupModal';
 import GenderSetupModal from '@/components/dashboard/GenderSetupModal';
+import DeliveryOptionSetupModal from '@/components/dashboard/DeliveryOptionSetupModal';
 
 function ProductEditForm() {
   const router = useRouter();
@@ -51,6 +52,12 @@ function ProductEditForm() {
   const [isGeneratingAngle, setIsGeneratingAngle] = useState<boolean>(false);
   const [generatingSlot, setGeneratingSlot] = useState<string | null>(null);
   const [angleSlotTarget, setAngleSlotTarget] = useState<number | null>(null);
+  const [isDeliverySetupOpen, setIsDeliverySetupOpen] = useState<boolean>(false);
+  const [deliveryOptions, setDeliveryOptions] = useState<DeliveryOptionItem[]>(DEFAULT_DELIVERY_OPTIONS);
+  const [deliveryOptionId, setDeliveryOptionId] = useState<string>('del-standard');
+  const [deliveryOptionName, setDeliveryOptionName] = useState<string>('Standard Delivery');
+  const [deliveryCharge, setDeliveryCharge] = useState<number>(15);
+  const [deliveryEstimatedDays, setDeliveryEstimatedDays] = useState<string>('3-5 Business Days');
 
   // Form Fields (Only merchant-configurable fields)
   const [id, setId] = useState<string>('');
@@ -106,12 +113,17 @@ function ProductEditForm() {
           }
         }
 
-        if (shopData && Array.isArray(shopData.categories)) {
-          const activeCats = shopData.categories.filter((c) => c.isActive !== false);
-          setCategories(activeCats);
-          if (isCreateMode && activeCats.length > 0 && !category) {
-            setCategory(activeCats[0].name);
-            setCategoryId(activeCats[0].id);
+        if (shopData) {
+          if (Array.isArray(shopData.categories)) {
+            const activeCats = shopData.categories.filter((c) => c.isActive !== false);
+            setCategories(activeCats);
+            if (isCreateMode && activeCats.length > 0 && !category) {
+              setCategory(activeCats[0].name);
+              setCategoryId(activeCats[0].id);
+            }
+          }
+          if (Array.isArray(shopData.deliveryOptions) && shopData.deliveryOptions.length > 0) {
+            setDeliveryOptions(shopData.deliveryOptions);
           }
         }
 
@@ -144,6 +156,12 @@ function ProductEditForm() {
             setLocation(found.location || '');
             setLink(found.link || '/product-details');
             
+            // Delivery Option selection
+            setDeliveryOptionId(found.deliveryOptionId || 'del-standard');
+            setDeliveryOptionName(found.deliveryOptionName || 'Standard Delivery');
+            setDeliveryCharge(found.deliveryCharge !== undefined ? found.deliveryCharge : 15);
+            setDeliveryEstimatedDays(found.deliveryEstimatedDays || '3-5 Business Days');
+
             const basePrice = found.originalPrice || parseFloat(found.price?.replace(/[^\d.]/g, '') || '100');
             setOriginalPrice(basePrice);
             setIsSpecialOffer(Boolean(found.isSpecialOffer || found.discount));
@@ -195,6 +213,10 @@ function ProductEditForm() {
     setSpecifications([]);
     setSizes([]);
     setColors([]);
+    setDeliveryOptionId('del-standard');
+    setDeliveryOptionName('Standard Delivery');
+    setDeliveryCharge(15);
+    setDeliveryEstimatedDays('3-5 Business Days');
   };
 
   // Size & Color Handlers
@@ -513,6 +535,10 @@ function ProductEditForm() {
       specifications: specifications,
       sizes: sizes,
       colors: colors,
+      deliveryOptionId: deliveryOptionId || 'del-standard',
+      deliveryOptionName: deliveryOptionName || 'Standard Delivery',
+      deliveryCharge: deliveryCharge !== undefined ? deliveryCharge : 15,
+      deliveryEstimatedDays: deliveryEstimatedDays || '3-5 Business Days',
     };
   };
 
@@ -1109,6 +1135,39 @@ function ProductEditForm() {
                       <span>{gender ? `Change (${gender})` : 'Select Gender *'}</span>
                     </button>
                   </div>
+
+                  {/* 5. Delivery Option Selection Row (Connected to Store Settings) */}
+                  <div
+                    className="mt-3 rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-3"
+                    style={{ backgroundColor: '#fbfcfe', border: '1px solid #e2e8f0', padding: '16px 20px', minHeight: '70px' }}
+                  >
+                    <div className="d-flex align-items-center gap-2.5">
+                      <span className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: '38px', height: '38px', backgroundColor: '#ffffff', border: '1px solid #e2e8f0' }}>
+                        <iconify-icon icon="solar:delivery-bold" class="fs-18 text-primary"></iconify-icon>
+                      </span>
+                      <div>
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="fs-14 fw-bold text-dark">Delivery Option</span>
+                          <span className="badge bg-dark text-white border fw-semibold" style={{ fontSize: '11px', padding: '4px 9px', borderRadius: '5px' }}>
+                            {deliveryOptionName || 'Standard Delivery'}
+                          </span>
+                          <span className="badge bg-light text-dark border fw-semibold" style={{ fontSize: '11px', padding: '4px 9px', borderRadius: '5px' }}>
+                            {deliveryCharge === 0 ? 'Free' : `${deliveryCharge} SR`}
+                          </span>
+                        </div>
+                        <span className="text-muted fs-12 d-block">Synced with Store Settings. Arrival: {deliveryEstimatedDays || '3-5 Business Days'}.</span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsDeliverySetupOpen(true)}
+                      className="btn btn-sm btn-dark d-flex align-items-center gap-1.5 fw-medium"
+                      style={{ width: '160px', height: '38px', justifyContent: 'center', borderRadius: '8px', fontSize: '12.5px', padding: '0 12px' }}
+                    >
+                      <iconify-icon icon="solar:delivery-bold" class="fs-15"></iconify-icon>
+                      <span>Change Delivery</span>
+                    </button>
+                  </div>
                 </div>
 
                 </div>
@@ -1118,13 +1177,14 @@ function ProductEditForm() {
                 <div className="p-4 rounded-3 mb-4" style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)' }}>
                   <div className="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom" style={{ borderColor: '#f1f5f9' }}>
                     <span className="rounded-3 d-flex align-items-center justify-content-center" style={{ width: '36px', height: '36px', backgroundColor: '#f1f5f9', border: '1px solid #e2e8f0' }}><iconify-icon icon="solar:palette-bold" class="fs-18 text-primary"></iconify-icon></span>
-                    <div><h5 className="fs-15 fw-bold text-dark mb-0">Product Management</h5><span className="text-muted fs-12">Manage sizes, colors, images, and gender.</span></div>
+                    <div><h5 className="fs-15 fw-bold text-dark mb-0">Product Management</h5><span className="text-muted fs-12">Manage sizes, colors, images, gender, and delivery.</span></div>
                   </div>
                   {[
                     { label: 'Available Sizes', count: sizes.length ? `${sizes.length} selected` : 'None (Regular)', isWarning: false, icon: 'solar:ruler-linear', action: () => setIsSizeSetupOpen(true), button: 'Configure Sizes' },
                     { label: 'Available Colors', count: `${colors.length} selected`, isWarning: false, icon: 'solar:palette-linear', action: () => setIsColorSetupOpen(true), button: 'Configure Colors' },
                     { label: 'Product Images', count: '4–5 required', isWarning: false, icon: 'solar:gallery-wide-bold', action: () => setIsColorDrawerOpen(true), button: 'Manage Images' },
                     { label: 'Gender Selection', count: gender || 'Required *', isWarning: !gender, icon: 'solar:users-group-rounded-bold', action: () => setIsGenderSetupOpen(true), button: gender ? `Gender: ${gender}` : 'Select Gender *' },
+                    { label: 'Delivery Option', count: deliveryOptionName ? `${deliveryOptionName} (${deliveryCharge === 0 ? 'Free' : `${deliveryCharge} SR`})` : 'Standard Delivery (15 SR)', isWarning: false, icon: 'solar:delivery-bold', action: () => setIsDeliverySetupOpen(true), button: deliveryOptionName ? `Delivery: ${deliveryOptionName}` : 'Select Delivery' },
                   ].map((item, index) => (
                     <div key={item.label} className={`rounded-3 d-flex align-items-center justify-content-between gap-2 ${index ? 'mt-3' : ''}`} style={{ backgroundColor: '#fbfcfe', border: '1px solid #e2e8f0', padding: '12px 14px' }}>
                       <div className="d-flex align-items-center gap-2">
@@ -1780,6 +1840,18 @@ function ProductEditForm() {
           <VariantSetupModal isOpen={isSizeSetupOpen} mode="sizes" selected={sizes} onChange={setSizes} onClose={() => setIsSizeSetupOpen(false)} />
           <VariantSetupModal isOpen={isColorSetupOpen} mode="colors" selected={colors} onChange={setColors} onClose={() => setIsColorSetupOpen(false)} />
           <GenderSetupModal isOpen={isGenderSetupOpen} selected={gender} onChange={(g) => setGender(g)} onClose={() => setIsGenderSetupOpen(false)} />
+          <DeliveryOptionSetupModal
+            isOpen={isDeliverySetupOpen}
+            selectedId={deliveryOptionId}
+            options={deliveryOptions}
+            onChange={(opt) => {
+              setDeliveryOptionId(opt.id);
+              setDeliveryOptionName(opt.name);
+              setDeliveryCharge(opt.charge);
+              setDeliveryEstimatedDays(opt.estimatedDays || '');
+            }}
+            onClose={() => setIsDeliverySetupOpen(false)}
+          />
           </form>
         </div>
       </div>

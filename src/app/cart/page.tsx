@@ -3,9 +3,11 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { useStore } from '@/context/StoreContext';
+import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
-import { fetchProducts } from '@/services/productsService';
+import { fetchProducts, getCachedProducts } from '@/services/productsService';
 import { CATEGORY_PRODUCTS_DATA } from '@/data/categoryProductsData';
+import { getDeliveryBadgeProps } from '@/utils/deliveryBadge';
 
 // Robust helper to match a cart item to the catalog product
 export function findCatalogMatch(catalog: any[], product: any) {
@@ -62,11 +64,12 @@ function getColorHex(colorName?: string): string {
 }
 
 export default function CartPage() {
+  const { user } = useAuth();
   const { cart, removeFromCart, updateQuantity, updateCartItemVariant, clearCart, totalCartItems } = useStore();
   const { showToast } = useToast();
 
-  // Load catalog products with fallback to default data
-  const [catalogProducts, setCatalogProducts] = useState<any[]>(CATEGORY_PRODUCTS_DATA);
+  // Load catalog products strictly initialized with live data (NO dummy fallbacks)
+  const [catalogProducts, setCatalogProducts] = useState<any[]>(() => getCachedProducts());
 
   useEffect(() => {
     let isMounted = true;
@@ -206,11 +209,33 @@ export default function CartPage() {
     return (subtotal * appliedPromo.percent) / 100;
   }, [subtotal, appliedPromo]);
 
-  // Total (Exact product amount in SAR; discount applied only if code active)
+  // Delivery calculations per item based on each product's chosen delivery option
+  const cartDeliveryBreakdown = useMemo(() => {
+    return cart.map((item, idx) => {
+      const catalogMatch = findCatalogMatch(catalogProducts, item.product);
+      const deliveryName = (item.product as any).deliveryOptionName || catalogMatch?.deliveryOptionName || 'Standard Delivery';
+      const deliveryCharge = (item.product as any).deliveryCharge !== undefined
+        ? Number((item.product as any).deliveryCharge)
+        : (catalogMatch?.deliveryCharge !== undefined ? Number(catalogMatch.deliveryCharge) : 15);
+
+      return {
+        itemIndex: idx + 1,
+        productName: item.product.name,
+        deliveryName,
+        deliveryCharge,
+      };
+    });
+  }, [cart, catalogProducts]);
+
+  const totalDeliveryCharges = useMemo(() => {
+    return cartDeliveryBreakdown.reduce((sum, item) => sum + item.deliveryCharge, 0);
+  }, [cartDeliveryBreakdown]);
+
+  // Total (Product amount + item delivery charges in SAR; discount applied only if code active)
   const finalTotal = useMemo(() => {
     if (cart.length === 0) return 0;
-    return Math.max(0, subtotal - discountAmount);
-  }, [cart.length, subtotal, discountAmount]);
+    return Math.max(0, subtotal - discountAmount + totalDeliveryCharges);
+  }, [cart.length, subtotal, discountAmount, totalDeliveryCharges]);
 
   // Handle promo code submit
   const handleApplyPromo = (e?: React.FormEvent) => {
@@ -468,29 +493,17 @@ export default function CartPage() {
                 </Link>
               </div>
 
-              {/* Popular Categories Chips */}
-              <div className="pt-3 border-top" style={{ borderColor: '#f1f5f9' }}>
-                <span className="text-muted fs-12 fw-medium text-uppercase d-block mb-2.5" style={{ letterSpacing: '0.5px' }}>
-                  Quick Popular Categories
-                </span>
-                <div className="d-flex align-items-center justify-content-center gap-2 flex-wrap">
-                  {[
-                    { name: 'Helmets', link: '/products?category=Helmet' },
-                    { name: 'Safety Shoes', link: '/products?category=Shoes' },
-                    { name: 'Protective Vests', link: '/products?category=Vest' },
-                    { name: 'Safety Gloves', link: '/products?category=Gloves' },
-                  ].map((cat) => (
-                    <Link
-                      key={cat.name}
-                      href={cat.link}
-                      className="badge rounded-pill text-decoration-none fw-medium text-dark bg-light px-3 py-2 border"
-                      style={{ borderColor: '#e2e8f0', fontSize: '12px' }}
-                    >
-                      {cat.name}
+              {/* Guest Login Suggestion on Empty Cart */}
+              {!user && (
+                <div className="pt-3 border-top" style={{ borderColor: '#f1f5f9' }}>
+                  <p className="text-muted fs-13 mb-0">
+                    Already have saved items in your account?{' '}
+                    <Link href="/login?redirect=/cart" className="text-dark fw-bold text-decoration-underline">
+                      Sign in here
                     </Link>
-                  ))}
+                  </p>
                 </div>
-              </div>
+              )}
             </div>
           ) : (
             /* ============================================================== */
@@ -499,6 +512,67 @@ export default function CartPage() {
             <div className="row g-4 align-items-start">
               {/* Left Column: Cart Items List */}
               <div className="col-lg-8">
+                {/* Guest User Sign-In Banner inside Cart */}
+                {!user && (
+                  <div
+                    className="d-flex align-items-center justify-content-between p-3 p-md-3.5 mb-4 rounded-3 border flex-wrap gap-3"
+                    style={{
+                      backgroundColor: '#f8fafc',
+                      borderColor: '#e2e8f0',
+                      boxShadow: '0 1px 3px rgba(15, 23, 42, 0.04)',
+                    }}
+                  >
+                    <div className="d-flex align-items-center gap-3">
+                      <div
+                        className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                        style={{ width: '42px', height: '42px', backgroundColor: '#e2e8f0', color: '#0f172a' }}
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h6 className="mb-0 fw-bold text-dark fs-14">Already have an account?</h6>
+                        <p className="mb-0 text-muted fs-12">Sign in to sync your cart across devices and enjoy faster checkout.</p>
+                      </div>
+                    </div>
+                    <div className="d-flex align-items-center gap-2">
+                      <Link
+                        href="/login?redirect=/cart"
+                        className="btn fw-semibold px-3 py-1.5 text-white"
+                        style={{
+                          backgroundColor: '#0f172a',
+                          borderColor: '#0f172a',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          height: '38px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        Sign In
+                      </Link>
+                      <Link
+                        href="/register?redirect=/cart"
+                        className="btn btn-outline-secondary fw-semibold px-3 py-1.5"
+                        style={{
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          height: '38px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          borderColor: '#cbd5e1',
+                          color: '#334155',
+                          backgroundColor: '#ffffff',
+                        }}
+                      >
+                        Register
+                      </Link>
+                    </div>
+                  </div>
+                )}
+
                 <div className="cart-items-wrapper">
                   {cart.map((item, idx) => {
                     const price = Number(item.product.price) || 0;
@@ -654,6 +728,29 @@ export default function CartPage() {
                                     <span>Size: {currentSize}</span>
                                   </div>
                                 ) : null}
+
+                                {/* Delivery Option Badge */}
+                                {(() => {
+                                  const delProps = getDeliveryBadgeProps((item.product as any).deliveryOptionName || catalogMatch?.deliveryOptionName);
+                                  return (
+                                    <div
+                                      className="d-inline-flex align-items-center flex-shrink-0"
+                                      style={{
+                                        border: '1px solid #cbd5e1',
+                                        borderRadius: '6px',
+                                        backgroundColor: '#ffffff',
+                                        padding: '2px 8px',
+                                        fontSize: '11px',
+                                        fontWeight: 600,
+                                        color: '#0f172a',
+                                        height: '24px',
+                                        lineHeight: 1,
+                                      }}
+                                    >
+                                      <span>{delProps.label}</span>
+                                    </div>
+                                  );
+                                })()}
 
                                 {/* Ready To Collect in the EXACT SAME ROW */}
                                 <div
@@ -888,6 +985,29 @@ export default function CartPage() {
                                 </div>
                               ) : null}
 
+                              {/* Delivery Option Badge on Mobile */}
+                              {(() => {
+                                const delProps = getDeliveryBadgeProps((item.product as any).deliveryOptionName || catalogMatch?.deliveryOptionName);
+                                return (
+                                  <div
+                                    className="d-inline-flex align-items-center flex-shrink-0"
+                                    style={{
+                                      border: '1px solid #cbd5e1',
+                                      borderRadius: '5px',
+                                      backgroundColor: '#ffffff',
+                                      padding: '1px 6px',
+                                      fontSize: '11px',
+                                      fontWeight: 600,
+                                      color: '#0f172a',
+                                      height: '22px',
+                                      lineHeight: 1,
+                                    }}
+                                  >
+                                    <span>{delProps.label}</span>
+                                  </div>
+                                );
+                              })()}
+
                               {/* Ready To Collect in same row */}
                               <div
                                 className="d-inline-flex align-items-center gap-1 flex-shrink-0"
@@ -1095,7 +1215,7 @@ export default function CartPage() {
                       <line x1="12" y1="16" x2="12" y2="12"></line>
                       <line x1="12" y1="8" x2="12.01" y2="8"></line>
                     </svg>
-                    <span>Fixed delivery price on all in the cart</span>
+                    <span>Item-based delivery options applied to cart</span>
                   </div>
                 </div>
               </div>
@@ -1123,13 +1243,38 @@ export default function CartPage() {
                     {finalTotal.toFixed(2)} <span style={{ fontSize: '18px', fontWeight: 600 }}>SAR</span>
                   </h2>
 
-                  {/* Actual breakdown list - NO dummy delivery/pickup lines */}
+                  {/* Actual breakdown list with Item Delivery Charges */}
                   <div className="d-flex flex-column gap-2.5 mb-4 fs-14">
                     {/* Subtotal */}
                     <div className="d-flex align-items-center justify-content-between">
                       <span className="text-muted">Subtotal ({totalCartItems} {totalCartItems === 1 ? 'item' : 'items'})</span>
                       <span className="fw-bold text-dark">{subtotal.toFixed(2)} SAR</span>
                     </div>
+
+                    {/* Itemized Delivery Charges */}
+                    {cartDeliveryBreakdown.map((itemDel) => {
+                      const badgeProps = getDeliveryBadgeProps(itemDel.deliveryName);
+                      return (
+                        <div key={itemDel.itemIndex} className="d-flex align-items-center justify-content-between">
+                          <span className="text-muted" style={{ fontSize: '13.5px' }}>
+                            Item {itemDel.itemIndex} ({itemDel.deliveryName})
+                          </span>
+                          <span className="fw-medium text-dark" style={{ fontSize: '13.5px' }}>
+                            {itemDel.deliveryCharge === 0 ? 'FREE' : `${itemDel.deliveryCharge.toFixed(2)} SAR`}
+                          </span>
+                        </div>
+                      );
+                    })}
+
+                    {/* Total Delivery Charges Summary if multiple items */}
+                    {cartDeliveryBreakdown.length > 1 && (
+                      <div className="d-flex align-items-center justify-content-between pt-1 border-top" style={{ borderColor: '#f1f5f9' }}>
+                        <span className="text-muted fw-semibold" style={{ fontSize: '13px' }}>Total Delivery</span>
+                        <span className="fw-bold text-dark" style={{ fontSize: '13px' }}>
+                          {totalDeliveryCharges === 0 ? 'FREE' : `${totalDeliveryCharges.toFixed(2)} SAR`}
+                        </span>
+                      </div>
+                    )}
 
                     {/* VAT Info */}
                     <div className="d-flex align-items-center justify-content-between">
@@ -1222,23 +1367,55 @@ export default function CartPage() {
                     <span className="fw-bold text-dark fs-18">{finalTotal.toFixed(2)} SAR</span>
                   </div>
 
-                  {/* Solid Black Checkout Button matching user color code */}
-                  <Link
-                    href="/checkout"
-                    className="btn w-100 fw-bold d-inline-flex align-items-center justify-content-center gap-2 text-white btn-checkout-black"
-                    style={{
-                      height: '50px',
-                      borderRadius: '12px',
-                      backgroundColor: '#0f172a',
-                      borderColor: '#0f172a',
-                      fontSize: '15px',
-                      boxShadow: '0 4px 14px rgba(15, 23, 42, 0.25)',
-                      transition: 'all 0.2s ease',
-                      letterSpacing: '0.3px',
-                    }}
-                  >
-                    <span>Checkout</span>
-                  </Link>
+                  {/* Solid Black Checkout Button (or Sign In to Checkout for Guest) */}
+                  {!user ? (
+                    <div>
+                      <Link
+                        href="/login?redirect=/checkout"
+                        className="btn w-100 fw-bold d-inline-flex align-items-center justify-content-center gap-2 text-white btn-checkout-black"
+                        style={{
+                          height: '50px',
+                          borderRadius: '12px',
+                          backgroundColor: '#0f172a',
+                          borderColor: '#0f172a',
+                          fontSize: '15px',
+                          boxShadow: '0 4px 14px rgba(15, 23, 42, 0.25)',
+                          transition: 'all 0.2s ease',
+                          letterSpacing: '0.3px',
+                        }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+                          <polyline points="10 17 15 12 10 7" />
+                          <line x1="15" y1="12" x2="3" y2="12" />
+                        </svg>
+                        <span>Sign In to Checkout</span>
+                      </Link>
+                      <p className="text-center text-muted fs-12 mt-2.5 mb-0">
+                        Need an account?{' '}
+                        <Link href="/register?redirect=/checkout" className="text-dark fw-bold text-decoration-underline">
+                          Register now
+                        </Link>
+                      </p>
+                    </div>
+                  ) : (
+                    <Link
+                      href="/checkout"
+                      className="btn w-100 fw-bold d-inline-flex align-items-center justify-content-center gap-2 text-white btn-checkout-black"
+                      style={{
+                        height: '50px',
+                        borderRadius: '12px',
+                        backgroundColor: '#0f172a',
+                        borderColor: '#0f172a',
+                        fontSize: '15px',
+                        boxShadow: '0 4px 14px rgba(15, 23, 42, 0.25)',
+                        transition: 'all 0.2s ease',
+                        letterSpacing: '0.3px',
+                      }}
+                    >
+                      <span>Checkout</span>
+                    </Link>
+                  )}
                 </div>
               </div>
             </div>

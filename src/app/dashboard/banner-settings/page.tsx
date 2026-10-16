@@ -84,9 +84,10 @@ export default function BannerSettingsPage() {
     try {
       const res = await saveBannerSettings(updatedData);
       if (res.success) {
+        const bannerName = item.title ? `"${item.title.replace(/\n/g, ' ')}"` : 'Banner';
         showToast(
           'success',
-          `Banner "${item.title.replace(/\n/g, ' ')}" is now ${isNowActive ? 'Active (Visible)' : 'Hidden'}. Storefront updated.`,
+          `${bannerName} is now ${isNowActive ? 'Active (Visible)' : 'Hidden'}. Storefront updated.`,
           isNowActive ? 'Banner Activated' : 'Banner Hidden'
         );
       } else {
@@ -143,7 +144,7 @@ export default function BannerSettingsPage() {
     const q = searchQuery.toLowerCase().trim();
     return list.filter(
       (b) =>
-        b.title.toLowerCase().includes(q) ||
+        (b.title && b.title.toLowerCase().includes(q)) ||
         (b.buttonText && b.buttonText.toLowerCase().includes(q)) ||
         (b.link && b.link.toLowerCase().includes(q))
     );
@@ -156,7 +157,7 @@ export default function BannerSettingsPage() {
     const q = searchQuery.toLowerCase().trim();
     return list.filter(
       (b) =>
-        b.title.toLowerCase().includes(q) ||
+        (b.title && b.title.toLowerCase().includes(q)) ||
         (b.subtitle && b.subtitle.toLowerCase().includes(q)) ||
         (b.price && b.price.toLowerCase().includes(q)) ||
         (b.buttonText && b.buttonText.toLowerCase().includes(q)) ||
@@ -637,7 +638,7 @@ export default function BannerSettingsPage() {
                               className="fs-14 fw-bold text-dark d-block mb-1"
                               style={{ whiteSpace: 'pre-line', maxWidth: '380px' }}
                             >
-                              {item.title}
+                              {item.title ? item.title : <span className="text-muted fst-italic fw-normal">(Image-only banner)</span>}
                             </span>
                             <span className="text-muted fs-12 d-inline-flex align-items-center gap-1">
                               <iconify-icon icon="solar:widget-linear" class="fs-13"></iconify-icon>
@@ -656,7 +657,11 @@ export default function BannerSettingsPage() {
                               {item.link || '/products'}
                             </span>
                             <span className="text-muted fs-11">
-                              Btn: <strong className="text-dark">{item.buttonText || 'Explore Catalog'}</strong>
+                              Btn: {item.showButton === false || !item.buttonText ? (
+                                <span className="badge bg-light text-muted border py-0.5 px-1.5 fs-10">Hidden</span>
+                              ) : (
+                                <strong className="text-dark">{item.buttonText}</strong>
+                              )}
                             </span>
                           </div>
                         </td>
@@ -745,7 +750,7 @@ export default function BannerSettingsPage() {
                                 setDeleteTarget({
                                   type: 'main',
                                   id: item.id,
-                                  title: item.title,
+                                  title: item.title || '(Image banner)',
                                   image: item.image,
                                 })
                               }
@@ -859,8 +864,10 @@ export default function BannerSettingsPage() {
                         {/* Title & Subtitle */}
                         <td className="py-3.5 px-4">
                           <div>
-                            <span className="fs-14 fw-bold text-dark d-block mb-0.5">{item.title}</span>
-                            <span className="text-muted fs-12 d-block mb-1">{item.subtitle}</span>
+                            <span className="fs-14 fw-bold text-dark d-block mb-0.5">
+                              {item.title ? item.title : <span className="text-muted fst-italic fw-normal">(Image-only banner)</span>}
+                            </span>
+                            {item.subtitle && <span className="text-muted fs-12 d-block mb-1">{item.subtitle}</span>}
                             <span
                               className="badge bg-light text-dark border font-monospace fs-11"
                               style={{ padding: '2px 8px', borderRadius: '4px' }}
@@ -873,20 +880,26 @@ export default function BannerSettingsPage() {
                         {/* Price / Offer Tag & Button */}
                         <td className="py-3.5 px-4">
                           <div className="d-flex flex-column gap-1">
-                            <span
-                              className="badge fs-12 fw-bold align-self-start"
-                              style={{
-                                backgroundColor: '#fef3c7',
-                                color: '#92400e',
-                                border: '1px solid #fde68a',
-                                padding: '5px 10px',
-                                borderRadius: '6px',
-                              }}
-                            >
-                              {item.price}
-                            </span>
+                            {item.price && (
+                              <span
+                                className="badge fs-12 fw-bold align-self-start"
+                                style={{
+                                  backgroundColor: '#fef3c7',
+                                  color: '#92400e',
+                                  border: '1px solid #fde68a',
+                                  padding: '5px 10px',
+                                  borderRadius: '6px',
+                                }}
+                              >
+                                {item.price}
+                              </span>
+                            )}
                             <span className="text-muted fs-11">
-                              Btn: <strong className="text-dark">{item.buttonText || 'Order Now'}</strong>
+                              Btn: {item.showButton === false || !item.buttonText ? (
+                                <span className="badge bg-light text-muted border py-0.5 px-1.5 fs-10">Hidden</span>
+                              ) : (
+                                <strong className="text-dark">{item.buttonText}</strong>
+                              )}
                             </span>
                           </div>
                         </td>
@@ -975,7 +988,7 @@ export default function BannerSettingsPage() {
                                 setDeleteTarget({
                                   type: 'promo',
                                   id: item.id,
-                                  title: item.title,
+                                  title: item.title || '(Image banner)',
                                   image: item.image,
                                 })
                               }

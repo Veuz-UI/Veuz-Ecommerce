@@ -3,14 +3,16 @@
 import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { fetchShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsService';
+import { fetchShopSettings, getCachedShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsService';
 import { DEFAULT_SHOP_SETTINGS, ShopCategory } from '@/data/defaultShopSettings';
-import { fetchProducts, recordProductClick, PRODUCTS_EVENT } from '@/services/productsService';
+import { fetchProducts, getCachedProducts, recordProductClick, PRODUCTS_EVENT } from '@/services/productsService';
 import { ProductItem, SYSTEM_COLORS, PRESET_SIZES, SystemColor } from '@/data/categoryProductsData';
 import { fetchAttributes, ATTRIBUTES_EVENT } from '@/services/attributesService';
 import { useToast } from '@/context/ToastContext';
+import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 import { ProductCardImageSlider } from '@/components/common/ProductCardImageSlider';
+import { getDeliveryBadgeProps } from '@/utils/deliveryBadge';
 
 export type CatalogPageMode = 'category' | 'products' | 'offers' | 'limited-offers' | 'most-searched';
 type CollectionFilter = 'all' | 'new-arrival' | 'most-searched' | 'special-offers' | 'limited-offers';
@@ -217,20 +219,23 @@ function CatalogProductCardItem({
         {/* Product Content Wrap */}
         <div className="product-content-wrap d-flex flex-column flex-grow-1 justify-content-between">
           <div>
-            <span
-              className="d-block text-muted text-capitalize"
-              style={{
-                fontSize: '12.5px',
-                fontWeight: 500,
-                color: '#8c9097',
-                marginBottom: '3px',
-                letterSpacing: '0.2px',
-              }}
-            >
-              {prod.category
-                ? prod.category.replace(/[-_]/g, ' ').split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-                : 'Safety Equipment'}
-            </span>
+            {/* Delivery Option & Gender Badges on Top */}
+            <div className="d-flex align-items-center gap-1.5 mb-2 flex-wrap">
+              {(() => {
+                const deliveryProps = getDeliveryBadgeProps(prod.deliveryOptionName);
+                return (
+                  <span className={deliveryProps.className}>
+                    <i className={deliveryProps.icon}></i>
+                    {deliveryProps.label}
+                  </span>
+                );
+              })()}
+              {prod.gender && (
+                <span className="product-gender-badge">
+                  {prod.gender}
+                </span>
+              )}
+            </div>
 
             <h2 className="new-prod-title">
               <Link
@@ -244,10 +249,10 @@ function CatalogProductCardItem({
             <div className="product-rate d-flex align-items-center mb-2" style={{ gap: '5px' }}>
               <span style={{ color: '#f59e0b', fontSize: '14px', lineHeight: 1 }}>★</span>
               <span className="rating-score fw-bold" style={{ fontSize: '13px', color: '#0f172a' }}>
-                {prod.rating ? String(prod.rating).replace('/5', '') : '4.6'}
+                {prod.rating ? String(prod.rating).replace('/5', '') : '0.0'}
               </span>
               <span className="rating-reviews" style={{ fontSize: '12.5px', color: '#64748b' }}>
-                ({prod.reviews ? String(prod.reviews).replace(/[^0-9]/g, '') || '89' : '89'} reviews)
+                ({prod.reviews ? String(prod.reviews).replace(/[^0-9]/g, '') || '0' : '0'} reviews)
               </span>
             </div>
 
@@ -276,7 +281,7 @@ function CatalogProductCardItem({
               <div className="new-prod-vat-label">Inclusive of VAT</div>
 
               {/* Color Swatches below Price */}
-              <div className="new-prod-colors-wrap d-flex align-items-center gap-1.5" style={{ minHeight: '22px' }}>
+              <div className="new-prod-colors-wrap d-flex align-items-center gap-2" style={{ minHeight: '26px' }}>
                 {Array.isArray(prod.colors) && prod.colors.length > 0 ? (
                   prod.colors.map((colorName: string, cIdx: number) => {
                     const colorInfo = getProductColorInfo(colorName);
@@ -296,10 +301,10 @@ function CatalogProductCardItem({
                         title={`Color: ${colorName}`}
                         aria-label={`Select color ${colorName}`}
                         style={{
-                          width: '14px',
-                          height: '14px',
+                          width: '18px',
+                          height: '18px',
                           padding: 0,
-                          borderRadius: '50%',
+                          borderRadius: '4px',
                           backgroundColor: colorInfo.hex,
                           border: colorInfo.border ? `1px solid ${colorInfo.border}` : '1px solid rgba(0, 0, 0, 0.15)',
                           boxShadow: isSelected
@@ -311,7 +316,7 @@ function CatalogProductCardItem({
                           outline: 'none',
                         }}
                         onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLElement).style.transform = 'scale(1.25)';
+                          (e.currentTarget as HTMLElement).style.transform = 'scale(1.2)';
                         }}
                         onMouseLeave={(e) => {
                           (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
@@ -320,24 +325,9 @@ function CatalogProductCardItem({
                     );
                   })
                 ) : (
-                  <span style={{ display: 'inline-block', height: '14px', visibility: 'hidden' }}>&nbsp;</span>
+                  <span style={{ display: 'inline-block', height: '18px', visibility: 'hidden' }}>&nbsp;</span>
                 )}
               </div>
-            </div>
-
-            <p className="new-prod-desc">
-              {prod.desc || 'Certified industrial safety gear with high performance compliance.'}
-            </p>
-
-            <div className="mb-2 d-flex align-items-center gap-2 flex-wrap">
-              <span className="express-delivery-badge">
-                <i className="fi-rs-bolt"></i>Express Delivery
-              </span>
-              {prod.gender && (
-                <span className="product-gender-badge">
-                  {prod.gender}
-                </span>
-              )}
             </div>
           </div>
 
@@ -375,15 +365,19 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
   const router = useRouter();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
-  const { addToCart } = useStore();
+  const { user } = useAuth();
+  const { addToCart, toggleWishlist: storeToggleWishlist } = useStore();
 
   const urlCategoryParam = searchParams.get('category') || searchParams.get('selected') || 'all';
   const urlFilterParam = (searchParams.get('filter') || 'all') as CollectionFilter;
   const urlSearchQuery = searchParams.get('q') || '';
 
-  const [categories, setCategories] = useState<ShopCategory[]>(DEFAULT_SHOP_SETTINGS.categories);
-  // Wait for stored catalog data instead of briefly showing sample products from another collection.
-  const [products, setProducts] = useState<ProductItem[]>([]);
+  const [categories, setCategories] = useState<ShopCategory[]>(() => {
+    const cats = getCachedShopSettings().categories || [];
+    const active = cats.filter((c) => c.isActive !== false);
+    return active.length > 0 ? active : DEFAULT_SHOP_SETTINGS.categories;
+  });
+  const [products, setProducts] = useState<ProductItem[]>(() => getCachedProducts());
   const [isLoading, setIsLoading] = useState(false);
 
   // Filters state
@@ -422,6 +416,8 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
   const startXRef = useRef(0);
   const scrollStartRef = useRef(0);
   const dragDistanceRef = useRef(0);
+  const isInteractingRef = useRef(false);
+  const isNormalizingRef = useRef(false);
 
   // Update collection filter if query param changes
   useEffect(() => {
@@ -514,6 +510,162 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     };
   }, []);
 
+  // Unified Category List: merges ShopSettings categories with any unique categories found in products
+  const displayCategories = useMemo(() => {
+    const list: ShopCategory[] = [...categories.filter((c) => c.isActive !== false)];
+    const existingNames = new Set(list.map((c) => c.name.toLowerCase().trim()));
+
+    // Also include any distinct product categories not already in shop settings
+    products.forEach((p) => {
+      if (p.category && !existingNames.has(p.category.toLowerCase().trim())) {
+        existingNames.add(p.category.toLowerCase().trim());
+        list.push({
+          id: p.categoryId || `cat-dyn-${list.length + 1}`,
+          name: p.category,
+          link: `/products?category=${encodeURIComponent(p.category)}`,
+          isActive: true,
+        });
+      }
+    });
+
+    return list;
+  }, [categories, products]);
+
+  // ========================================================
+  // BASE PRODUCTS SCOPING BASED ON PAGE MODE
+  // ========================================================
+  const baseScopedProducts = useMemo(() => {
+    const active = products.filter((p) => p.isActive !== false);
+
+    if (pageMode === 'offers') {
+      return active.filter((p) => !p.offerEndDate && (
+        p.isSpecialOffer === true || Boolean(p.discount) || (p.offerPercent && p.offerPercent > 0) || p.badgeClass === 'sale'
+      ));
+    }
+
+    if (pageMode === 'limited-offers') {
+      const today = new Date().toISOString().slice(0, 10);
+      return active.filter((p) => p.isSpecialOffer === true && Boolean(p.offerEndDate) && p.offerEndDate! >= today);
+    }
+
+    if (pageMode === 'most-searched') {
+      const searched = active.filter(
+        (p) =>
+          (p.clicks || 0) + (p.views || 0) > 0 ||
+          p.badgeClass === 'hot' ||
+          p.badge === 'Top Searched' ||
+          p.badge === 'Best Seller'
+      );
+      const list = searched.length > 0 ? searched : active;
+      return [...list].sort(
+        (a, b) => ((b.clicks || 0) + (b.views || 0)) - ((a.clicks || 0) + (a.views || 0))
+      );
+    }
+
+    if (pageMode === 'products') {
+      // Focus on New Arrival Products (Strictly NO offers/deals)
+      return active.filter(
+        (p) =>
+          (p.isNewArrival !== false ||
+          p.badgeClass === 'new' ||
+          p.badge === 'New Arrival' ||
+          p.badge === 'In Stock') &&
+          !p.discount &&
+          !p.offerPercent &&
+          !p.isSpecialOffer &&
+          (!p.oldPrice || p.oldPrice === p.price)
+      );
+    }
+
+    // Default: 'category' page shows all products
+    return active;
+  }, [products, pageMode]);
+
+  // Combined Category Items for Slider
+  const categorySliderItems = useMemo(() => {
+    const allItem = {
+      id: 'all',
+      name: 'All Categories',
+      isAll: true,
+      image: '',
+      count: baseScopedProducts.length,
+    };
+
+    const catItems = displayCategories.map((cat, idx) => ({
+      id: cat.id || `cat-${idx}`,
+      name: cat.name,
+      isAll: false,
+      image: cat.image || '/assets/imgs/theme/icons/category-1.svg',
+      count: baseScopedProducts.filter(
+        (p) =>
+          matchesCategory(p.category, p.categoryId, cat.name, displayCategories) ||
+          (cat.id && matchesCategory(p.category, p.categoryId, cat.id, displayCategories))
+      ).length,
+    }));
+
+    return [allItem, ...catItems];
+  }, [displayCategories, baseScopedProducts]);
+
+  // Repeated 3 sets for infinite continuous forward loop (never scrolls backward in reverse)
+  const repeatedCategorySliderItems = useMemo(() => {
+    if (categorySliderItems.length <= 1) return categorySliderItems.map((item, idx) => ({ ...item, uniqueKey: `s1-${item.id}-${idx}` }));
+    return [
+      ...categorySliderItems.map((item, idx) => ({ ...item, uniqueKey: `s1-${item.id}-${idx}` })),
+      ...categorySliderItems.map((item, idx) => ({ ...item, uniqueKey: `s2-${item.id}-${idx}` })),
+      ...categorySliderItems.map((item, idx) => ({ ...item, uniqueKey: `s3-${item.id}-${idx}` })),
+    ];
+  }, [categorySliderItems]);
+
+  const isButtonNavigatingRef = useRef(false);
+
+  // Scroll Slider via Left / Right Arrow Buttons (Smooth continuous forward loop - NEVER reverses)
+  const scrollSlider = (direction: 'left' | 'right') => {
+    if (!sliderRef.current) return;
+    const container = sliderRef.current;
+    const card = container.querySelector('.category-pill-card') as HTMLElement | null;
+    const cardWidth = card ? card.offsetWidth + 12 : 217;
+    const step = cardWidth * 2; // Smoothly slide 2 cards at a time
+    const setWidth = container.scrollWidth / 3;
+
+    if (setWidth <= 0) return;
+
+    isButtonNavigatingRef.current = true;
+
+    if (direction === 'right') {
+      // If reaching beyond set 2, seamlessly wrap to set 1 without visual interruption
+      if (container.scrollLeft >= setWidth * 2 - step) {
+        container.style.scrollBehavior = 'auto';
+        container.scrollLeft -= setWidth;
+        void container.offsetWidth;
+      }
+      container.style.scrollBehavior = 'smooth';
+      container.scrollBy({ left: step, behavior: 'smooth' });
+    } else {
+      // If near start of set 1, seamlessly jump to set 2 before scrolling backward
+      if (container.scrollLeft < step) {
+        container.style.scrollBehavior = 'auto';
+        container.scrollLeft += setWidth;
+        void container.offsetWidth;
+      }
+      container.style.scrollBehavior = 'smooth';
+      container.scrollBy({ left: -step, behavior: 'smooth' });
+    }
+
+    setTimeout(() => {
+      isButtonNavigatingRef.current = false;
+    }, 450);
+  };
+
+  // Smoothly center the active category pill into view if selected on load
+  useEffect(() => {
+    if (selectedCategories.length === 1 && sliderRef.current) {
+      const activePill = sliderRef.current.querySelector('.active-cat-pill') as HTMLElement | null;
+      if (activePill) {
+        activePill.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      }
+    }
+  }, [selectedCategories]);
+
   // Global mouseup listener for slider drag cleanup
   useEffect(() => {
     const handleGlobalMouseUp = () => {
@@ -525,7 +677,8 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
         }
         setTimeout(() => {
           dragDistanceRef.current = 0;
-        }, 120);
+          isInteractingRef.current = false;
+        }, 1500);
       }
     };
     window.addEventListener('mouseup', handleGlobalMouseUp);
@@ -535,6 +688,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
   // Draggable top slider handlers (Smooth dragging)
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!sliderRef.current || e.button !== 0) return;
+    isInteractingRef.current = true;
     isMouseDownRef.current = true;
     dragDistanceRef.current = 0;
     startXRef.current = e.pageX;
@@ -559,82 +713,34 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
       }
       setTimeout(() => {
         dragDistanceRef.current = 0;
-      }, 120);
+        isInteractingRef.current = false;
+      }, 1500);
     }
   };
 
   // Touch handlers for mobile / tablet swiping
   const handleTouchStart = (e: React.TouchEvent) => {
     if (!sliderRef.current) return;
+    isInteractingRef.current = true;
     isMouseDownRef.current = true;
     dragDistanceRef.current = 0;
     startXRef.current = e.touches[0].pageX;
     scrollStartRef.current = sliderRef.current.scrollLeft;
-    sliderRef.current.style.scrollBehavior = 'auto';
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isMouseDownRef.current || !sliderRef.current) return;
     const distance = e.touches[0].pageX - startXRef.current;
     dragDistanceRef.current = Math.abs(distance);
-    sliderRef.current.scrollLeft = scrollStartRef.current - distance;
   };
 
   const handleTouchEnd = () => {
-    if (isMouseDownRef.current) {
-      isMouseDownRef.current = false;
-      if (sliderRef.current) {
-        sliderRef.current.style.scrollBehavior = 'smooth';
-      }
-      setTimeout(() => {
-        dragDistanceRef.current = 0;
-      }, 120);
-    }
+    isMouseDownRef.current = false;
+    setTimeout(() => {
+      dragDistanceRef.current = 0;
+      isInteractingRef.current = false;
+    }, 2000);
   };
-
-  // Scroll Slider via Left / Right Arrow Buttons
-  const scrollSlider = (direction: 'left' | 'right') => {
-    if (!sliderRef.current) return;
-    const container = sliderRef.current;
-    const amount = 340;
-    const current = container.scrollLeft;
-    const maxScroll = Math.max(0, container.scrollWidth - container.clientWidth);
-    
-    if (direction === 'right') {
-      if (current >= maxScroll - 15) {
-        container.scrollTo({ left: 0, behavior: 'smooth' });
-      } else {
-        container.scrollBy({ left: amount, behavior: 'smooth' });
-      }
-    } else {
-      if (current <= 15) {
-        container.scrollTo({ left: maxScroll, behavior: 'smooth' });
-      } else {
-        container.scrollBy({ left: -amount, behavior: 'smooth' });
-      }
-    }
-  };
-
-  // Unified Category List: merges ShopSettings categories with any unique categories found in products
-  const displayCategories = useMemo(() => {
-    const list: ShopCategory[] = [...categories.filter((c) => c.isActive !== false)];
-    const existingNames = new Set(list.map((c) => c.name.toLowerCase().trim()));
-
-    // Also include any distinct product categories not already in shop settings
-    products.forEach((p) => {
-      if (p.category && !existingNames.has(p.category.toLowerCase().trim())) {
-        existingNames.add(p.category.toLowerCase().trim());
-        list.push({
-          id: p.categoryId || `cat-dyn-${list.length + 1}`,
-          name: p.category,
-          link: `/products?category=${encodeURIComponent(p.category)}`,
-          isActive: true,
-        });
-      }
-    });
-
-    return list;
-  }, [categories, products]);
 
   // Category Selection from Slider
   const handleCategorySelectFromSlider = (catName: string, catId?: string) => {
@@ -701,6 +807,13 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
 
   // Toggle Wishlist
   const toggleWishlist = (productId: string) => {
+    if (!user) {
+      showToast('warning', 'Please sign in to save items to your wishlist.');
+      router.push('/login?redirect=/wishlist');
+      return;
+    }
+    const numId = Number(productId.replace(/[^\d]/g, '')) || 1;
+    storeToggleWishlist(numId);
     setWishlist((prev) => {
       const next = !prev[productId];
       showToast(next ? 'success' : 'info', next ? 'Added to your wishlist!' : 'Removed from wishlist.');
@@ -727,58 +840,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     addToCart(cartProduct, 1, chosenColor, chosenSize);
   };
 
-  // ========================================================
-  // BASE PRODUCTS SCOPING BASED ON PAGE MODE
-  // ========================================================
-  // 1. category page: All products
-  // 2. products page: New products and most viewed / most searched products
-  // 3. offers page: Strictly offer products (isSpecialOffer === true, discount, or offerPercent > 0)
-  const baseScopedProducts = useMemo(() => {
-    const active = products.filter((p) => p.isActive !== false);
 
-    if (pageMode === 'offers') {
-      return active.filter((p) => !p.offerEndDate && (
-        p.isSpecialOffer === true || Boolean(p.discount) || (p.offerPercent && p.offerPercent > 0) || p.badgeClass === 'sale'
-      ));
-    }
-
-    if (pageMode === 'limited-offers') {
-      const today = new Date().toISOString().slice(0, 10);
-      return active.filter((p) => p.isSpecialOffer === true && Boolean(p.offerEndDate) && p.offerEndDate! >= today);
-    }
-
-    if (pageMode === 'most-searched') {
-      const searched = active.filter(
-        (p) =>
-          (p.clicks || 0) + (p.views || 0) > 0 ||
-          p.badgeClass === 'hot' ||
-          p.badge === 'Top Searched' ||
-          p.badge === 'Best Seller'
-      );
-      const list = searched.length > 0 ? searched : active;
-      return [...list].sort(
-        (a, b) => ((b.clicks || 0) + (b.views || 0)) - ((a.clicks || 0) + (a.views || 0))
-      );
-    }
-
-    if (pageMode === 'products') {
-      // Focus on New Arrival Products (Strictly NO offers/deals)
-      return active.filter(
-        (p) =>
-          (p.isNewArrival !== false ||
-          p.badgeClass === 'new' ||
-          p.badge === 'New Arrival' ||
-          p.badge === 'In Stock') &&
-          !p.discount &&
-          !p.offerPercent &&
-          !p.isSpecialOffer &&
-          (!p.oldPrice || p.oldPrice === p.price)
-      );
-    }
-
-    // Default: 'category' page shows all products
-    return active;
-  }, [products, pageMode]);
 
   // Available standards extracted from scoped products
   const availableStandards = useMemo(() => {
@@ -1027,10 +1089,10 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                 </>
               )}
             </div>
-            <h1 className="fw-bold text-dark mb-1" style={{ fontSize: '28px', letterSpacing: '-0.5px' }}>
+            <h1 className="fw-bold text-dark mb-1 catalog-page-title" style={{ letterSpacing: '-0.5px' }}>
               {pageTitle}
             </h1>
-            <p className="text-muted fs-14 mb-0">
+            <p className="text-muted fs-14 mb-0 catalog-page-desc">
               {pageDescription}
             </p>
           </div>
@@ -1039,18 +1101,28 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
         {/* ========================================================
             2. TOP CATEGORIES HORIZONTAL SLIDER (Left & Right Arrows + Centered Categories)
            ======================================================== */}
-        <div
-          className="card border-0 mb-4 overflow-hidden"
-          style={{
-            borderRadius: '16px',
-            backgroundColor: '#ffffff',
-            border: '1.5px solid #e2e8f0',
-            boxShadow: '0 2px 10px rgba(0, 0, 0, 0.03)',
-            padding: '16px 20px',
-          }}
-        >
-          <div className="d-flex align-items-center w-100 position-relative" style={{ gap: '14px' }}>
-            {/* Draggable Category Slider Track */}
+        {/* ========================================================
+            2. TOP CATEGORIES HORIZONTAL SLIDER (Left & Right Arrows + Centered Categories)
+           ======================================================== */}
+        <div className="card border-0 mb-4 overflow-hidden category-slider-card-wrap">
+          <div
+            className="d-flex align-items-center w-100 position-relative"
+            style={{ gap: '12px' }}
+          >
+            {/* Left arrow button */}
+            <button
+              type="button"
+              onClick={() => scrollSlider('left')}
+              className="btn-category-slider-arrow flex-shrink-0"
+              aria-label="Previous Categories"
+              title="Previous Categories"
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+
+            {/* Draggable & Touch-Scrollable Category Slider Track */}
             <div
               ref={sliderRef}
               onMouseDown={handleMouseDown}
@@ -1060,139 +1132,77 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
-              className="category-slider-track d-flex align-items-center flex-nowrap hide-scrollbar"
-              style={{
-                flex: '1 1 0%',
-                minWidth: 0,
-                width: '100%',
-                overflowX: 'auto',
-                overflowY: 'hidden',
-                flexWrap: 'nowrap',
-                whiteSpace: 'nowrap',
-                gap: '12px',
-                cursor: 'grab',
-                scrollbarWidth: 'none',
-                msOverflowStyle: 'none',
-                userSelect: 'none',
-                WebkitOverflowScrolling: 'touch',
-                padding: '6px 2px',
-                scrollBehavior: 'smooth',
-              }}
+              className="category-slider-track flex-grow-1"
             >
-              {/* All Categories Option */}
-              <div
-                onClick={() => handleCategorySelectFromSlider('all')}
-                className={`category-pill-card d-flex align-items-center flex-shrink-0 ${
-                  selectedCategories.length === 0 ? 'active-cat-pill' : ''
-                }`}
-                style={{
-                  minWidth: '205px',
-                  height: '66px',
-                  borderRadius: '14px',
-                  padding: '10px 16px',
-                  backgroundColor: selectedCategories.length === 0 ? '#f0fdf4' : '#ffffff',
-                  border: selectedCategories.length === 0 ? '2px solid #16a34a' : '1.5px solid #e2e8f0',
-                  boxShadow: selectedCategories.length === 0
-                    ? '0 4px 14px rgba(22, 163, 74, 0.16)'
-                    : '0 2px 6px rgba(0, 0, 0, 0.02)',
-                  cursor: 'pointer',
-                  gap: '12px',
-                  transition: 'all 0.2s ease',
-                  userSelect: 'none',
-                }}
-              >
-                <div
-                  className="rounded-3 border overflow-hidden flex-shrink-0 d-flex align-items-center justify-content-center"
-                  style={{
-                    width: '44px',
-                    height: '44px',
-                    backgroundColor: '#f8fafc',
-                    borderColor: selectedCategories.length === 0 ? '#86efac' : '#e2e8f0',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="3" width="7" height="7"></rect>
-                    <rect x="14" y="14" width="7" height="7"></rect>
-                    <rect x="3" y="14" width="7" height="7"></rect>
-                  </svg>
-                </div>
-                <div className="overflow-hidden" style={{ pointerEvents: 'none' }}>
-                  <div
-                    className="fw-bold fs-14 text-truncate"
-                    style={{ color: selectedCategories.length === 0 ? '#16a34a' : '#0f172a' }}
-                  >
-                    All Categories
-                  </div>
-                  <div className="text-muted fs-12">{baseScopedProducts.length} Products</div>
-                </div>
-              </div>
-
-              {/* Dynamic Categories */}
-              {displayCategories.map((cat, idx) => {
-                const isSelected = selectedCategories.some((c) =>
-                  matchesCategory(cat.name, cat.id, c, displayCategories)
-                );
-                const count = baseScopedProducts.filter((p) =>
-                  matchesCategory(p.category, p.categoryId, cat.name, displayCategories) ||
-                  (cat.id && matchesCategory(p.category, p.categoryId, cat.id, displayCategories))
-                ).length;
+              {repeatedCategorySliderItems.map((item) => {
+                const isSelected = item.isAll
+                  ? selectedCategories.length === 0
+                  : selectedCategories.some((c) =>
+                      matchesCategory(item.name, item.id, c, displayCategories)
+                    );
 
                 return (
                   <div
-                    key={cat.id || idx}
-                    onClick={() => handleCategorySelectFromSlider(cat.name, cat.id)}
-                    className={`category-pill-card d-flex align-items-center flex-shrink-0 ${
-                      isSelected ? 'active-cat-pill' : ''
-                    }`}
-                    style={{
-                      minWidth: '210px',
-                      height: '66px',
-                      borderRadius: '14px',
-                      padding: '10px 16px',
-                      backgroundColor: isSelected ? '#f0fdf4' : '#ffffff',
-                      border: isSelected ? '2px solid #16a34a' : '1.5px solid #e2e8f0',
-                      boxShadow: isSelected
-                        ? '0 4px 14px rgba(22, 163, 74, 0.16)'
-                        : '0 2px 6px rgba(0, 0, 0, 0.02)',
-                      cursor: 'pointer',
-                      gap: '12px',
-                      transition: 'all 0.2s ease',
-                      userSelect: 'none',
+                    key={item.uniqueKey}
+                    onClick={() => {
+                      if (dragDistanceRef.current < 6) {
+                        handleCategorySelectFromSlider(item.isAll ? 'all' : item.name, item.id);
+                      }
                     }}
+                    className={`category-pill-card ${isSelected ? 'active-cat-pill' : ''}`}
                   >
                     <div
-                      className="rounded-3 border overflow-hidden flex-shrink-0 d-flex align-items-center justify-content-center"
+                      className="category-icon-box border overflow-hidden flex-shrink-0 d-flex align-items-center justify-content-center"
                       style={{
-                        width: '44px',
-                        height: '44px',
-                        backgroundColor: '#ffffff',
-                        borderColor: isSelected ? '#86efac' : '#e2e8f0',
+                        width: '42px',
+                        height: '42px',
+                        minWidth: '42px',
+                        borderRadius: '8px',
+                        backgroundColor: isSelected ? '#ffffff' : '#f8fafc',
+                        borderColor: isSelected ? '#86efac' : '#e9e9e9',
                         pointerEvents: 'none',
+                        transition: 'all 0.2s ease',
                       }}
                     >
-                      <img
-                        src={cat.image || '/assets/imgs/theme/icons/category-1.svg'}
-                        alt={cat.name}
-                        style={{
-                          width: '32px',
-                          height: '32px',
-                          objectFit: 'contain',
-                        }}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = '/assets/imgs/theme/icons/category-1.svg';
-                        }}
-                      />
+                      {item.isAll ? (
+                        <svg
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#16a34a"
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <rect x="3" y="3" width="7" height="7"></rect>
+                          <rect x="14" y="3" width="7" height="7"></rect>
+                          <rect x="14" y="14" width="7" height="7"></rect>
+                          <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                      ) : (
+                        <img
+                          src={item.image || '/assets/imgs/theme/icons/category-1.svg'}
+                          alt={item.name}
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            objectFit: 'contain',
+                          }}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = '/assets/imgs/theme/icons/category-1.svg';
+                          }}
+                        />
+                      )}
                     </div>
                     <div className="overflow-hidden" style={{ pointerEvents: 'none' }}>
                       <div
-                        className="fw-bold fs-14 text-truncate"
+                        className="category-pill-title fw-bold fs-14 text-truncate"
                         style={{ color: isSelected ? '#16a34a' : '#0f172a' }}
                       >
-                        {cat.name}
+                        {item.name}
                       </div>
-                      <div className="text-muted fs-12">{count} Products</div>
+                      <div className="category-pill-count text-muted fs-12">{item.count} Products</div>
                     </div>
                   </div>
                 );
@@ -1204,27 +1214,10 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
               type="button"
               onClick={() => scrollSlider('right')}
               className="btn-category-slider-arrow flex-shrink-0"
-              aria-label="Scroll Right"
+              aria-label="Next Categories"
               title="Next Categories"
-              style={{
-                width: '44px',
-                height: '44px',
-                minWidth: '44px',
-                borderRadius: '50%',
-                backgroundColor: '#ffffff',
-                border: '1.5px solid #cbd5e1',
-                color: '#0f172a',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-                cursor: 'pointer',
-                padding: 0,
-                zIndex: 3,
-                transition: 'all 0.2s ease',
-              }}
             >
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <polyline points="9 18 15 12 9 6"></polyline>
               </svg>
             </button>

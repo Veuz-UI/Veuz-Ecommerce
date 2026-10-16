@@ -106,7 +106,13 @@ export default function ProfilePage() {
       const target = hash || tabParam;
       if (!target) return;
 
-      if (target === 'settings' || target === 'account-settings' || target === 'account') {
+      if (
+        target === 'settings' ||
+        target === 'account-settings' ||
+        target === 'account' ||
+        target === 'notifications' ||
+        target === 'notification'
+      ) {
         setActiveTab('account-settings');
       } else if (target === 'password' || target === 'password-change' || target === 'security') {
         setActiveTab('password-change');

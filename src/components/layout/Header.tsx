@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 import { ShopSettingsData, ShopCategory, MainMenuItem } from '@/data/defaultShopSettings';
-import { fetchShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsService';
+import { fetchShopSettings, getCachedShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsService';
 
 const formatNavigationLabel = (label: string) =>
   label.toLocaleLowerCase().replace(/\b\w/g, (letter) => letter.toLocaleUpperCase());
@@ -47,6 +47,68 @@ const getMenuDestination = (menu: MainMenuItem) => {
   if (badgeClean.includes('OFFER') || badgeClean === 'HOT') return '/offer-products';
   if (badgeClean.includes('LIMITED')) return '/limited-offers';
   return menu.link || '/products';
+};
+
+const getNavIcon = (name: string, badge?: string) => {
+  const n = (name || '').toLowerCase();
+  const b = (badge || '').toLowerCase();
+
+  if (b.includes('hot') || b.includes('sale') || b.includes('offer') || n.includes('sale') || n.includes('offer')) {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+      </svg>
+    );
+  }
+  if (n.includes('helmet') || n.includes('head')) {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#eab308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M2 14a10 10 0 0 1 20 0H2z" />
+        <path d="M4 14v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+      </svg>
+    );
+  }
+  if (n.includes('shoe') || n.includes('boot') || n.includes('foot')) {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 16v-2a4 4 0 0 1 4-4h2l2 4h6a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+      </svg>
+    );
+  }
+  if (n.includes('glove') || n.includes('hand')) {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M18 11V6a2 2 0 0 0-4 0v5" />
+        <path d="M14 10V4a2 2 0 0 0-4 0v6" />
+        <path d="M10 10.5V6a2 2 0 0 0-4 0v8" />
+        <path d="M6 14a6 6 0 0 0 12 0v-3" />
+      </svg>
+    );
+  }
+  if (n.includes('vest') || n.includes('cloth') || n.includes('wear') || n.includes('jacket')) {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20.38 3.46L16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z" />
+      </svg>
+    );
+  }
+  if (n.includes('goggle') || n.includes('eye') || n.includes('glass')) {
+    return (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6366f1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="6" cy="12" r="4" />
+        <circle cx="18" cy="12" r="4" />
+        <line x1="10" y1="12" x2="14" y2="12" />
+      </svg>
+    );
+  }
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#475569" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
+    </svg>
+  );
 };
 
 export const Header: React.FC = () => {
@@ -166,9 +228,15 @@ export const Header: React.FC = () => {
     setOpenAccordion(prev => (prev === id ? null : id));
   };
 
-  // Do not render demo/default navigation while the current dashboard settings load.
-  const [shopCategories, setShopCategories] = useState<ShopCategory[]>([]);
-  const [mainMenuItems, setMainMenuItems] = useState<MainMenuItem[]>([]);
+  // Initialize directly from live cache / synced data to eliminate delay on refresh
+  const [shopCategories, setShopCategories] = useState<ShopCategory[]>(() => {
+    const cats = getCachedShopSettings().categories || [];
+    return cats.filter((c) => c.isActive !== false);
+  });
+  const [mainMenuItems, setMainMenuItems] = useState<MainMenuItem[]>(() => {
+    const menu = getCachedShopSettings().mainMenu || [];
+    return menu.filter((m) => m.isActive !== false);
+  });
 
   // Sync settings dynamically from local cache & server
   useEffect(() => {
@@ -700,28 +768,59 @@ export const Header: React.FC = () => {
                   )}
                 </div>
 
-                {/* Mobile/Tablet Action Icons + Hamburger on Right Corner */}
-                <div className="header-action-2 d-flex d-xl-none align-items-center gap-2">
+                {/* Mobile/Tablet Action Icons: Cart, Profile & Hamburger */}
+                <div className="header-action-2 d-flex d-xl-none align-items-center" style={{ gap: '8px' }}>
                   
-                  {/* Wishlist Icon */}
+                  {/* Cart Icon + Inline Count + Red Dot */}
                   <div className="header-action-icon-2">
-                    <Link href="/wishlist" title="Wishlist">
-                      <img className="svgInject" alt="Wishlist" src="/assets/imgs/theme/icons/icon-heart.svg" />
+                    <Link
+                      href="/cart"
+                      title="View Cart"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                        color: '#1e293b',
+                        textDecoration: 'none',
+                        fontSize: '25px'
+                      }}
+                    >
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="4" y="8" width="16" height="13" rx="3" />
+                          <path d="M8 8V6a4 4 0 0 1 8 0v2" />
+                        </svg>
+                        {totalCartItems > 0 && (
+                          <span
+                            className="cart-active-dot"
+                            style={{
+                              position: 'absolute',
+                              bottom: '-7px',
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              width: '5px',
+                              height: '5px',
+                              backgroundColor: '#dc2626',
+                              borderRadius: '50%',
+                              display: 'block'
+                            }}
+                          />
+                        )}
+                      </div>
+                      <span style={{ fontSize: '15px', fontWeight: '600', color: '#0f172a', lineHeight: 1 }}>
+                        {totalCartItems}
+                      </span>
                     </Link>
                   </div>
 
-                  {/* Cart Icon with Count Badge */}
-                  <div className="header-action-icon-2">
-                    <Link className="mini-cart-icon position-relative" href="/cart" title="Cart">
-                      <img alt="Cart" src="/assets/imgs/theme/icons/icon-cart.svg" />
-                      <span className="pro-count blue">{totalCartItems}</span>
-                    </Link>
-                  </div>
+                  {/* 4. Vertical Divider */}
+                  <div style={{ width: '1px', height: '20px', backgroundColor: '#e2e8f0', margin: 0 }} />
 
-                  {/* Profile Dropdown */}
+                  {/* 5. Profile Dropdown */}
                   <div
                     ref={mobileAccountRef}
                     className={"header-action-icon-2 " + (mobileAccountOpen ? "active" : "")}
+                    style={{ position: 'relative' }}
                   >
                     <a
                       href="#"
@@ -730,25 +829,43 @@ export const Header: React.FC = () => {
                         setMobileAccountOpen(!mobileAccountOpen);
                       }}
                       title={user ? user.name : "Account"}
-                      style={{ display: 'flex', alignItems: 'center' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '3px', textDecoration: 'none' }}
                     >
                       {user ? (
-                        <img
-                          src={user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}`}
-                          alt={user.name}
-                          onError={(e) => {
-                            const target = e.currentTarget;
-                            target.onerror = null;
-                            target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name || 'User')}`;
-                          }}
-                          style={{
-                            width: '26px',
-                            height: '26px',
-                            borderRadius: '50%',
-                            objectFit: 'cover',
-                            border: '2px solid rgb(231, 231, 231)'
-                          }}
-                        />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <img
+                            src={user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}`}
+                            alt={user.name}
+                            onError={(e) => {
+                              const target = e.currentTarget;
+                              target.onerror = null;
+                              target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name || 'User')}`;
+                            }}
+                            style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '50%',
+                              objectFit: 'cover',
+                              border: '2px solid rgb(231, 231, 231)'
+                            }}
+                          />
+                          <svg
+                            width="10"
+                            height="10"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#64748b"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            style={{
+                              transition: 'transform 0.2s ease',
+                              transform: mobileAccountOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+                            }}
+                          >
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
+                        </div>
                       ) : (
                         <img className="svgInject" alt="Account" src="/assets/imgs/theme/icons/icon-user.svg" />
                       )}
@@ -762,95 +879,88 @@ export const Header: React.FC = () => {
                             <div style={{ fontSize: '11px', color: '#64748b' }}>{user.email}</div>
                           </li>
 
-                          {/* Admin: Show Back to Dashboard ONLY (No user profile link) */}
-                          {isAdmin ? (
-                            <>
-                              <li>
-                                <a
-                                  href="/dashboard"
-                                  onClick={() => setMobileAccountOpen(false)}
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '8px',
-                                    background: '#eff6ff',
-                                    color: '#1d4ed8',
-                                    fontWeight: '700',
-                                    padding: '8px 12px',
-                                    borderRadius: '6px'
-                                  }}
-                                >
-                                  <i className="fi fi-rs-apps"></i>Back to Dashboard ⚡
-                                </a>
-                              </li>
-                              <li>
-                                <a
-                                  href="/login"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    setMobileAccountOpen(false);
-                                    logout();
-                                  }}
-                                  style={{ color: '#ef4444' }}
-                                >
-                                  <i className="fi fi-rs-sign-out mr-10"></i>Sign out
-                                </a>
-                              </li>
-                            </>
-                          ) : (
-                            /* Regular Customer: Show profile, order history, wishlist */
-                            <>
-                              <li>
-                                <Link
-                                  href="/profile#basic-info"
-                                  onClick={() => {
-                                    setMobileAccountOpen(false);
-                                    if (typeof window !== 'undefined' && window.location.pathname === '/profile') {
-                                      window.location.hash = '#basic-info';
-                                    }
-                                  }}
-                                >
-                                  <i className="fi fi-rs-user mr-10"></i>My Profile
-                                </Link>
-                              </li>
-                              <li>
-                                <Link
-                                  href="/profile#settings"
-                                  onClick={() => {
-                                    setMobileAccountOpen(false);
-                                    if (typeof window !== 'undefined' && window.location.pathname === '/profile') {
-                                      window.location.hash = '#settings';
-                                    }
-                                  }}
-                                >
-                                  <i className="fi fi-rs-settings-sliders mr-10"></i>Settings
-                                </Link>
-                              </li>
-                              <li>
-                                <Link href="/history" onClick={() => setMobileAccountOpen(false)}>
-                                  <i className="fi-rs-time-past mr-10"></i>Order History
-                                </Link>
-                              </li>
-                              <li>
-                                <Link href="/wishlist" onClick={() => setMobileAccountOpen(false)}>
-                                  <i className="fi fi-rs-heart mr-10"></i>My Wishlist
-                                </Link>
-                              </li>
-                              <li>
-                                <a
-                                  href="/"
-                                  onClick={(e) => {
-                                    e.preventDefault();
-                                    setMobileAccountOpen(false);
-                                    logout();
-                                  }}
-                                  style={{ color: '#ef4444' }}
-                                >
-                                  <i className="fi fi-rs-sign-out mr-10"></i>Sign out
-                                </a>
-                              </li>
-                            </>
+                          {/* Admin: Quick Access to Dashboard */}
+                          {isAdmin && (
+                            <li>
+                              <a
+                                href="/dashboard"
+                                onClick={() => setMobileAccountOpen(false)}
+                              >
+                                <i className="fi fi-rs-apps mr-10"></i>Dashboard Overview
+                              </a>
+                            </li>
                           )}
+
+                          {/* Notifications */}
+                          <li>
+                            <Link
+                              href={isAdmin ? "/dashboard" : "/profile"}
+                              onClick={() => setMobileAccountOpen(false)}
+                            >
+                              <i className="fi fi-rs-bell mr-10"></i>Notifications
+                            </Link>
+                          </li>
+
+                          {/* My Wishlist */}
+                          <li>
+                            <Link href="/wishlist" onClick={() => setMobileAccountOpen(false)}>
+                              <i className="fi fi-rs-heart mr-10"></i>My Wishlist
+                            </Link>
+                          </li>
+
+                          {/* Profile */}
+                          <li>
+                            <Link
+                              href="/profile#basic-info"
+                              onClick={() => {
+                                setMobileAccountOpen(false);
+                                if (typeof window !== 'undefined' && window.location.pathname === '/profile') {
+                                  window.location.hash = '#basic-info';
+                                }
+                              }}
+                            >
+                              <i className="fi fi-rs-user mr-10"></i>Profile
+                            </Link>
+                          </li>
+
+                          {/* Settings */}
+                          <li>
+                            <Link
+                              href="/profile#settings"
+                              onClick={() => {
+                                setMobileAccountOpen(false);
+                                if (typeof window !== 'undefined' && window.location.pathname === '/profile') {
+                                  window.location.hash = '#settings';
+                                }
+                              }}
+                            >
+                              <i className="fi fi-rs-settings-sliders mr-10"></i>Settings
+                            </Link>
+                          </li>
+
+                          {/* Order History (Customer only) */}
+                          {!isAdmin && (
+                            <li>
+                              <Link href="/history" onClick={() => setMobileAccountOpen(false)}>
+                                <i className="fi-rs-time-past mr-10"></i>Order History
+                              </Link>
+                            </li>
+                          )}
+
+                          {/* Sign out */}
+                          <li style={{ borderTop: '1px solid #f1f5f9', marginTop: '6px', paddingTop: '8px' }}>
+                            <a
+                              href="/login"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                setMobileAccountOpen(false);
+                                logout();
+                              }}
+                              style={{ color: '#ef4444' }}
+                            >
+                              <i className="fi fi-rs-sign-out mr-10"></i>Sign out
+                            </a>
+                          </li>
                         </ul>
                       ) : (
                         /* Guest: Sign in / Register */
@@ -1000,12 +1110,12 @@ export const Header: React.FC = () => {
                     title="All Categories"
                   >
                     <svg
-                      width="17"
-                      height="17"
+                      width="19"
+                      height="19"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
-                      strokeWidth="2.2"
+                      strokeWidth="2.1"
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     >
@@ -1016,8 +1126,8 @@ export const Header: React.FC = () => {
                     </svg>
                     <span>All Categories</span>
                     <svg
-                      width="12"
-                      height="12"
+                      width="14"
+                      height="14"
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="currentColor"
@@ -1293,26 +1403,84 @@ export const Header: React.FC = () => {
                 </div>
               </div>
 
-              {/* Action Icons in Header Bottom (Desktop) with Profile Hover List */}
+              {/* Action Icons in Header Bottom (Desktop) matching reference */}
               <div className="icns">
-                <div className="header-action-2">
+                <div className="header-action-2" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   
-                  {/* Cart Icon */}
+                  {/* 1. Notification Bell */}
                   <div className="header-action-icon-2">
-                    <Link className="mini-cart-icon position-relative" href="/cart" title="View Cart">
-                      <img alt="Cart" src="/assets/imgs/theme/icons/icon-cart.svg" />
-                      <span className="pro-count blue">{totalCartItems}</span>
+                    <Link
+                      href={user ? (isAdmin ? "/dashboard" : "/profile?tab=account-settings#notifications") : "/login?redirect=/profile"}
+                      title="Notifications"
+                      style={{ display: 'flex', alignItems: 'center', color: '#1e293b', fontSize: '25px', transition: 'color 0.2s' }}
+                    >
+                      <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                        <line x1="10" y1="20" x2="14" y2="20" />
+                      </svg>
                     </Link>
                   </div>
 
-                  {/* Wishlist Icon */}
+                  {/* 2. Wishlist Heart */}
                   <div className="header-action-icon-2">
-                    <Link href="/wishlist" title="Wishlist">
-                      <img className="svgInject" alt="Wishlist" src="/assets/imgs/theme/icons/icon-heart.svg" />
+                    <Link
+                      href={user ? "/wishlist" : "/login?redirect=/wishlist"}
+                      title="Wishlist"
+                      style={{ display: 'flex', alignItems: 'center', color: '#1e293b', fontSize: '25px', transition: 'color 0.2s' }}
+                    >
+                      <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                      </svg>
                     </Link>
                   </div>
 
-                  {/* Account / Profile Icon with Hover Dropdown */}
+                  {/* 3. Shopping Bag + Count + Red Dot when has items */}
+                  <div className="header-action-icon-2">
+                    <Link
+                      href="/cart"
+                      title="View Cart"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px',
+                        color: '#1e293b',
+                        textDecoration: 'none',
+                        fontSize: '25px',
+                        transition: 'color 0.2s'
+                      }}
+                    >
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="4" y="8" width="16" height="13" rx="3" />
+                          <path d="M8 8V6a4 4 0 0 1 8 0v2" />
+                        </svg>
+                        {totalCartItems > 0 && (
+                          <span
+                            className="cart-active-dot"
+                            style={{
+                              position: 'absolute',
+                              bottom: '-7px',
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              width: '5px',
+                              height: '5px',
+                              backgroundColor: '#dc2626',
+                              borderRadius: '50%',
+                              display: 'block'
+                            }}
+                          />
+                        )}
+                      </div>
+                      <span style={{ fontSize: '15px', fontWeight: '500', color: '#0f172a', lineHeight: 1 }}>
+                        {totalCartItems}
+                      </span>
+                    </Link>
+                  </div>
+
+                  {/* 4. Vertical Divider */}
+                  <div style={{ width: '1px', height: '22px', backgroundColor: '#e2e8f0', margin: 0 }} />
+
+                  {/* 5. Account / Profile Icon with Hover Dropdown */}
                   <div
                     ref={accountRef}
                     className={"header-action-icon-2 header-action-user-profile " + (accountOpen ? "active" : "")}
@@ -1330,9 +1498,18 @@ export const Header: React.FC = () => {
                       }}
                       title={user ? user.name : "Sign In / Register"}
                       className="header-user-btn"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        cursor: 'pointer',
+                        padding: 0,
+                        border: 'none',
+                        background: 'transparent'
+                      }}
                     >
                       {user ? (
-                        <div className="header-user-content">
+                        <div className="header-user-content" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <img
                             src={user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}`}
                             alt={user.name}
@@ -1343,13 +1520,29 @@ export const Header: React.FC = () => {
                               target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name || 'User')}`;
                             }}
                             style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              objectFit: 'cover',
                               border: '2px solid rgb(231, 231, 231)'
                             }}
                           />
-                          <span className="header-user-name">
-                            {user.name.split(' ')[0]}
-                          </span>
-                          <i className="fi-rs-angle-small-down header-user-chevron"></i>
+                          <svg
+                            width="11"
+                            height="11"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#64748b"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            style={{
+                              transition: 'transform 0.2s ease',
+                              transform: accountOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+                            }}
+                          >
+                            <polyline points="6 9 12 15 18 9" />
+                          </svg>
                         </div>
                       ) : (
                         <img className="svgInject" alt="Account" src="/assets/imgs/theme/icons/icon-user.svg" />
@@ -1494,323 +1687,442 @@ export const Header: React.FC = () => {
           4. MOBILE / TABLET SLIDEOUT DRAWER (Full Menu & Accordions)
          ======================================================== */}
       <div className={"mobile-header-active mobile-header-wrapper-style " + (mobileMenuOpen ? "sidebar-visible" : "")}>
-        <div className="mobile-header-wrapper-inner" style={{ height: '100%', overflowY: 'auto', padding: '16px 18px 40px 18px' }}>
+        <div className="mobile-header-wrapper-inner" style={{ height: '100%', overflowY: 'auto', padding: '16px 18px 40px 18px', display: 'flex', flexDirection: 'column' }}>
           
-          {/* Top: Language Switcher on Left & Close Button on Right Corner */}
+          {/* 1. Header Bar: Aligned Logo on Left, Clean Text-only EN/AR Language Dropdown, Close Button on Right */}
           <div
-            className="mobile-header-top d-flex align-items-center justify-content-between pb-3 mb-3 border-bottom"
-            style={{ width: '100%', margin: '0 0 16px 0', padding: '0 0 14px 0' }}
+            className="mobile-header-top d-flex align-items-center justify-content-between pb-3 mb-2"
+            style={{ width: '100%', borderBottom: '1px solid #f1f5f9', gap: '10px' }}
           >
-            {/* Language Switcher */}
-            <div className="mobile-lang-switcher position-relative">
-              <div
-                className="d-flex align-items-center gap-2"
-                onClick={() => setMobileLangOpen(!mobileLangOpen)}
-                style={{
-                  cursor: 'pointer',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  color: '#253D4E',
-                  padding: '6px 12px',
-                  background: '#f8fafc',
-                  borderRadius: '20px',
-                  border: '1px solid #e2e8f0'
-                }}
-              >
+            {/* Left: Brand Logo only */}
+            <div className="d-flex align-items-center" style={{ minWidth: 0 }}>
+              <Link href="/" onClick={() => setMobileMenuOpen(false)} style={{ display: 'inline-flex', alignItems: 'center', textDecoration: 'none' }}>
                 <img
-                  src={selectedLang === 'English' ? '/assets/imgs/theme/flag-en.jpg' : '/assets/imgs/theme/flag-ar.jpg'}
-                  alt=""
-                  style={{ width: '18px', height: '18px', borderRadius: '50%', objectFit: 'cover' }}
+                  src="/assets/imgs/theme/logo.svg"
+                  alt="logo"
+                  style={{ height: '32px', width: 'auto', maxWidth: '125px', objectFit: 'contain' }}
                 />
-                <span>{selectedLang === 'English' ? 'English' : 'عربى'}</span>
-                <i className={"fi-rs-angle-small-" + (mobileLangOpen ? "up" : "down") + " text-muted"}></i>
-              </div>
+              </Link>
+            </div>
 
-              {/* Language Dropdown List */}
-              {mobileLangOpen && (
-                <ul
+            {/* Right: Language Dropdown, Divider Line, and Close Button */}
+            <div className="d-flex align-items-center" style={{ gap: '10px', marginLeft: 'auto' }}>
+              {/* Language Switcher Dropdown (Text-only EN / AR, No Flags) */}
+              <div className="position-relative">
+                <button
+                  type="button"
+                  onClick={() => setMobileLangOpen(!mobileLangOpen)}
                   style={{
-                    position: 'absolute',
-                    top: 'calc(100% + 6px)',
-                    left: 0,
-                    background: '#ffffff',
-                    borderRadius: '10px',
-                    boxShadow: '0 8px 20px rgba(0,0,0,0.12)',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '5px 10px',
+                    backgroundColor: '#f1f5f9',
                     border: '1px solid #e2e8f0',
-                    padding: '6px 0',
-                    listStyle: 'none',
-                    minWidth: '130px',
-                    zIndex: 1000,
-                    margin: 0
+                    borderRadius: '20px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    fontWeight: '700',
+                    color: '#1e293b',
+                    lineHeight: 1,
                   }}
+                  title="Change Language"
                 >
-                  <li
-                    onClick={() => {
-                      setSelectedLang('English');
-                      setMobileLangOpen(false);
-                    }}
+                  <span>{selectedLang === 'Arabic' ? 'AR' : 'EN'}</span>
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                     style={{
-                      padding: '8px 14px',
-                      fontSize: '12px',
-                      fontWeight: selectedLang === 'English' ? '700' : '500',
-                      color: selectedLang === 'English' ? '#3BB77E' : '#334155',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      backgroundColor: selectedLang === 'English' ? '#f0fdf4' : 'transparent'
+                      color: '#64748b',
+                      transition: 'transform 0.2s ease',
+                      transform: mobileLangOpen ? 'rotate(180deg)' : 'none',
                     }}
                   >
-                    <img src="/assets/imgs/theme/flag-en.jpg" alt="" style={{ width: '16px', height: '16px', borderRadius: '50%' }} />
-                    English
-                  </li>
-                  <li
-                    onClick={() => {
-                      setSelectedLang('Arabic');
-                      setMobileLangOpen(false);
-                    }}
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </button>
+
+                {mobileLangOpen && (
+                  <ul
                     style={{
-                      padding: '8px 14px',
-                      fontSize: '12px',
-                      fontWeight: selectedLang === 'Arabic' ? '700' : '500',
-                      color: selectedLang === 'Arabic' ? '#3BB77E' : '#334155',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      backgroundColor: selectedLang === 'Arabic' ? '#f0fdf4' : 'transparent'
+                      position: 'absolute',
+                      top: 'calc(100% + 6px)',
+                      right: 0,
+                      background: '#ffffff',
+                      borderRadius: '8px',
+                      boxShadow: '0 10px 25px rgba(0,0,0,0.12)',
+                      border: '1px solid #e2e8f0',
+                      padding: '4px 0',
+                      listStyle: 'none',
+                      minWidth: '70px',
+                      zIndex: 1000,
+                      margin: 0,
                     }}
                   >
-                    <img src="/assets/imgs/theme/flag-ar.jpg" alt="" style={{ width: '16px', height: '16px', borderRadius: '50%' }} />
-                    عربى
-                  </li>
-                </ul>
-              )}
-            </div>
-
-            {/* Close Button on Right Corner */}
-            <div
-              className="mobile-menu-close"
-              onClick={() => setMobileMenuOpen(false)}
-              style={{
-                cursor: 'pointer',
-                width: '34px',
-                height: '34px',
-                borderRadius: '50%',
-                backgroundColor: '#f1f5f9',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginLeft: 'auto',
-                transition: 'all 0.2s ease',
-                flexShrink: 0
-              }}
-              title="Close Menu"
-            >
-              <i className="fi-rs-cross" style={{ fontSize: '13px', color: '#253D4E' }}></i>
-            </div>
-          </div>
-
-          {/* Drawer Location Select: Shows exactly 3 items at a time with smooth scrollbar */}
-          <div className="p-2 mb-3 rounded" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-            <div className="d-flex align-items-center justify-content-between mb-2 px-1">
-              <span style={{ fontSize: '11px', fontWeight: 'bold', color: '#64748b', letterSpacing: '0.5px' }}>LOCATION:</span>
-              <span className="text-success fw-bold" style={{ fontSize: '12px' }}>{selectedLocation}</span>
-            </div>
-
-            {/* Custom Location Selector Box */}
-            <div
-              className="d-flex align-items-center justify-content-between bg-white px-3 py-2 rounded"
-              style={{
-                border: '1px solid #cbd5e1',
-                cursor: 'pointer',
-                fontSize: '13px',
-                fontWeight: '500',
-                color: '#253D4E'
-              }}
-              onClick={() => setMobileLocOpen(!mobileLocOpen)}
-            >
-              <span>{selectedLocation}</span>
-              <i className={"fi-rs-angle-small-" + (mobileLocOpen ? "up" : "down") + " text-muted"}></i>
-            </div>
-
-            {/* 3-Item Balanced Scrollable List */}
-            {mobileLocOpen && (
-              <div
-                className="mt-2 bg-white rounded border"
-                style={{
-                  maxHeight: '115px',
-                  overflowY: 'auto',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
-                }}
-              >
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                  {locations.map((loc, idx) => (
                     <li
-                      key={idx}
                       onClick={() => {
-                        setSelectedLocation(loc);
-                        setMobileLocOpen(false);
+                        setSelectedLang('English');
+                        setMobileLangOpen(false);
                       }}
                       style={{
-                        padding: '9px 12px',
+                        padding: '6px 12px',
                         fontSize: '12px',
+                        fontWeight: selectedLang === 'English' ? '700' : '500',
+                        color: selectedLang === 'English' ? '#3BB77E' : '#334155',
                         cursor: 'pointer',
-                        color: selectedLocation === loc ? '#3BB77E' : '#334155',
-                        fontWeight: selectedLocation === loc ? '700' : '500',
-                        backgroundColor: selectedLocation === loc ? '#f0fdf4' : 'transparent',
-                        borderBottom: idx === locations.length - 1 ? 'none' : '1px solid #f1f5f9'
+                        backgroundColor: selectedLang === 'English' ? '#f0fdf4' : 'transparent',
                       }}
                     >
-                      {loc}
+                      EN
                     </li>
-                  ))}
-                </ul>
+                    <li
+                      onClick={() => {
+                        setSelectedLang('Arabic');
+                        setMobileLangOpen(false);
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '12px',
+                        fontWeight: selectedLang === 'Arabic' ? '700' : '500',
+                        color: selectedLang === 'Arabic' ? '#3BB77E' : '#334155',
+                        cursor: 'pointer',
+                        backgroundColor: selectedLang === 'Arabic' ? '#f0fdf4' : 'transparent',
+                      }}
+                    >
+                      AR
+                    </li>
+                  </ul>
+                )}
               </div>
-            )}
+
+              {/* Vertical Divider Border */}
+              <div style={{ width: '1px', height: '20px', backgroundColor: '#e2e8f0' }} />
+
+              {/* Close Button */}
+              <button
+                type="button"
+                className="mobile-menu-close"
+                onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  cursor: 'pointer',
+                  width: '34px',
+                  height: '34px',
+                  borderRadius: '50%',
+                  backgroundColor: '#f1f5f9',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#1e293b',
+                  transition: 'all 0.15s ease',
+                  flexShrink: 0,
+                }}
+                title="Close Menu"
+              >
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
           </div>
 
-          {/* Full Navigation List & Expandable Accordions */}
-          <div className="mobile-menu-wrap">
+          {/* 2. Search Bar in Drawer: Matching Reference Image Style */}
+          <div style={{ margin: '8px 0 16px 0' }}>
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (searchInput.trim()) {
+                  router.push(`/products?q=${encodeURIComponent(searchInput.trim())}`);
+                  setMobileMenuOpen(false);
+                }
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                backgroundColor: '#f8fafc',
+                border: '1px solid #e2e8f0',
+                borderRadius: '12px',
+                padding: '0 14px',
+                height: '46px',
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
+                style={{
+                  flex: 1,
+                  border: 'none',
+                  background: 'transparent',
+                  fontSize: '14px',
+                  color: '#1e293b',
+                  outline: 'none',
+                  boxShadow: 'none',
+                  padding: 0,
+                }}
+              />
+              <button
+                type="submit"
+                aria-label="Search"
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  padding: '0 0 0 8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  color: '#64748b',
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </button>
+            </form>
+          </div>
+
+          {/* 3. Navigation Items List: Styled Matching the Reference Image */}
+          <div className="mobile-menu-wrap" style={{ flex: 1 }}>
             <nav>
-              <ul className="mobile-menu font-heading" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 
-                {/* 1. Home */}
-                <li className="py-2 border-bottom">
-                  <Link href="/" onClick={() => setMobileMenuOpen(false)} style={{ fontSize: '14px', fontWeight: 'bold', color: '#253D4E' }}>
-                    Home
-                  </Link>
-                </li>
+                {/* Main Navigation Links Only */}
+                {mainMenuItems.filter(m => m.isActive !== false).map((menuItem) => {
+                  const hasSub = Boolean(menuItem.hasMegaMenu && menuItem.columns && menuItem.columns.length > 0);
+                  const isAccordionOpen = openAccordion === `menu-${menuItem.id}`;
+                  const menuDest = getMenuDestination(menuItem);
 
-                {/* 2. Shop by Categories */}
-                <li className={"py-2 border-bottom menu-item-has-children " + (openAccordion === 'categories' ? 'active' : '')}>
-                  <div
-                    className="d-flex align-items-center justify-content-between"
-                    onClick={() => toggleAccordion('categories')}
-                    style={{ cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#253D4E' }}
-                  >
-                    <span>Shop by Categories</span>
-                    <span className="menu-expand"><i className="fi-rs-angle-small-down"></i></span>
-                  </div>
-                  <div className={`mobile-accordion-collapse ${openAccordion === 'categories' ? 'is-open' : ''}`}>
-                    <div className="mobile-accordion-inner">
-                      <ul className="dropdown-menu-list">
-                        {categories.slice(0, 6).map((cat, idx) => (
-                          <li key={idx}>
-                            <Link href={cat.link} onClick={() => setMobileMenuOpen(false)}>
-                              {cat.name}
-                            </Link>
-                          </li>
-                        ))}
-                        <li className="view-all-item">
-                          <Link href="/category" onClick={() => setMobileMenuOpen(false)} className="view-all-link">
-                            View All Categories <i className="fi-rs-arrow-small-right"></i>
-                          </Link>
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-                </li>
-
-                {/* Dynamic Main Menu items in Mobile Drawer */}
-                {mainMenuItems.filter(m => m.isActive !== false).slice(0, 6).map((menuItem) => {
-                  const hasSub = menuItem.hasMegaMenu && menuItem.columns && menuItem.columns.length > 0;
-                  const menuDestination = getMenuDestination(menuItem);
-                  const isAccordionOpen = openAccordion === menuItem.id;
-
-                  if (hasSub) {
-                    const menuCategories = menuItem.columns!;
-                    return (
-                      <li
-                        key={menuItem.id}
-                        className={"py-2 border-bottom menu-item-has-children " + (isAccordionOpen ? 'active' : '')}
+                  return (
+                    <li key={menuItem.id}>
+                      <div
+                        onClick={() => {
+                          if (hasSub) {
+                            toggleAccordion(`menu-${menuItem.id}`);
+                          } else {
+                            router.push(menuDest);
+                            setMobileMenuOpen(false);
+                          }
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '12px 14px',
+                          borderRadius: '12px',
+                          cursor: 'pointer',
+                          color: '#1e293b',
+                          backgroundColor: isAccordionOpen ? '#f8fafc' : 'transparent',
+                          transition: 'all 0.15s ease',
+                        }}
                       >
-                        <div
-                          className="d-flex align-items-center justify-content-between"
-                          onClick={() => toggleAccordion(menuItem.id)}
-                          style={{ cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#253D4E' }}
-                        >
-                          <span className="d-flex align-items-center gap-2">
-                            {formatNavigationLabel(menuItem.name)}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', minWidth: 0 }}>
+                          <div
+                            style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '10px',
+                              backgroundColor: '#f1f5f9',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0,
+                            }}
+                          >
+                            {getNavIcon(menuItem.name, menuItem.badge)}
+                          </div>
+                          <span style={{ fontSize: '15px', fontWeight: '600', color: '#1e293b', display: 'inline-flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
+                            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {formatNavigationLabel(menuItem.name)}
+                            </span>
                             {menuItem.badge && (
                               <span
-                                className="nav-speech-badge-mobile"
-                                style={{ '--badge-bg': getMenuBadgeColor(menuItem.badge) } as React.CSSProperties}
+                                style={{
+                                  backgroundColor: getMenuBadgeColor(menuItem.badge),
+                                  color: '#ffffff',
+                                  fontSize: '10.5px',
+                                  fontWeight: '700',
+                                  padding: '2px 8px',
+                                  borderRadius: '10px',
+                                  textTransform: 'uppercase',
+                                  letterSpacing: '0.3px',
+                                  flexShrink: 0,
+                                }}
                               >
                                 {formatMenuBadgeLabel(menuItem.badge)}
                               </span>
                             )}
                           </span>
-                          <span className="menu-expand"><i className="fi-rs-angle-small-down"></i></span>
                         </div>
-                        <div className={`mobile-accordion-collapse ${isAccordionOpen ? 'is-open' : ''}`}>
-                          <div className="mobile-accordion-inner">
-                            <ul className="dropdown-menu-list">
-                              {menuCategories.map((category) => (
-                                <li key={category.id}>
-                                  <Link href={category.link || menuItem.link} onClick={() => setMobileMenuOpen(false)}>
-                                    {formatNavigationLabel(category.title)}
-                                  </Link>
-                                </li>
-                              ))}
-                              <li className="view-all-item">
-                                <Link href={menuItem.link} onClick={() => setMobileMenuOpen(false)} className="view-all-link">
-                                  View All {formatNavigationLabel(menuItem.name)} <i className="fi-rs-arrow-small-right"></i>
+
+                        {/* Right Action Button (Chevron that rotates if has dropdown) */}
+                        <div
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '50%',
+                            backgroundColor: '#f1f5f9',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#64748b',
+                            flexShrink: 0,
+                            marginLeft: '8px',
+                            transition: 'transform 0.2s ease',
+                            transform: hasSub && isAccordionOpen ? 'rotate(90deg)' : 'none',
+                          }}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        </div>
+                      </div>
+
+                      {/* Expandable Submenu / Mega Menu columns (matches desktop dropdown) */}
+                      {hasSub && (
+                        <div
+                          style={{
+                            display: isAccordionOpen ? 'block' : 'none',
+                            padding: '6px 0 6px 48px',
+                            margin: '2px 0 6px 0',
+                            borderLeft: '2px solid #e2e8f0',
+                            marginLeft: '28px',
+                          }}
+                        >
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            {menuItem.columns!.map((col) => (
+                              <div key={col.id} style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                <Link
+                                  href={col.link || menuItem.link}
+                                  onClick={() => setMobileMenuOpen(false)}
+                                  style={{
+                                    display: 'block',
+                                    padding: '6px 12px',
+                                    fontSize: '14px',
+                                    fontWeight: '700',
+                                    color: '#0f172a',
+                                    textDecoration: 'none',
+                                    borderRadius: '6px',
+                                  }}
+                                >
+                                  {formatNavigationLabel(col.title)}
                                 </Link>
-                              </li>
-                            </ul>
+
+                                {col.items && col.items.length > 0 && (
+                                  <ul style={{ listStyle: 'none', padding: '0 0 0 8px', margin: 0, display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    {col.items.map((subItem) => (
+                                      <li key={subItem.id}>
+                                        <Link
+                                          href={subItem.link}
+                                          onClick={() => setMobileMenuOpen(false)}
+                                          style={{
+                                            display: 'block',
+                                            padding: '5px 12px',
+                                            fontSize: '13.5px',
+                                            fontWeight: '500',
+                                            color: '#475569',
+                                            textDecoration: 'none',
+                                            borderRadius: '4px',
+                                            transition: 'color 0.15s ease',
+                                          }}
+                                        >
+                                          {subItem.name}
+                                        </Link>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )}
+                              </div>
+                            ))}
+
+                            <div style={{ marginTop: '2px', paddingLeft: '12px' }}>
+                              <Link
+                                href={menuDest}
+                                onClick={() => setMobileMenuOpen(false)}
+                                style={{
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  fontSize: '13px',
+                                  fontWeight: '600',
+                                  color: '#3BB77E',
+                                  textDecoration: 'none',
+                                }}
+                              >
+                                View all {formatNavigationLabel(menuItem.name)} →
+                              </Link>
+                            </div>
                           </div>
                         </div>
-                      </li>
-                    );
-                  }
-
-                  const mobileMenuLabelColor = '#253D4E';
-                  return (
-                    <li key={menuItem.id} className="py-2 border-bottom">
-                      <Link
-                        href={menuDestination}
-                        onClick={() => setMobileMenuOpen(false)}
-                        className="d-flex align-items-center justify-content-between"
-                        style={{
-                          fontSize: '14px',
-                          fontWeight: '600',
-                          color: mobileMenuLabelColor,
-                        }}
-                      >
-                        <span className="d-flex align-items-center gap-2">
-                          {formatNavigationLabel(menuItem.name)}
-                          {menuItem.badge && (
-                            <span
-                              className="nav-speech-badge-mobile"
-                              style={{ '--badge-bg': getMenuBadgeColor(menuItem.badge) } as React.CSSProperties}
-                            >
-                              {formatMenuBadgeLabel(menuItem.badge)}
-                            </span>
-                          )}
-                        </span>
-                      </Link>
+                      )}
                     </li>
                   );
                 })}
 
               </ul>
             </nav>
-          </div>
 
-          {/* Drawer Contact Footer */}
-          <div className="mt-4 pt-3 border-top text-muted" style={{ fontSize: '12px' }}>
-            <div className="d-flex align-items-center gap-2 mb-1">
-              <i className="fi-rs-headset text-success"></i>
-              <a href="tel:+919876124553" className="text-muted text-decoration-none" suppressHydrationWarning>
-                (+91) - 9876-124553
-              </a>
-            </div>
-            <div className="d-flex align-items-center gap-2">
-              <i className="fi-rs-envelope text-success"></i>
-              <a href="mailto:sales@veuz.com" className="text-muted text-decoration-none" suppressHydrationWarning>
-                sales@veuz.com
-              </a>
+            {/* Quick Access: Wishlist & Notifications inside Mobile Drawer */}
+            <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <Link
+                href={user ? "/wishlist" : "/login?redirect=/wishlist"}
+                onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  textDecoration: 'none',
+                  color: '#1e293b',
+                  fontSize: '14.5px',
+                  fontWeight: '600',
+                  backgroundColor: '#f8fafc',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#fee2e2', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                  </svg>
+                </div>
+                <span>My Wishlist</span>
+              </Link>
+
+              <Link
+                href={user ? (isAdmin ? "/dashboard" : "/profile?tab=account-settings#notifications") : "/login?redirect=/profile"}
+                onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  textDecoration: 'none',
+                  color: '#1e293b',
+                  fontSize: '14.5px',
+                  fontWeight: '600',
+                  backgroundColor: '#f8fafc',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                    <line x1="10" y1="20" x2="14" y2="20" />
+                  </svg>
+                </div>
+                <span>Notifications</span>
+              </Link>
             </div>
           </div>
 

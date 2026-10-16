@@ -34,6 +34,7 @@ function BannerEditForm() {
   const [subtitle, setSubtitle] = useState<string>('');
   const [desc, setDesc] = useState<string>('');
   const [price, setPrice] = useState<string>('');
+  const [showButton, setShowButton] = useState<boolean>(true);
   const [buttonText, setButtonText] = useState<string>('Shop Now');
   const [link, setLink] = useState<string>('/products');
   const [order, setOrder] = useState<number>(1);
@@ -59,7 +60,8 @@ function BannerEditForm() {
               setSubtitle(found.subtitle || '');
               setDesc(found.desc || '');
               setPrice(found.price || '');
-              setButtonText(found.buttonText || 'Shop Now');
+              setShowButton(found.showButton !== false && Boolean(found.buttonText));
+              setButtonText(found.buttonText || (found.showButton !== false ? 'Shop Now' : ''));
               setLink(found.link || '/products');
               setOrder(found.order || 1);
               setIsActive(found.isActive !== false);
@@ -77,7 +79,8 @@ function BannerEditForm() {
               setSubtitle(found.subtitle || '');
               setDesc(found.desc || '');
               setPrice(found.price || '');
-              setButtonText(found.buttonText || 'Shop Now');
+              setShowButton(found.showButton !== false && Boolean(found.buttonText));
+              setButtonText(found.buttonText || (found.showButton !== false ? 'Shop Now' : ''));
               setLink(found.link || '/products');
               setOrder(found.order || 1);
               setIsActive(found.isActive !== false);
@@ -114,6 +117,7 @@ function BannerEditForm() {
     setSubtitle('');
     setDesc('');
     setPrice('');
+    setShowButton(true);
     setButtonText('Shop Now');
     setLink('/products');
     setIsActive(true);
@@ -193,14 +197,14 @@ function BannerEditForm() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 1. Mandatory Heading validation
-    if (!title.trim()) {
-      showToast('warning', 'Heading is mandatory. Please enter a banner heading.');
+    // 1. Mandatory Image validation (Image is the only mandatory field)
+    if (!image.trim()) {
+      showToast('warning', 'Banner image is mandatory. Please upload or specify an image.');
       return;
     }
 
-    // 2. Maximum 50 words on Heading
-    if (titleWordCount > 50) {
+    // 2. Maximum 50 words on Heading (if provided)
+    if (title.trim() && titleWordCount > 50) {
       showToast(
         'danger',
         `Heading exceeds limit (${titleWordCount}/50 words). Please reduce to maximum 50 words.`
@@ -208,8 +212,8 @@ function BannerEditForm() {
       return;
     }
 
-    // 3. Maximum 50 words on Description / Paragraph
-    if (desc && descWordCount > 50) {
+    // 3. Maximum 50 words on Description / Paragraph (if provided)
+    if (desc.trim() && descWordCount > 50) {
       showToast(
         'danger',
         `Description exceeds limit (${descWordCount}/50 words). Please reduce to maximum 50 words.`
@@ -217,13 +221,7 @@ function BannerEditForm() {
       return;
     }
 
-    // 4. Mandatory Image validation
-    if (!image.trim()) {
-      showToast('warning', 'Banner image is mandatory. Please upload an image.');
-      return;
-    }
-
-    // 5. Check maximum 12 limit for new banners
+    // 4. Check maximum 12 limit for new banners
     if (isCreateMode) {
       if (bannerType === 'main' && fullData.mainBanners.length >= 12) {
         showToast('danger', 'Cannot create banner: Maximum 12 Main Banners limit reached.');
@@ -241,6 +239,8 @@ function BannerEditForm() {
       let updatedMain = [...fullData.mainBanners];
       let updatedPromo = [...fullData.promoBanners];
 
+      const finalButtonText = showButton ? (buttonText.trim() || 'Shop Now') : '';
+
       if (bannerType === 'main') {
         const item: MainBannerItem = {
           id: id || `main-banner-${Date.now()}`,
@@ -249,7 +249,8 @@ function BannerEditForm() {
           subtitle: subtitle.trim(),
           desc: desc.trim(),
           price: price.trim(),
-          buttonText: buttonText.trim() || 'Shop Now',
+          buttonText: finalButtonText,
+          showButton: showButton,
           link: link.trim() || '/products',
           isActive,
           order: Number(order) || 1,
@@ -268,9 +269,10 @@ function BannerEditForm() {
           subtitle: subtitle.trim(),
           desc: desc.trim(),
           price: price.trim(),
-          saleBadge: 'SALE',
+          saleBadge: subtitle.trim() || '',
           discount: price.trim(),
-          buttonText: buttonText.trim() || 'Shop Now',
+          buttonText: finalButtonText,
+          showButton: showButton,
           link: link.trim() || '/products',
           isActive,
           order: Number(order) || 1,
@@ -289,9 +291,10 @@ function BannerEditForm() {
       });
 
       if (res.success) {
+        const bannerLabel = title.trim() ? `Banner "${title.replace(/\n/g, ' ')}"` : 'Banner';
         showToast(
           'success',
-          `Banner "${title.replace(/\n/g, ' ')}" saved successfully! Storefront updated in real time.`,
+          `${bannerLabel} saved successfully! Storefront updated in real time.`,
           'Saved Successfully'
         );
         router.push('/dashboard/banner-settings');
@@ -591,32 +594,33 @@ function BannerEditForm() {
                     />
                   </div>
 
-                  {/* Banner Heading (Title) - MANDATORY, MAX 50 WORDS */}
+                  {/* Banner Heading (Title) - OPTIONAL, MAX 50 WORDS */}
                   <div className="mb-3">
                     <div className="d-flex align-items-center justify-content-between mb-1">
                       <label className="form-label fs-13 fw-bold text-dark mb-0">
-                        Banner Heading <span className="text-danger">* (Mandatory)</span>
+                        Banner Heading <span className="text-muted fw-normal fs-12">(Optional - can be left blank)</span>
                       </label>
-                      <span
-                        className={`badge fs-11 ${
-                          titleWordCount > 50
-                            ? 'bg-danger text-white'
-                            : titleWordCount > 40
-                            ? 'bg-warning text-dark'
-                            : 'bg-light text-muted border'
-                        }`}
-                      >
-                        {titleWordCount} / 50 words max
-                      </span>
+                      {titleWordCount > 0 && (
+                        <span
+                          className={`badge fs-11 ${
+                            titleWordCount > 50
+                              ? 'bg-danger text-white'
+                              : titleWordCount > 40
+                              ? 'bg-warning text-dark'
+                              : 'bg-light text-muted border'
+                          }`}
+                        >
+                          {titleWordCount} / 50 words max
+                        </span>
+                      )}
                     </div>
 
                     <textarea
                       className={`form-control fs-13 ${titleWordCount > 50 ? 'is-invalid' : ''}`}
                       rows={2}
-                      placeholder="Enter banner heading (mandatory, maximum 50 words)..."
+                      placeholder="Enter banner heading (optional, leave blank if image contains text)..."
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
-                      required
                       style={{ borderColor: titleWordCount > 50 ? '#ef4444' : '#cbd5e1', borderRadius: '8px' }}
                     />
                     {titleWordCount > 50 ? (
@@ -625,7 +629,7 @@ function BannerEditForm() {
                       </small>
                     ) : (
                       <small className="text-muted fs-11 mt-1 d-block">
-                        Maximum 50 words allowed. Press Enter to break into multiple lines if desired.
+                        Optional. Leave blank if you only want to display the banner image.
                       </small>
                     )}
                   </div>
@@ -634,25 +638,27 @@ function BannerEditForm() {
                   <div className="mb-3">
                     <div className="d-flex align-items-center justify-content-between mb-1">
                       <label className="form-label fs-13 fw-bold text-dark mb-0">
-                        Description / Highlights Paragraph
+                        Description / Highlights Paragraph <span className="text-muted fw-normal fs-12">(Optional)</span>
                       </label>
-                      <span
-                        className={`badge fs-11 ${
-                          descWordCount > 50
-                            ? 'bg-danger text-white'
-                            : descWordCount > 40
-                            ? 'bg-warning text-dark'
-                            : 'bg-light text-muted border'
-                        }`}
-                      >
-                        {descWordCount} / 50 words max
-                      </span>
+                      {descWordCount > 0 && (
+                        <span
+                          className={`badge fs-11 ${
+                            descWordCount > 50
+                              ? 'bg-danger text-white'
+                              : descWordCount > 40
+                              ? 'bg-warning text-dark'
+                              : 'bg-light text-muted border'
+                          }`}
+                        >
+                          {descWordCount} / 50 words max
+                        </span>
+                      )}
                     </div>
 
                     <textarea
                       className={`form-control fs-13 ${descWordCount > 50 ? 'is-invalid' : ''}`}
                       rows={3}
-                      placeholder="Enter banner description / highlights paragraph (maximum 50 words)..."
+                      placeholder="Enter banner description / highlights paragraph (optional, maximum 50 words)..."
                       value={desc}
                       onChange={(e) => setDesc(e.target.value)}
                       style={{ borderColor: descWordCount > 50 ? '#ef4444' : '#cbd5e1', borderRadius: '8px' }}
@@ -663,43 +669,72 @@ function BannerEditForm() {
                       </small>
                     ) : (
                       <small className="text-muted fs-11 mt-1 d-block">
-                        Dynamic paragraph editable from dashboard. Maximum 50 words allowed. Both sliders enforce this limit.
+                        Dynamic paragraph editable from dashboard. Maximum 50 words allowed if provided.
                       </small>
                     )}
                   </div>
 
                   {/* Price / Offer Tag */}
-                  <div className="row g-3 mb-3">
-                    <div className="col-12 col-md-6">
-                      <label className="form-label fs-13 fw-bold text-dark mb-1">
-                        Price / Discount Tag
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control fs-13"
-                        placeholder="e.g. From $ 50,769 or 50% OFF"
-                        value={price}
-                        onChange={(e) => setPrice(e.target.value)}
-                        style={{ borderColor: '#cbd5e1', borderRadius: '8px' }}
-                      />
+                  <div className="mb-3">
+                    <label className="form-label fs-13 fw-bold text-dark mb-1">
+                      Price / Discount Tag <span className="text-muted fw-normal fs-12">(Optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control fs-13"
+                      placeholder="e.g. From $ 50,769 or 50% OFF"
+                      value={price}
+                      onChange={(e) => setPrice(e.target.value)}
+                      style={{ borderColor: '#cbd5e1', borderRadius: '8px' }}
+                    />
+                  </div>
+
+                  {/* Action Button Controls (Can be hidden / ignored) */}
+                  <div className="mb-3 p-3 rounded-3 border" style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}>
+                    <div className="d-flex align-items-center justify-content-between">
+                      <div className="pe-3">
+                        <label className="form-label fs-13 fw-bold text-dark mb-0">
+                          Show &quot;Shop Now&quot; Action Button
+                        </label>
+                        <p className="text-muted fs-12 mb-0">
+                          Toggle off to hide the button. When hidden, the entire banner image is clickable.
+                        </p>
+                      </div>
+                      <div className="form-check form-switch m-0 flex-shrink-0">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          checked={showButton}
+                          onChange={(e) => setShowButton(e.target.checked)}
+                          style={{
+                            cursor: 'pointer',
+                            width: '2.6em',
+                            height: '1.3em',
+                            backgroundColor: showButton ? '#0f172a' : '#cbd5e1',
+                            borderColor: showButton ? '#0f172a' : '#cbd5e1',
+                          }}
+                        />
+                      </div>
                     </div>
 
-                    <div className="col-12 col-md-6">
-                      <label className="form-label fs-13 fw-semibold text-dark mb-1">
-                        Button Label
-                      </label>
-                      <input
-                        type="text"
-                        className="form-control fs-13"
-                        placeholder="Shop Now"
-                        value={buttonText}
-                        onChange={(e) => setButtonText(e.target.value)}
-                        style={{
-                          borderRadius: '8px',
-                          borderColor: '#cbd5e1',
-                        }}
-                      />
-                    </div>
+                    {showButton && (
+                      <div className="mt-3 pt-3 border-top" style={{ borderColor: '#e2e8f0' }}>
+                        <label className="form-label fs-12 fw-semibold text-dark mb-1">
+                          Button Text Label
+                        </label>
+                        <input
+                          type="text"
+                          className="form-control fs-13"
+                          placeholder="Shop Now"
+                          value={buttonText}
+                          onChange={(e) => setButtonText(e.target.value)}
+                          style={{
+                            borderRadius: '8px',
+                            borderColor: '#cbd5e1',
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* Destination Link */}
@@ -865,10 +900,12 @@ function BannerEditForm() {
                       minHeight: '280px',
                       backgroundColor: '#0d1527',
                       backgroundImage: image
-                        ? `linear-gradient(to right, rgba(13, 21, 39, 0.95) 0%, rgba(13, 21, 39, 0.7) 50%, rgba(13, 21, 39, 0.25) 100%), url(${image})`
+                        ? (title || subtitle || desc || (showButton && buttonText)
+                            ? `linear-gradient(to right, rgba(13, 21, 39, 0.95) 0%, rgba(13, 21, 39, 0.7) 50%, rgba(13, 21, 39, 0.25) 100%), url(${image})`
+                            : `url(${image})`)
                         : 'none',
                       backgroundSize: 'cover',
-                      backgroundPosition: 'right center',
+                      backgroundPosition: 'center center',
                       boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                     }}
                   >
@@ -878,41 +915,47 @@ function BannerEditForm() {
                         <span className="fs-13 fw-semibold">Banner Image Placeholder</span>
                       </div>
                     )}
-                    <div style={{ maxWidth: '340px', position: 'relative', zIndex: 2 }}>
-                      {subtitle && (
-                        <div className="text-muted fs-12 fw-semibold mb-1" style={{ color: '#94a3b8' }}>
-                          {subtitle}
-                        </div>
-                      )}
-                      <h3
-                        className="text-white fw-bold mb-2"
-                        style={{
-                          fontSize: '20px',
-                          whiteSpace: 'pre-line',
-                          textShadow: '0 2px 6px rgba(0,0,0,0.6)',
-                          lineHeight: 1.3,
-                        }}
-                      >
-                        {title || <span className="opacity-50">Banner Heading Placeholder</span>}
-                      </h3>
-                      {desc && (
-                        <p className="text-white-50 fs-12 mb-3" style={{ whiteSpace: 'pre-line', lineHeight: 1.5 }}>
-                          {desc}
-                        </p>
-                      )}
-                      <span
-                        className="btn btn-sm text-white fw-semibold px-3 py-1.5"
-                        style={{
-                          backgroundColor: '#0b1120',
-                          border: '1px solid rgba(255,255,255,0.25)',
-                          borderRadius: '9999px',
-                          fontSize: '12px',
-                          pointerEvents: 'none',
-                        }}
-                      >
-                        {buttonText || 'Shop Now'}
-                      </span>
-                    </div>
+                    {(title || subtitle || desc || (showButton && buttonText)) && (
+                      <div style={{ maxWidth: '340px', position: 'relative', zIndex: 2 }}>
+                        {subtitle && (
+                          <div className="text-muted fs-12 fw-semibold mb-1" style={{ color: '#94a3b8' }}>
+                            {subtitle}
+                          </div>
+                        )}
+                        {title && (
+                          <h3
+                            className="text-white fw-bold mb-2"
+                            style={{
+                              fontSize: '20px',
+                              whiteSpace: 'pre-line',
+                              textShadow: '0 2px 6px rgba(0,0,0,0.6)',
+                              lineHeight: 1.3,
+                            }}
+                          >
+                            {title}
+                          </h3>
+                        )}
+                        {desc && (
+                          <p className="text-white-50 fs-12 mb-3" style={{ whiteSpace: 'pre-line', lineHeight: 1.5 }}>
+                            {desc}
+                          </p>
+                        )}
+                        {showButton && buttonText && (
+                          <span
+                            className="btn btn-sm text-white fw-semibold px-3 py-1.5"
+                            style={{
+                              backgroundColor: '#0b1120',
+                              border: '1px solid rgba(255,255,255,0.25)',
+                              borderRadius: '9999px',
+                              fontSize: '12px',
+                              pointerEvents: 'none',
+                            }}
+                          >
+                            {buttonText}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
                 ) : (
                   /* Promotion Banner Preview */
@@ -922,7 +965,9 @@ function BannerEditForm() {
                       minHeight: '280px',
                       backgroundColor: '#0284c7',
                       backgroundImage: image
-                        ? `linear-gradient(135deg, rgba(2, 132, 199, 0.4) 0%, rgba(6, 182, 212, 0.2) 40%, rgba(0, 0, 0, 0.05) 100%), url(${image})`
+                        ? (title || subtitle || desc || price || (showButton && buttonText)
+                            ? `linear-gradient(135deg, rgba(2, 132, 199, 0.4) 0%, rgba(6, 182, 212, 0.2) 40%, rgba(0, 0, 0, 0.05) 100%), url(${image})`
+                            : `url(${image})`)
                         : 'none',
                       backgroundSize: 'cover',
                       backgroundPosition: 'center center',
@@ -935,29 +980,49 @@ function BannerEditForm() {
                         <span className="fs-13 fw-semibold">Side Banner Placeholder</span>
                       </div>
                     )}
-                    <div style={{ position: 'relative', zIndex: 2 }}>
-                      <div className="text-white fw-bold fs-16 text-uppercase mb-1">
-                        SALE
+                    {(title || subtitle || desc || price || (showButton && buttonText)) && (
+                      <div style={{ position: 'relative', zIndex: 2 }}>
+                        {title && (
+                          <div className="text-white fw-bold fs-16 text-uppercase mb-1">
+                            {title}
+                          </div>
+                        )}
+                        {subtitle && (
+                          <div className="text-white fs-12 fw-semibold text-uppercase mb-1">
+                            {subtitle}
+                          </div>
+                        )}
+                        {price && (
+                          <h2
+                            className="fw-bold mb-2 text-white"
+                            style={{
+                              fontSize: '32px',
+                              lineHeight: 1,
+                              textShadow: '0 2px 8px rgba(0,0,0,0.3)',
+                            }}
+                          >
+                            {price}
+                          </h2>
+                        )}
+                        {desc && (
+                          <p className="text-white fs-12 mb-2" style={{ whiteSpace: 'pre-line', opacity: 0.9 }}>
+                            {desc}
+                          </p>
+                        )}
+                        {showButton && buttonText && (
+                          <span
+                            className="btn btn-sm text-dark bg-white fw-bold px-3 py-1 mt-1"
+                            style={{
+                              borderRadius: '6px',
+                              fontSize: '11px',
+                              pointerEvents: 'none',
+                            }}
+                          >
+                            {buttonText}
+                          </span>
+                        )}
                       </div>
-                      <div className="text-white fs-12 fw-semibold text-uppercase mb-1">
-                        {subtitle || 'UP TO'}
-                      </div>
-                      <h2
-                        className="fw-bold mb-2 text-white"
-                        style={{
-                          fontSize: '32px',
-                          lineHeight: 1,
-                          textShadow: '0 2px 8px rgba(0,0,0,0.3)',
-                        }}
-                      >
-                        {price || '50% OFF'}
-                      </h2>
-                      {desc && (
-                        <p className="text-white fs-12 mb-2" style={{ whiteSpace: 'pre-line', opacity: 0.9 }}>
-                          {desc}
-                        </p>
-                      )}
-                    </div>
+                    )}
                   </div>
                 )}
 
@@ -971,9 +1036,9 @@ function BannerEditForm() {
                     <span>Strict Constraints &amp; Validation:</span>
                   </div>
                   <ul className="mb-0 ps-3 text-muted fs-11" style={{ lineHeight: 1.6 }}>
-                    <li><strong>Heading Limit:</strong> Mandatory, maximum 50 words strictly enforced.</li>
-                    <li><strong>Description Limit:</strong> Maximum 50 words strictly enforced on both sliders.</li>
-                    <li><strong>Image Mandatory:</strong> Must upload a valid image file (JPG, PNG, WebP).</li>
+                    <li><strong>Image Mandatory:</strong> Must upload a valid image file (JPG, PNG, WebP). Image is the only mandatory field.</li>
+                    <li><strong>Text &amp; Heading:</strong> Optional. Can be left empty for image-only banners (max 50 words if provided).</li>
+                    <li><strong>Action Button:</strong> Optional. Can be hidden if desired, leaving the banner image as a direct clickable link.</li>
                     <li><strong>No Dummy Data:</strong> Clean input placeholders used on new banner creation.</li>
                     <li><strong>Capacity Limit:</strong> Maximum 12 banners per category enforced.</li>
                   </ul>

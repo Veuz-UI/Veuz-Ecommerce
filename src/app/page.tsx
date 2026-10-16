@@ -1,28 +1,22 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/context/AuthContext';
 
-import { fetchBannerSettings, BANNER_SETTINGS_EVENT } from '@/services/bannerSettingsService';
+import { fetchBannerSettings, getCachedBannerSettings, BANNER_SETTINGS_EVENT } from '@/services/bannerSettingsService';
 import { DEFAULT_BANNER_SETTINGS, MainBannerItem, PromoBannerItem } from '@/data/defaultBannerSettings';
-import { fetchShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsService';
+import { fetchShopSettings, getCachedShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsService';
 import { DEFAULT_SHOP_SETTINGS, ShopCategory } from '@/data/defaultShopSettings';
-import { fetchProducts, recordProductClick, PRODUCTS_EVENT } from '@/services/productsService';
+import { fetchProducts, getCachedProducts, recordProductClick, PRODUCTS_EVENT } from '@/services/productsService';
 import { ProductItem } from '@/data/categoryProductsData';
 import { fetchPartners, PARTNERS_EVENT } from '@/services/partnersService';
 import { DEFAULT_PARTNERS_DATA, PartnersData } from '@/data/defaultPartners';
 import { ProductCardImageSlider } from '@/components/common/ProductCardImageSlider';
 import { useStore } from '@/context/StoreContext';
 import { useToast } from '@/context/ToastContext';
-
-const VERIFIED_CATEGORY_IMAGES = [
-  '/assets/imgs/shop/p1.jpg',
-  '/assets/imgs/shop/p2.jpg',
-  '/assets/imgs/shop/p3.jpg',
-  '/assets/imgs/shop/p4.jpg',
-  '/assets/imgs/shop/p5.jpg',
-  '/assets/imgs/shop/p6.jpg',
-];
+import { getDeliveryBadgeProps } from '@/utils/deliveryBadge';
 
 const PRODUCT_CARD_COLORS: Record<string, { hex: string; border?: string }> = {
   black: { hex: '#0f172a' },
@@ -175,21 +169,23 @@ function HomeProductCard({
         {/* Product Content Wrap */}
         <div className="product-content-wrap d-flex flex-column flex-grow-1 justify-content-between">
           <div>
-            {/* Category above Title (Matching Reference Image) */}
-            <span
-              className="d-block text-muted text-capitalize"
-              style={{
-                fontSize: '12.5px',
-                fontWeight: 500,
-                color: '#8c9097',
-                marginBottom: '3px',
-                letterSpacing: '0.2px',
-              }}
-            >
-              {prod.category
-                ? prod.category.replace(/[-_]/g, ' ').split(' ').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-                : 'Safety Equipment'}
-            </span>
+            {/* Delivery Option & Gender Badges on Top */}
+            <div className="d-flex align-items-center gap-1.5 mb-2 flex-wrap">
+              {(() => {
+                const deliveryProps = getDeliveryBadgeProps(prod.deliveryOptionName);
+                return (
+                  <span className={deliveryProps.className}>
+                    <i className={deliveryProps.icon}></i>
+                    {deliveryProps.label}
+                  </span>
+                );
+              })()}
+              {prod.gender && (
+                <span className="product-gender-badge">
+                  {prod.gender}
+                </span>
+              )}
+            </div>
 
             {/* Product Title (20px bold) */}
             <h2 className="new-prod-title">
@@ -205,10 +201,10 @@ function HomeProductCard({
             <div className="product-rate d-flex align-items-center mb-2" style={{ gap: '5px' }}>
               <span style={{ color: '#f59e0b', fontSize: '14px', lineHeight: 1 }}>★</span>
               <span className="rating-score fw-bold" style={{ fontSize: '13px', color: '#0f172a' }}>
-                {prod.rating ? String(prod.rating).replace('/5', '') : '4.6'}
+                {prod.rating ? String(prod.rating).replace('/5', '') : '0.0'}
               </span>
               <span className="rating-reviews" style={{ fontSize: '12.5px', color: '#64748b' }}>
-                ({prod.reviews ? String(prod.reviews).replace(/[^0-9]/g, '') || '89' : '89'} reviews)
+                ({prod.reviews ? String(prod.reviews).replace(/[^0-9]/g, '') || '0' : '0'} reviews)
               </span>
             </div>
 
@@ -235,7 +231,7 @@ function HomeProductCard({
               <div className="new-prod-vat-label">Inclusive of VAT</div>
 
               {/* Color Swatches below Price (with interactive click to change image) */}
-              <div className="new-prod-colors-wrap d-flex align-items-center gap-1.5" style={{ minHeight: '22px' }}>
+              <div className="new-prod-colors-wrap d-flex align-items-center gap-2" style={{ minHeight: '26px' }}>
                 {Array.isArray(prod.colors) && prod.colors.length > 0 ? (
                   prod.colors.map((colorName: string, cIdx: number) => {
                     const colorInfo = getProductColorInfo(colorName);
@@ -255,10 +251,10 @@ function HomeProductCard({
                         title={`Color: ${colorName}`}
                         aria-label={`Select color ${colorName}`}
                         style={{
-                          width: '14px',
-                          height: '14px',
+                          width: '18px',
+                          height: '18px',
                           padding: 0,
-                          borderRadius: '50%',
+                          borderRadius: '4px',
                           backgroundColor: colorInfo.hex,
                           border: colorInfo.border ? `1px solid ${colorInfo.border}` : '1px solid rgba(0, 0, 0, 0.15)',
                           boxShadow: isSelected
@@ -270,7 +266,7 @@ function HomeProductCard({
                           outline: 'none',
                         }}
                         onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLElement).style.transform = 'scale(1.25)';
+                          (e.currentTarget as HTMLElement).style.transform = 'scale(1.2)';
                         }}
                         onMouseLeave={(e) => {
                           (e.currentTarget as HTMLElement).style.transform = 'scale(1)';
@@ -279,24 +275,9 @@ function HomeProductCard({
                     );
                   })
                 ) : (
-                  <span style={{ display: 'inline-block', height: '14px', visibility: 'hidden' }}>&nbsp;</span>
+                  <span style={{ display: 'inline-block', height: '18px', visibility: 'hidden' }}>&nbsp;</span>
                 )}
               </div>
-            </div>
-
-            {/* Product Description */}
-            <p className="new-prod-desc">{prod.desc}</p>
-
-            {/* Express Delivery Badge & Gender Tag */}
-            <div className="mb-2 d-flex align-items-center gap-2 flex-wrap">
-              <span className="express-delivery-badge">
-                <i className="fi-rs-bolt"></i>Express Delivery
-              </span>
-              {prod.gender && (
-                <span className="product-gender-badge">
-                  {prod.gender}
-                </span>
-              )}
             </div>
           </div>
 
@@ -331,7 +312,67 @@ function HomeProductCard({
   );
 }
 
+
+function ProductSectionSliderTrack({
+  items,
+  scrollRef,
+  wishlist,
+  onToggleWishlist,
+  onProductClick,
+}: {
+  items: any[];
+  scrollRef: React.RefObject<HTMLDivElement | null>;
+  wishlist: { [key: string]: boolean };
+  onToggleWishlist: (id: string) => void;
+  onProductClick: (id: string) => void;
+}) {
+  if (!items || items.length === 0) {
+    return (
+      <div className="text-center py-5 text-muted">
+        <p>No products available in this section.</p>
+      </div>
+    );
+  }
+
+  const repeatedItems = useMemo(() => {
+    if (items.length <= 4) return items.map((p, i) => ({ ...p, loopKey: `p-s1-${p.id}-${i}` }));
+    return [
+      ...items.map((prod, i) => ({ ...prod, loopKey: `p-s1-${prod.id}-${i}` })),
+      ...items.map((prod, i) => ({ ...prod, loopKey: `p-s2-${prod.id}-${i}` })),
+      ...items.map((prod, i) => ({ ...prod, loopKey: `p-s3-${prod.id}-${i}` })),
+    ];
+  }, [items]);
+
+  return (
+    <div className="w-100">
+      <div className="desktop-prod-slider-wrapper position-relative">
+        <div
+          ref={scrollRef}
+          className="desktop-prod-slider-track hide-scrollbar"
+          style={{ scrollBehavior: 'smooth' }}
+        >
+          {repeatedItems.map((prod) => (
+            <div key={prod.loopKey} className="desktop-prod-slider-col">
+              <HomeProductCard
+                prod={prod}
+                colClass="w-100"
+                isWishlisted={Boolean(wishlist[prod.id])}
+                onToggleWishlist={onToggleWishlist}
+                onProductClick={onProductClick}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
+  const router = useRouter();
+  const { user } = useAuth();
+  const { showToast } = useToast();
+  const { addToCart, toggleWishlist: storeToggleWishlist } = useStore();
   const [activeSlide, setActiveSlide] = useState(0);
   const [activeSideSlide, setActiveSideSlide] = useState(0);
   const [activeCatIndex, setActiveCatIndex] = useState(0);
@@ -342,18 +383,30 @@ export default function HomePage() {
   const browseCatScrollRef = useRef<HTMLDivElement>(null);
   const partnersScrollRef = useRef<HTMLDivElement>(null);
 
-  // Dynamic Catalog Products from Products Service (hydrated safely via useEffect)
-  const [catalogProducts, setCatalogProducts] = useState<ProductItem[]>([]);
+  // Dynamic Catalog Products initialized with live cached/synced products (Strictly NO dummy data)
+  const [catalogProducts, setCatalogProducts] = useState<ProductItem[]>(() => getCachedProducts());
 
   // Dynamic Partners Logos from Partners Service
   const [partnersData, setPartnersData] = useState<PartnersData>(DEFAULT_PARTNERS_DATA);
 
-  // Dynamic Banners from Banner Settings
-  const [heroSlides, setHeroSlides] = useState<MainBannerItem[]>(DEFAULT_BANNER_SETTINGS.mainBanners);
-  const [sideBannerSlides, setSideBannerSlides] = useState<PromoBannerItem[]>(DEFAULT_BANNER_SETTINGS.promoBanners);
+  // Dynamic Banners from Banner Settings (Initializes with live cache/synced banners - NO dummy data)
+  const [heroSlides, setHeroSlides] = useState<MainBannerItem[]>(() => {
+    const banners = getCachedBannerSettings().mainBanners || [];
+    const active = banners.filter((b) => b.isActive !== false);
+    return active.length > 0 ? active : DEFAULT_BANNER_SETTINGS.mainBanners;
+  });
+  const [sideBannerSlides, setSideBannerSlides] = useState<PromoBannerItem[]>(() => {
+    const banners = getCachedBannerSettings().promoBanners || [];
+    const active = banners.filter((b) => b.isActive !== false);
+    return active.length > 0 ? active : DEFAULT_BANNER_SETTINGS.promoBanners;
+  });
 
-  // Dynamic Categories from Shop Settings (Shop by Categories)
-  const [shopCategories, setShopCategories] = useState<ShopCategory[]>(DEFAULT_SHOP_SETTINGS.categories);
+  // Dynamic Categories from Shop Settings (Initializes with live cache/synced categories - NO dummy data)
+  const [shopCategories, setShopCategories] = useState<ShopCategory[]>(() => {
+    const cats = getCachedShopSettings().categories || [];
+    const active = cats.filter((c) => c.isActive !== false);
+    return active.length > 0 ? active : DEFAULT_SHOP_SETTINGS.categories;
+  });
 
   // Guarantee that the home page always starts at the very top (0, 0)
   useEffect(() => {
@@ -564,27 +617,50 @@ export default function HomePage() {
     };
   }, []);
 
+  // Active partners list & 3 sets for infinite continuous loop
+  const activePartnersList = useMemo(() => {
+    return partnersData.partners && partnersData.partners.length > 0
+      ? partnersData.partners.filter((p) => p.isActive !== false)
+      : DEFAULT_PARTNERS_DATA.partners;
+  }, [partnersData.partners]);
+
+  const repeatedPartners = useMemo(() => {
+    if (!activePartnersList || activePartnersList.length <= 3) {
+      return activePartnersList.map((p, i) => ({ ...p, loopKey: `partner-s1-${p.id || i}-${i}` }));
+    }
+    return [
+      ...activePartnersList.map((p, i) => ({ ...p, loopKey: `partner-s1-${p.id || i}-${i}` })),
+      ...activePartnersList.map((p, i) => ({ ...p, loopKey: `partner-s2-${p.id || i}-${i}` })),
+      ...activePartnersList.map((p, i) => ({ ...p, loopKey: `partner-s3-${p.id || i}-${i}` })),
+    ];
+  }, [activePartnersList]);
+
   const scrollPartners = (direction: 'prev' | 'next') => {
     if (partnersScrollRef.current) {
       const container = partnersScrollRef.current;
       const firstCard = container.querySelector('.partner-card-box') as HTMLElement;
       const cardWidth = firstCard ? firstCard.offsetWidth + 18 : 220;
-      const maxScroll = container.scrollWidth - container.clientWidth;
+      const step = cardWidth * 2;
+      const setWidth = container.scrollWidth / 3;
 
-      if (maxScroll <= 0) return;
+      if (setWidth <= 0) return;
 
       if (direction === 'next') {
-        if (container.scrollLeft >= maxScroll - 15) {
-          container.scrollTo({ left: 0, behavior: 'smooth' });
-        } else {
-          container.scrollBy({ left: cardWidth * 2, behavior: 'smooth' });
+        if (container.scrollLeft >= setWidth * 2 - step) {
+          container.style.scrollBehavior = 'auto';
+          container.scrollLeft -= setWidth;
+          void container.offsetWidth;
         }
+        container.style.scrollBehavior = 'smooth';
+        container.scrollBy({ left: step, behavior: 'smooth' });
       } else {
-        if (container.scrollLeft <= 15) {
-          container.scrollTo({ left: maxScroll, behavior: 'smooth' });
-        } else {
-          container.scrollBy({ left: -cardWidth * 2, behavior: 'smooth' });
+        if (container.scrollLeft < step) {
+          container.style.scrollBehavior = 'auto';
+          container.scrollLeft += setWidth;
+          void container.offsetWidth;
         }
+        container.style.scrollBehavior = 'smooth';
+        container.scrollBy({ left: -step, behavior: 'smooth' });
       }
     }
   };
@@ -634,6 +710,13 @@ export default function HomePage() {
   const [wishlist, setWishlist] = useState<{ [key: string]: boolean }>({});
 
   const toggleWishlist = (id: string) => {
+    if (!user) {
+      showToast('warning', 'Please sign in to save items to your wishlist.', 'Login Required');
+      router.push('/login?redirect=/wishlist');
+      return;
+    }
+    const numId = Number(id.replace(/[^\d]/g, '')) || 1;
+    storeToggleWishlist(numId);
     setWishlist((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
@@ -714,41 +797,47 @@ export default function HomePage() {
       };
     });
 
-    // Smooth scroll handler for Browse by Safety Categories
+  // Triplicate shop categories for infinite continuous forward looping without reversing
+  const repeatedShopCategories = useMemo(() => {
+    if (!shopCategories || shopCategories.length <= 3) {
+      return shopCategories.map((c, i) => ({ ...c, loopKey: `cat-s1-${c.id || i}-${i}` }));
+    }
+    return [
+      ...shopCategories.map((c, i) => ({ ...c, loopKey: `cat-s1-${c.id || i}-${i}` })),
+      ...shopCategories.map((c, i) => ({ ...c, loopKey: `cat-s2-${c.id || i}-${i}` })),
+      ...shopCategories.map((c, i) => ({ ...c, loopKey: `cat-s3-${c.id || i}-${i}` })),
+    ];
+  }, [shopCategories]);
+
   const scrollBrowseCat = (direction: 'prev' | 'next') => {
     if (browseCatScrollRef.current) {
       const container = browseCatScrollRef.current;
       const firstCol = container.querySelector('.browse-cat-card-wrapper') as HTMLElement;
       const colWidth = firstCol ? firstCol.offsetWidth + 28 : 165;
       const scrollStep = colWidth * 2;
-      const maxScroll = container.scrollWidth - container.clientWidth;
+      const setWidth = container.scrollWidth / 3;
 
-      if (maxScroll <= 0) return;
+      if (setWidth <= 0) return;
 
       if (direction === 'next') {
-        if (container.scrollLeft >= maxScroll - 15) {
-          container.scrollTo({ left: 0, behavior: 'smooth' });
-        } else {
-          container.scrollBy({ left: scrollStep, behavior: 'smooth' });
+        if (container.scrollLeft >= setWidth * 2 - scrollStep) {
+          container.style.scrollBehavior = 'auto';
+          container.scrollLeft -= setWidth;
+          void container.offsetWidth;
         }
+        container.style.scrollBehavior = 'smooth';
+        container.scrollBy({ left: scrollStep, behavior: 'smooth' });
       } else {
-        if (container.scrollLeft <= 15) {
-          container.scrollTo({ left: maxScroll, behavior: 'smooth' });
-        } else {
-          container.scrollBy({ left: -scrollStep, behavior: 'smooth' });
+        if (container.scrollLeft < scrollStep) {
+          container.style.scrollBehavior = 'auto';
+          container.scrollLeft += setWidth;
+          void container.offsetWidth;
         }
+        container.style.scrollBehavior = 'smooth';
+        container.scrollBy({ left: -scrollStep, behavior: 'smooth' });
       }
     }
   };
-
-  // Auto slide for Browse by Safety Categories (3500ms) with pause on hover
-  useEffect(() => {
-    if (isCatHovered) return;
-    const catTimer = setInterval(() => {
-      scrollBrowseCat('next');
-    }, 3500);
-    return () => clearInterval(catTimer);
-  }, [isCatHovered]);
 
   const handlePrevCat = () => {
     scrollBrowseCat('prev');
@@ -780,49 +869,31 @@ export default function HomePage() {
       const container = ref.current;
       const firstCol = container.querySelector('.desktop-prod-slider-col') as HTMLElement;
       const colWidth = firstCol ? firstCol.offsetWidth + 24 : 310;
-      const maxScroll = container.scrollWidth - container.clientWidth;
+      const setWidth = container.scrollWidth / 3;
 
-      if (maxScroll <= 0) return;
+      if (setWidth <= 0) return;
 
       if (direction === 'next') {
-        if (container.scrollLeft >= maxScroll - 20) {
-          container.scrollTo({ left: 0, behavior: 'smooth' });
-        } else {
-          container.scrollTo({
-            left: Math.min(container.scrollLeft + colWidth, maxScroll),
-            behavior: 'smooth',
-          });
+        if (container.scrollLeft >= setWidth * 2 - colWidth) {
+          container.style.scrollBehavior = 'auto';
+          container.scrollLeft -= setWidth;
+          void container.offsetWidth;
         }
+        container.style.scrollBehavior = 'smooth';
+        container.scrollBy({ left: colWidth, behavior: 'smooth' });
       } else {
-        if (container.scrollLeft <= 20) {
-          container.scrollTo({ left: maxScroll, behavior: 'smooth' });
-        } else {
-          container.scrollTo({
-            left: Math.max(container.scrollLeft - colWidth, 0),
-            behavior: 'smooth',
-          });
+        if (container.scrollLeft < colWidth) {
+          container.style.scrollBehavior = 'auto';
+          container.scrollLeft += setWidth;
+          void container.offsetWidth;
         }
+        container.style.scrollBehavior = 'smooth';
+        container.scrollBy({ left: -colWidth, behavior: 'smooth' });
       }
     }
   };
 
-
-
-  const renderProductCard = (prod: any, colClass: string) => (
-    <HomeProductCard
-      key={prod.id}
-      prod={prod}
-      colClass={colClass}
-      isWishlisted={false}
-      onToggleWishlist={() => {}}
-      onProductClick={recordProductClick}
-    />
-  );
-
-
-  // Reusable Product Section Slider:
-  // Desktop & Tablet: strictly ONE row of 4 cards per view, smoothly sliding with arrow keys
-  // Mobile (< 768px): single horizontal row with smooth scrolling and swipe
+  // Reusable Product Section Slider with infinite continuous loop
   const renderProductSectionSlider = (
     items: any[],
     sliderKey: 'newProd' | 'mostSearched' | 'onsale'
@@ -834,26 +905,14 @@ export default function HomePage() {
         ? mostSearchedScrollRef
         : onsaleScrollRef;
 
-    if (!items || items.length === 0) {
-      return (
-        <div className="text-center py-5 text-muted">
-          <p>No products available in this section.</p>
-        </div>
-      );
-    }
-
     return (
-      <div className="w-100">
-        <div className="desktop-prod-slider-wrapper position-relative">
-          <div ref={scrollRef} className="desktop-prod-slider-track">
-            {items.map((prod) => (
-              <div key={prod.id} className="desktop-prod-slider-col">
-                {renderProductCard(prod, 'w-100')}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+      <ProductSectionSliderTrack
+        items={items}
+        scrollRef={scrollRef}
+        wishlist={wishlist}
+        onToggleWishlist={toggleWishlist}
+        onProductClick={recordProductClick}
+      />
     );
   };
 
@@ -872,11 +931,15 @@ export default function HomePage() {
                   const titleText = slide.title || '';
                   const descText = slide.desc || '';
                   const bgImage = slide.image || '/assets/imgs/banner/hero-iphone-16.jpg';
+                  const shouldShowBtn = slide.showButton !== false && Boolean(slide.buttonText && slide.buttonText.trim());
+                  const hasTextContent = Boolean(titleText || subtitleText || descText);
+                  const isImageOnly = !hasTextContent && !shouldShowBtn;
 
-                  return (
+                  const slideElement = (
                     <div
                       key={slide.id || idx}
                       className={`hero-slide-item ${idx === activeSlide ? 'active' : ''}`}
+                      style={{ cursor: isImageOnly ? 'pointer' : 'default' }}
                     >
                       {/* Background Visual */}
                       <div
@@ -885,29 +948,51 @@ export default function HomePage() {
                           backgroundImage: `url(${bgImage})`,
                         }}
                       />
-                      <div className="hero-slide-bg-overlay" />
+                      {/* Dark overlay only needed when text exists to ensure legibility */}
+                      {hasTextContent && <div className="hero-slide-bg-overlay" />}
 
                       {/* Left Typography & CTA */}
-                      <div className="hero-slide-content">
-                        {subtitleText && (
-                          <div className="hero-slide-subtitle">
-                            {subtitleText}
-                          </div>
-                        )}
-                        <h1 className="hero-slide-title">
-                          {titleText}
-                        </h1>
-                        {descText && (
-                          <p className="hero-slide-desc">
-                            {descText}
-                          </p>
-                        )}
-                        <Link href={slide.link || '/products'} className="hero-slide-btn">
-                          {slide.buttonText || 'Shop Now'}
-                        </Link>
-                      </div>
+                      {(hasTextContent || shouldShowBtn) && (
+                        <div className="hero-slide-content">
+                          {subtitleText && (
+                            <div className="hero-slide-subtitle">
+                              {subtitleText}
+                            </div>
+                          )}
+                          {titleText && (
+                            <h1 className="hero-slide-title">
+                              {titleText}
+                            </h1>
+                          )}
+                          {descText && (
+                            <p className="hero-slide-desc">
+                              {descText}
+                            </p>
+                          )}
+                          {shouldShowBtn && (
+                            <Link href={slide.link || '/products'} className="hero-slide-btn">
+                              {slide.buttonText}
+                            </Link>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
+
+                  if (isImageOnly) {
+                    return (
+                      <Link
+                        key={slide.id || idx}
+                        href={slide.link || '/products'}
+                        className="d-block w-100 h-100 text-decoration-none"
+                        style={{ color: 'inherit' }}
+                      >
+                        {slideElement}
+                      </Link>
+                    );
+                  }
+
+                  return slideElement;
                 })}
 
                 {/* Left & Right Arrow Buttons on Hover */}
@@ -944,10 +1029,11 @@ export default function HomePage() {
             <div className="hero-promo-col">
               <div className="hero-promo-slider-card">
                 {sideBannerSlides.map((slide, idx) => {
-                  const saleBadge = slide.saleBadge || 'SALE';
-                  const upToText = slide.subtitle || 'UP TO';
-                  const discountText = slide.discount || slide.price || '50%';
+                  const saleBadge = slide.saleBadge || '';
+                  const upToText = slide.subtitle || '';
+                  const discountText = slide.discount || slide.price || '';
                   const promoImage = slide.image || '/assets/imgs/banner/promo-shoe-sale.jpg';
+                  const hasBadgeContent = Boolean(saleBadge || upToText || discountText || slide.desc);
 
                   return (
                     <Link
@@ -958,29 +1044,31 @@ export default function HomePage() {
                         backgroundImage: `url(${promoImage})`,
                       }}
                     >
-                      <div className="hero-promo-card-overlay" />
+                      {hasBadgeContent && <div className="hero-promo-card-overlay" />}
 
-                      {/* Top-Left Promotional Badge */}
-                      <div className="hero-promo-badge-box">
-                        <div className="hero-promo-sale-text">{saleBadge}</div>
-                        <div className="hero-promo-upto-row">
-                          <span className="hero-promo-upto-text">{upToText}</span>
-                          {/* Puma / Athletic silhouette emblem SVG */}
-                          <svg width="22" height="14" viewBox="0 0 24 16" fill="#ffffff" style={{ opacity: 0.95 }}>
-                            <path d="M22.8 1.4c-.6-.5-1.5-.7-2.3-.4-.5.2-1 .5-1.5.9-.6.5-1.3 1.1-2.1 1.7-1.1.8-2.3 1.4-3.6 1.8-1.5.5-3.1.6-4.7.4-1.2-.2-2.3-.6-3.4-1.2C3.8 3.8 2.5 2.7 1.4 1.4.9.8.3 1.2.1 1.8c-.3 1 .1 2.2.9 2.9 1 1 2.3 1.7 3.6 2.3 1.5.6 3.1.9 4.8.9 1.4 0 2.8-.2 4.1-.7 1.1-.4 2.2-1 3.2-1.7.7-.5 1.4-1.1 2-1.7.5-.5 1.1-.9 1.8-1.2.6-.3 1.3-.3 1.8.1.3.3.4.7.3 1.1-.1.4-.4.8-.8 1-.8.5-1.8.8-2.7 1-.7.1-1.4.2-2.1.2H16c-.6 0-1 .4-1 1s.4 1 1 1h.5c1 0 2-.1 3-.3 1.2-.2 2.4-.7 3.4-1.4.7-.5 1.2-1.1 1.4-1.9.2-.8 0-1.6-.5-2.2z" />
-                          </svg>
+                      {/* Top-Left Promotional Badge (ONLY rendered if text content is provided) */}
+                      {hasBadgeContent && (
+                        <div className="hero-promo-badge-box">
+                          {saleBadge && <div className="hero-promo-sale-text">{saleBadge}</div>}
+                          {upToText && (
+                            <div className="hero-promo-upto-row">
+                              <span className="hero-promo-upto-text">{upToText}</span>
+                            </div>
+                          )}
+                          {discountText && (
+                            <div className="hero-promo-discount-num">
+                              {discountText.replace(/[^\d]/g, '') || discountText}
+                              {discountText.includes('%') && <span className="hero-promo-discount-unit">%</span>}
+                              <span className="hero-promo-discount-off">OFF</span>
+                            </div>
+                          )}
+                          {slide.desc && (
+                            <div className="hero-promo-desc-text">
+                              {slide.desc}
+                            </div>
+                          )}
                         </div>
-                        <div className="hero-promo-discount-num">
-                          {discountText.replace(/[^\d]/g, '') || '50'}
-                          <span className="hero-promo-discount-unit">%</span>
-                          <span className="hero-promo-discount-off">OFF</span>
-                        </div>
-                        {slide.desc && (
-                          <div className="hero-promo-desc-text">
-                            {slide.desc}
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </Link>
                   );
                 })}
@@ -1105,13 +1193,15 @@ export default function HomePage() {
             onMouseEnter={() => setIsCatHovered(true)}
             onMouseLeave={() => setIsCatHovered(false)}
           >
-            <div ref={browseCatScrollRef} className="browse-cat-track-container">
-              {shopCategories.map((cat, idx) => {
-                const fallbackImg = VERIFIED_CATEGORY_IMAGES[idx % VERIFIED_CATEGORY_IMAGES.length];
-                const imgSrc = cat.image && !cat.image.includes('undefined') && cat.image !== '#' ? cat.image : fallbackImg;
+            <div
+              ref={browseCatScrollRef}
+              className="browse-cat-track-container"
+            >
+              {repeatedShopCategories.map((cat, idx) => {
+                const imgSrc = cat.image && !cat.image.includes('undefined') && cat.image !== '#' ? cat.image : '/assets/imgs/theme/placeholder.svg';
                 const catLink = cat.link && cat.link !== '#' ? cat.link : `/category?category=${encodeURIComponent(cat.name)}`;
                 return (
-                  <div key={cat.id || idx} className="browse-cat-card-wrapper">
+                  <div key={cat.loopKey || cat.id || idx} className="browse-cat-card-wrapper">
                     <Link href={catLink} className="browse-cat-card" title={cat.name}>
                       <div className="browse-cat-circle">
                         <img
@@ -1121,7 +1211,7 @@ export default function HomePage() {
                           onError={(e) => {
                             const target = e.currentTarget;
                             target.onerror = null;
-                            target.src = fallbackImg;
+                            target.src = '/assets/imgs/theme/placeholder.svg';
                           }}
                         />
                       </div>
@@ -1311,13 +1401,13 @@ export default function HomePage() {
             </button>
 
             {/* Slider Scroll Track */}
-            <div className="partners-slider-track" ref={partnersScrollRef}>
-              {(partnersData.partners && partnersData.partners.length > 0
-                ? partnersData.partners.filter((p) => p.isActive !== false)
-                : DEFAULT_PARTNERS_DATA.partners
-              ).map((partner) => (
+            <div
+              className="partners-slider-track"
+              ref={partnersScrollRef}
+            >
+              {repeatedPartners.map((partner, idx) => (
                 <Link
-                  key={partner.id}
+                  key={partner.loopKey || partner.id || idx}
                   href={partner.link || '/products'}
                   className="partner-card-box"
                   title={partner.name}
