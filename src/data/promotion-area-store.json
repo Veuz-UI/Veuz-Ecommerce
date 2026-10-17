@@ -1,0 +1,22 @@
+{
+  "promotions": [
+    {
+      "id": "promo-card-1",
+      "image": "/uploads/img_1792265244028_872a7c4d58a983e73dbb3607a2512324.png",
+      "title": "Head & Eye Protection PPE Collection",
+      "link": "/products"
+    },
+    {
+      "id": "promo-card-2",
+      "image": "/uploads/img_1792265625535_4e8f0b37bfbebd144b884e482e7a313f.png",
+      "title": "",
+      "link": "/products"
+    },
+    {
+      "id": "promo-card-3",
+      "image": "/uploads/img_1792265650727_fcc68668d53d3967244ef732217d96f1.png",
+      "title": "",
+      "link": "/products"
+    }
+  ]
+}

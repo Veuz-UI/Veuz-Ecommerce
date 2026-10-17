@@ -89,6 +89,8 @@ export default function UserManagementPage() {
     dateOfBirth: '',
   });
 
+  const [dbError, setDbError] = useState<string | null>(null);
+
   const isSuperAdmin = currentUser?.role === 'SUPER_ADMIN';
 
   // Fetch Users
@@ -100,10 +102,24 @@ export default function UserManagementPage() {
       if (res.success) {
         setUsers(res.users || []);
         if (res.counts) setCounts(res.counts);
+        setDbError(null);
+      } else if (res.isDatabaseDown) {
+        setDbError(res.message || 'Cannot reach database server at localhost:3306. Please start MySQL in XAMPP.');
       }
     } catch (err: any) {
       console.error('Error fetching users:', err);
-      showToast('danger', err.message || 'Failed to load user records.');
+      const isDbDown =
+        err?.isDatabaseDown ||
+        err?.status === 503 ||
+        err?.message?.includes('3306') ||
+        err?.message?.includes('database') ||
+        err?.message?.includes('PrismaClientInitializationError');
+
+      if (isDbDown) {
+        setDbError('Cannot reach MySQL database at localhost:3306. Please start MySQL in your XAMPP Control Panel and click Retry.');
+      } else {
+        showToast('danger', err.message || 'Failed to load user records.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -466,6 +482,35 @@ export default function UserManagementPage() {
 
           {/* Divider */}
           <div style={{ borderBottom: '1px solid #f1f5f9', margin: '16px 0 22px 0' }}></div>
+
+          {/* Database Offline Warning Alert Banner */}
+          {dbError && (
+            <div
+              className="alert d-flex align-items-center justify-content-between p-3 mb-4 rounded-3"
+              style={{
+                backgroundColor: '#fffbeb',
+                border: '1px solid #fde68a',
+                color: '#92400e',
+              }}
+            >
+              <div className="d-flex align-items-center gap-2.5">
+                <iconify-icon icon="solar:danger-triangle-bold" class="fs-22 text-warning flex-shrink-0"></iconify-icon>
+                <div>
+                  <strong className="d-block text-dark fs-14">MySQL Database Offline (localhost:3306)</strong>
+                  <span className="fs-13" style={{ color: '#78350f' }}>{dbError}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-sm text-white fw-semibold px-3 py-1.5 flex-shrink-0"
+                style={{ backgroundColor: '#0f172a', borderRadius: '6px', fontSize: '13px' }}
+                onClick={fetchUsers}
+                disabled={isLoading}
+              >
+                {isLoading ? 'Retrying...' : 'Retry Connection'}
+              </button>
+            </div>
+          )}
 
           {/* 2. Top Metric KPI Summary Cards (Using Standard System Styling - No Out-of-theme Colors) */}
           <div className="row g-3 mb-4">

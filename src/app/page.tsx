@@ -5,14 +5,16 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 
-import { fetchBannerSettings, getCachedBannerSettings, BANNER_SETTINGS_EVENT } from '@/services/bannerSettingsService';
+import { fetchBannerSettings, getCachedBannerSettings, getClientCachedBannerSettings, BANNER_SETTINGS_EVENT } from '@/services/bannerSettingsService';
 import { DEFAULT_BANNER_SETTINGS, MainBannerItem, PromoBannerItem } from '@/data/defaultBannerSettings';
-import { fetchShopSettings, getCachedShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsService';
+import { fetchShopSettings, getCachedShopSettings, getClientCachedShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsService';
 import { DEFAULT_SHOP_SETTINGS, ShopCategory } from '@/data/defaultShopSettings';
-import { fetchProducts, getCachedProducts, recordProductClick, PRODUCTS_EVENT } from '@/services/productsService';
+import { fetchProducts, getCachedProducts, getClientCachedProducts, recordProductClick, PRODUCTS_EVENT } from '@/services/productsService';
 import { ProductItem } from '@/data/categoryProductsData';
 import { fetchPartners, PARTNERS_EVENT } from '@/services/partnersService';
 import { DEFAULT_PARTNERS_DATA, PartnersData } from '@/data/defaultPartners';
+import { fetchPromotionArea, getCachedPromotionArea, getClientCachedPromotionArea, PROMOTION_AREA_EVENT } from '@/services/promotionAreaService';
+import { DEFAULT_PROMOTION_AREA, PromotionCardItem } from '@/data/defaultPromotionArea';
 import { ProductCardImageSlider } from '@/components/common/ProductCardImageSlider';
 import { useStore } from '@/context/StoreContext';
 import { useToast } from '@/context/ToastContext';
@@ -368,6 +370,15 @@ function ProductSectionSliderTrack({
   );
 }
 
+const isDummyBanner = (url?: string) => {
+  if (!url) return false;
+  return url.includes('hero-iphone-16') ||
+         url.includes('clean-hero-1') ||
+         url.includes('promo-shoe-sale') ||
+         url.includes('clean-side-1') ||
+         url.includes('/assets/imgs/banner/');
+};
+
 export default function HomePage() {
   const router = useRouter();
   const { user } = useAuth();
@@ -392,13 +403,15 @@ export default function HomePage() {
   // Dynamic Banners from Banner Settings (Initializes with live cache/synced banners - NO dummy data)
   const [heroSlides, setHeroSlides] = useState<MainBannerItem[]>(() => {
     const banners = getCachedBannerSettings().mainBanners || [];
-    const active = banners.filter((b) => b.isActive !== false);
-    return active.length > 0 ? active : DEFAULT_BANNER_SETTINGS.mainBanners;
+    return banners
+      .filter((b) => b.isActive !== false && !isDummyBanner(b.image))
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
   });
   const [sideBannerSlides, setSideBannerSlides] = useState<PromoBannerItem[]>(() => {
     const banners = getCachedBannerSettings().promoBanners || [];
-    const active = banners.filter((b) => b.isActive !== false);
-    return active.length > 0 ? active : DEFAULT_BANNER_SETTINGS.promoBanners;
+    return banners
+      .filter((b) => b.isActive !== false && !isDummyBanner(b.image))
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
   });
 
   // Dynamic Categories from Shop Settings (Initializes with live cache/synced categories - NO dummy data)
@@ -407,6 +420,23 @@ export default function HomePage() {
     const active = cats.filter((c) => c.isActive !== false);
     return active.length > 0 ? active : DEFAULT_SHOP_SETTINGS.categories;
   });
+
+  // Dynamic Promotion Area Cards (3 Cards)
+  const [promotions, setPromotions] = useState<PromotionCardItem[]>(() => {
+    return getCachedPromotionArea().promotions || DEFAULT_PROMOTION_AREA.promotions;
+  });
+
+  // Eagerly preload all banner slide images into browser cache so transitions & refreshes never flash blank
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      [...heroSlides, ...sideBannerSlides].forEach((slide) => {
+        if (slide.image && !isDummyBanner(slide.image)) {
+          const img = new window.Image();
+          img.src = slide.image;
+        }
+      });
+    }
+  }, [heroSlides, sideBannerSlides]);
 
   // Guarantee that the home page always starts at the very top (0, 0)
   useEffect(() => {
@@ -426,19 +456,32 @@ export default function HomePage() {
   useEffect(() => {
     let isMounted = true;
 
+    // Immediately sync client-side cache on mount without causing SSR hydration mismatch
+    const clientBanners = getClientCachedBannerSettings();
+    if (clientBanners) {
+      const activeMain = (clientBanners.mainBanners || [])
+        .filter((b) => b.isActive !== false && !isDummyBanner(b.image))
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+      const activePromo = (clientBanners.promoBanners || [])
+        .filter((b) => b.isActive !== false && !isDummyBanner(b.image))
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+      setHeroSlides(activeMain);
+      setSideBannerSlides(activePromo);
+    }
+
     const loadBanners = async () => {
       try {
         const data = await fetchBannerSettings();
         if (isMounted && data) {
           const activeMain = (data.mainBanners || [])
-            .filter((b) => b.isActive !== false)
+            .filter((b) => b.isActive !== false && !isDummyBanner(b.image))
             .sort((a, b) => (a.order || 0) - (b.order || 0));
           const activePromo = (data.promoBanners || [])
-            .filter((b) => b.isActive !== false)
+            .filter((b) => b.isActive !== false && !isDummyBanner(b.image))
             .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-          setHeroSlides(activeMain.length > 0 ? activeMain : DEFAULT_BANNER_SETTINGS.mainBanners);
-          setSideBannerSlides(activePromo.length > 0 ? activePromo : DEFAULT_BANNER_SETTINGS.promoBanners);
+          setHeroSlides(activeMain);
+          setSideBannerSlides(activePromo);
         }
       } catch (err) {
         console.warn('Error loading dynamic banners:', err);
@@ -452,14 +495,14 @@ export default function HomePage() {
       if (customEvt.detail) {
         const data = customEvt.detail;
         const activeMain = (data.mainBanners || [])
-          .filter((b: MainBannerItem) => b.isActive !== false)
+          .filter((b: MainBannerItem) => b.isActive !== false && !isDummyBanner(b.image))
           .sort((a: MainBannerItem, b: MainBannerItem) => (a.order || 0) - (b.order || 0));
         const activePromo = (data.promoBanners || [])
-          .filter((b: PromoBannerItem) => b.isActive !== false)
+          .filter((b: PromoBannerItem) => b.isActive !== false && !isDummyBanner(b.image))
           .sort((a: PromoBannerItem, b: PromoBannerItem) => (a.order || 0) - (b.order || 0));
 
-        setHeroSlides(activeMain.length > 0 ? activeMain : DEFAULT_BANNER_SETTINGS.mainBanners);
-        setSideBannerSlides(activePromo.length > 0 ? activePromo : DEFAULT_BANNER_SETTINGS.promoBanners);
+        setHeroSlides(activeMain);
+        setSideBannerSlides(activePromo);
       } else {
         loadBanners();
       }
@@ -499,9 +542,29 @@ export default function HomePage() {
     return () => clearInterval(interval);
   }, [sideBannerSlides.length]);
 
+  // Ensure active indices never exceed bounds when slides update
+  useEffect(() => {
+    if (activeSlide >= heroSlides.length && heroSlides.length > 0) {
+      setActiveSlide(0);
+    }
+  }, [heroSlides.length, activeSlide]);
+
+  useEffect(() => {
+    if (activeSideSlide >= sideBannerSlides.length && sideBannerSlides.length > 0) {
+      setActiveSideSlide(0);
+    }
+  }, [sideBannerSlides.length, activeSideSlide]);
+
   // Fetch dynamic categories & listen for real-time updates across tabs & dashboard
   useEffect(() => {
     let isMounted = true;
+
+    // Immediately sync client-side cache on mount without causing SSR hydration mismatch
+    const clientCats = getClientCachedShopSettings();
+    if (clientCats && Array.isArray(clientCats.categories)) {
+      const activeCats = clientCats.categories.filter((c) => c.isActive !== false);
+      if (activeCats.length > 0) setShopCategories(activeCats);
+    }
 
     const loadCategories = async () => {
       try {
@@ -546,6 +609,12 @@ export default function HomePage() {
   // Fetch dynamic catalog products & subscribe to updates
   useEffect(() => {
     let isMounted = true;
+
+    // Immediately sync client-side cache on mount without causing SSR hydration mismatch
+    const clientProds = getClientCachedProducts();
+    if (clientProds && clientProds.length > 0) {
+      setCatalogProducts(clientProds);
+    }
 
     const loadProducts = async () => {
       try {
@@ -614,6 +683,54 @@ export default function HomePage() {
       isMounted = false;
       window.removeEventListener(PARTNERS_EVENT, handlePartnersUpdate);
       window.removeEventListener('storage', handlePartnersStorage);
+    };
+  }, []);
+
+  // Fetch dynamic promotion area & subscribe to real-time updates
+  useEffect(() => {
+    let isMounted = true;
+
+    // Immediately sync client-side cache on mount without causing SSR hydration mismatch
+    const clientPromos = getClientCachedPromotionArea();
+    if (clientPromos && Array.isArray(clientPromos.promotions) && clientPromos.promotions.some((p) => Boolean(p.image))) {
+      setPromotions(clientPromos.promotions);
+    }
+
+    const loadPromotions = async () => {
+      try {
+        const data = await fetchPromotionArea();
+        if (isMounted && data && Array.isArray(data.promotions) && data.promotions.length === 3) {
+          setPromotions(data.promotions);
+        }
+      } catch (err) {
+        console.warn('Error loading dynamic promotions:', err);
+      }
+    };
+
+    loadPromotions();
+
+    const handlePromotionsUpdate = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (customEvt.detail && Array.isArray(customEvt.detail.promotions)) {
+        setPromotions(customEvt.detail.promotions);
+      } else {
+        loadPromotions();
+      }
+    };
+
+    const handlePromotionsStorage = (e: StorageEvent) => {
+      if (e.key === 'veuz_promotion_area_cache') {
+        loadPromotions();
+      }
+    };
+
+    window.addEventListener(PROMOTION_AREA_EVENT, handlePromotionsUpdate);
+    window.addEventListener('storage', handlePromotionsStorage);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener(PROMOTION_AREA_EVENT, handlePromotionsUpdate);
+      window.removeEventListener('storage', handlePromotionsStorage);
     };
   }, []);
 
@@ -926,74 +1043,121 @@ export default function HomePage() {
             {/* Left: Main Hero Slider (Sleek Dark Indigo/Navy Card) */}
             <div className="hero-main-col">
               <div className="hero-slider-card">
-                {heroSlides.map((slide, idx) => {
-                  const subtitleText = slide.subtitle || '';
-                  const titleText = slide.title || '';
-                  const descText = slide.desc || '';
-                  const bgImage = slide.image || '/assets/imgs/banner/hero-iphone-16.jpg';
-                  const shouldShowBtn = slide.showButton !== false && Boolean(slide.buttonText && slide.buttonText.trim());
-                  const hasTextContent = Boolean(titleText || subtitleText || descText);
-                  const isImageOnly = !hasTextContent && !shouldShowBtn;
-
-                  const slideElement = (
+                {heroSlides.length === 0 ? (
+                  <div className="hero-slide-item active" style={{ cursor: 'default' }}>
                     <div
-                      key={slide.id || idx}
-                      className={`hero-slide-item ${idx === activeSlide ? 'active' : ''}`}
-                      style={{ cursor: isImageOnly ? 'pointer' : 'default' }}
+                      className="d-flex flex-column align-items-center justify-content-center w-100 h-100 position-absolute top-0 start-0"
+                      style={{
+                        backgroundColor: '#0f172a',
+                        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                        zIndex: 1,
+                      }}
                     >
-                      {/* Background Visual */}
-                      <div
-                        className="hero-slide-bg"
-                        style={{
-                          backgroundImage: `url(${bgImage})`,
-                        }}
-                      />
-                      {/* Dark overlay only needed when text exists to ensure legibility */}
-                      {hasTextContent && <div className="hero-slide-bg-overlay" />}
-
-                      {/* Left Typography & CTA */}
-                      {(hasTextContent || shouldShowBtn) && (
-                        <div className="hero-slide-content">
-                          {subtitleText && (
-                            <div className="hero-slide-subtitle">
-                              {subtitleText}
-                            </div>
-                          )}
-                          {titleText && (
-                            <h1 className="hero-slide-title">
-                              {titleText}
-                            </h1>
-                          )}
-                          {descText && (
-                            <p className="hero-slide-desc">
-                              {descText}
-                            </p>
-                          )}
-                          {shouldShowBtn && (
-                            <Link href={slide.link || '/products'} className="hero-slide-btn">
-                              {slide.buttonText}
-                            </Link>
-                          )}
+                      <div className="d-flex flex-column align-items-center justify-content-center p-4 text-center">
+                        <div
+                          className="d-flex align-items-center justify-content-center rounded-circle mb-3"
+                          style={{ width: '64px', height: '64px', backgroundColor: 'rgba(255, 255, 255, 0.08)' }}
+                        >
+                          <iconify-icon icon="solar:gallery-wide-bold" class="fs-32 text-secondary"></iconify-icon>
                         </div>
-                      )}
+                        <span className="fs-14 fw-semibold text-white-50">Hero Banner</span>
+                        <span className="fs-11 text-muted mt-1">Upload banner from dashboard</span>
+                      </div>
                     </div>
-                  );
+                  </div>
+                ) : (
+                  heroSlides.map((slide, idx) => {
+                    const subtitleText = slide.subtitle || '';
+                    const titleText = slide.title || '';
+                    const descText = slide.desc || '';
+                    const bgImage = !isDummyBanner(slide.image) ? slide.image : '';
+                    const shouldShowBtn = slide.showButton !== false && Boolean(slide.buttonText && slide.buttonText.trim());
+                    const hasTextContent = Boolean(titleText || subtitleText || descText);
+                    const isImageOnly = !hasTextContent && !shouldShowBtn;
 
-                  if (isImageOnly) {
-                    return (
-                      <Link
+                    const slideElement = (
+                      <div
                         key={slide.id || idx}
-                        href={slide.link || '/products'}
-                        className="d-block w-100 h-100 text-decoration-none"
-                        style={{ color: 'inherit' }}
+                        className={`hero-slide-item ${idx === activeSlide ? 'active' : ''}`}
+                        style={{ cursor: isImageOnly ? 'pointer' : 'default' }}
                       >
-                        {slideElement}
-                      </Link>
-                    );
-                  }
+                        {/* Background Visual or Placeholder */}
+                        {bgImage ? (
+                          <img
+                            src={bgImage}
+                            alt={titleText || 'Hero Banner'}
+                            className="hero-slide-bg"
+                            loading="eager"
+                            decoding="async"
+                          />
+                        ) : (
+                          <div
+                            className="d-flex flex-column align-items-center justify-content-center w-100 h-100 position-absolute top-0 start-0"
+                            style={{
+                              backgroundColor: '#0f172a',
+                              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                              zIndex: 1,
+                            }}
+                          >
+                            <div className="d-flex flex-column align-items-center justify-content-center p-4 text-center">
+                              <div
+                                className="d-flex align-items-center justify-content-center rounded-circle mb-3"
+                                style={{ width: '64px', height: '64px', backgroundColor: 'rgba(255, 255, 255, 0.08)' }}
+                              >
+                                <iconify-icon icon="solar:gallery-wide-bold" class="fs-32 text-secondary"></iconify-icon>
+                              </div>
+                              <span className="fs-14 fw-semibold text-white-50">Hero Banner</span>
+                              <span className="fs-11 text-muted mt-1">Upload banner from dashboard</span>
+                            </div>
+                          </div>
+                        )}
+                        {/* Dark overlay only needed when text exists to ensure legibility */}
+                        {hasTextContent && <div className="hero-slide-bg-overlay" />}
 
-                  return slideElement;
-                })}
+                        {/* Left Typography & CTA */}
+                        {(hasTextContent || shouldShowBtn) && (
+                          <div className="hero-slide-content">
+                            {subtitleText && (
+                              <div className="hero-slide-subtitle">
+                                {subtitleText}
+                              </div>
+                            )}
+                            {titleText && (
+                              <h1 className="hero-slide-title">
+                                {titleText}
+                              </h1>
+                            )}
+                            {descText && (
+                              <p className="hero-slide-desc">
+                                {descText}
+                              </p>
+                            )}
+                            {shouldShowBtn && (
+                              <Link href={slide.link || '/products'} className="hero-slide-btn">
+                                {slide.buttonText}
+                              </Link>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+
+                    if (isImageOnly) {
+                      return (
+                        <Link
+                          key={slide.id || idx}
+                          href={slide.link || '/products'}
+                          className="d-block w-100 h-100 text-decoration-none"
+                          style={{ color: 'inherit' }}
+                        >
+                          {slideElement}
+                        </Link>
+                      );
+                    }
+
+                    return slideElement;
+                  })
+                )}
 
                 {/* Left & Right Arrow Buttons on Hover */}
                 {heroSlides.length > 1 && (
@@ -1028,50 +1192,96 @@ export default function HomePage() {
             {/* Right: Side Promo Banner Slider Card */}
             <div className="hero-promo-col">
               <div className="hero-promo-slider-card">
-                {sideBannerSlides.map((slide, idx) => {
-                  const saleBadge = slide.saleBadge || '';
-                  const upToText = slide.subtitle || '';
-                  const discountText = slide.discount || slide.price || '';
-                  const promoImage = slide.image || '/assets/imgs/banner/promo-shoe-sale.jpg';
-                  const hasBadgeContent = Boolean(saleBadge || upToText || discountText || slide.desc);
+                {sideBannerSlides.length === 0 ? (
+                  <div
+                    className="hero-promo-slide-item active"
+                    style={{
+                      backgroundColor: '#0f172a',
+                      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                      pointerEvents: 'auto',
+                    }}
+                  >
+                    <div className="d-flex flex-column align-items-center justify-content-center w-100 h-100 p-3 text-center">
+                      <div
+                        className="d-flex align-items-center justify-content-center rounded-circle mb-3"
+                        style={{ width: '56px', height: '56px', backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
+                      >
+                        <iconify-icon icon="solar:tag-price-bold" class="fs-28 text-white"></iconify-icon>
+                      </div>
+                      <span className="fs-13 fw-semibold text-white">Side Promotion Banner</span>
+                      <span className="fs-11 text-white-50 mt-1">Upload banner from dashboard</span>
+                    </div>
+                  </div>
+                ) : (
+                  sideBannerSlides.map((slide, idx) => {
+                    const saleBadge = slide.saleBadge || '';
+                    const upToText = slide.subtitle || '';
+                    const discountText = slide.discount || slide.price || '';
+                    const promoImage = !isDummyBanner(slide.image) ? slide.image : '';
+                    const hasBadgeContent = Boolean(saleBadge || upToText || discountText || slide.desc);
 
-                  return (
-                    <Link
-                      key={slide.id || idx}
-                      href={slide.link || '/products'}
-                      className={`hero-promo-slide-item ${idx === activeSideSlide ? 'active' : ''}`}
-                      style={{
-                        backgroundImage: `url(${promoImage})`,
-                      }}
-                    >
-                      {hasBadgeContent && <div className="hero-promo-card-overlay" />}
+                    return (
+                      <Link
+                        key={slide.id || idx}
+                        href={slide.link || '/products'}
+                        className={`hero-promo-slide-item ${idx === activeSideSlide ? 'active' : ''}`}
+                      >
+                        {promoImage ? (
+                          <img
+                            src={promoImage}
+                            alt={saleBadge || 'Promotion Banner'}
+                            className="hero-promo-slide-img"
+                            loading="eager"
+                            decoding="async"
+                          />
+                        ) : (
+                          <div
+                            className="d-flex flex-column align-items-center justify-content-center w-100 h-100 p-3 text-center"
+                            style={{
+                              backgroundColor: '#0f172a',
+                              background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+                            }}
+                          >
+                            <div
+                              className="d-flex align-items-center justify-content-center rounded-circle mb-3"
+                              style={{ width: '56px', height: '56px', backgroundColor: 'rgba(255, 255, 255, 0.15)' }}
+                            >
+                              <iconify-icon icon="solar:tag-price-bold" class="fs-28 text-white"></iconify-icon>
+                            </div>
+                            <span className="fs-13 fw-semibold text-white">Side Promotion Banner</span>
+                            <span className="fs-11 text-white-50 mt-1">Upload banner from dashboard</span>
+                          </div>
+                        )}
 
-                      {/* Top-Left Promotional Badge (ONLY rendered if text content is provided) */}
-                      {hasBadgeContent && (
-                        <div className="hero-promo-badge-box">
-                          {saleBadge && <div className="hero-promo-sale-text">{saleBadge}</div>}
-                          {upToText && (
-                            <div className="hero-promo-upto-row">
-                              <span className="hero-promo-upto-text">{upToText}</span>
-                            </div>
-                          )}
-                          {discountText && (
-                            <div className="hero-promo-discount-num">
-                              {discountText.replace(/[^\d]/g, '') || discountText}
-                              {discountText.includes('%') && <span className="hero-promo-discount-unit">%</span>}
-                              <span className="hero-promo-discount-off">OFF</span>
-                            </div>
-                          )}
-                          {slide.desc && (
-                            <div className="hero-promo-desc-text">
-                              {slide.desc}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </Link>
-                  );
-                })}
+                        {hasBadgeContent && <div className="hero-promo-card-overlay" />}
+
+                        {/* Top-Left Promotional Badge (ONLY rendered if text content is provided) */}
+                        {hasBadgeContent && (
+                          <div className="hero-promo-badge-box">
+                            {saleBadge && <div className="hero-promo-sale-text">{saleBadge}</div>}
+                            {upToText && (
+                              <div className="hero-promo-upto-row">
+                                <span className="hero-promo-upto-text">{upToText}</span>
+                              </div>
+                            )}
+                            {discountText && (
+                              <div className="hero-promo-discount-num">
+                                {discountText.replace(/[^\d]/g, '') || discountText}
+                                {discountText.includes('%') && <span className="hero-promo-discount-unit">%</span>}
+                                <span className="hero-promo-discount-off">OFF</span>
+                              </div>
+                            )}
+                            {slide.desc && (
+                              <div className="hero-promo-desc-text">
+                                {slide.desc}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </Link>
+                    );
+                  })
+                )}
 
                 {/* Left & Right Arrow Buttons on Hover for Promo Slider */}
                 {sideBannerSlides.length > 1 && (
@@ -1268,48 +1478,42 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 3. Promotional 3-Card Banners */}
-      <section className="banners section-spacer-mb">
-        <div className="container">
-          <div className="row g-4">
-            <div className="col-lg-4 col-md-6">
-              <div className="promo-feature-card overflow-hidden">
-                <Link href="/products" className="d-block position-relative overflow-hidden w-100 h-100">
-                  <img
-                    src="/assets/imgs/banner/promo-card-1.jpg"
-                    alt="Head & Eye Protection PPE Collection"
-                    className="promo-card-img"
-                  />
-                </Link>
-              </div>
-            </div>
+      {/* 3. Promotional Banners (Dynamic, Zero Dummy Images) */}
+      {(() => {
+        const activePromos = promotions.filter(
+          (p) => Boolean(p.image && p.image.trim() && !p.image.includes('promo-card-'))
+        );
+        if (activePromos.length === 0) return null;
 
-            <div className="col-lg-4 col-md-6">
-              <div className="promo-feature-card overflow-hidden">
-                <Link href="/products" className="d-block position-relative overflow-hidden w-100 h-100">
-                  <img
-                    src="/assets/imgs/banner/promo-card-2.jpg"
-                    alt="Industrial Communications & High-Vis Workwear"
-                    className="promo-card-img"
-                  />
-                </Link>
-              </div>
-            </div>
+        const colClass =
+          activePromos.length === 1
+            ? 'col-lg-4 col-md-6 col-12'
+            : activePromos.length === 2
+            ? 'col-md-6 col-12'
+            : 'col-lg-4 col-md-6';
 
-            <div className="col-lg-4 col-md-6">
-              <div className="promo-feature-card overflow-hidden">
-                <Link href="/products" className="d-block position-relative overflow-hidden w-100 h-100">
-                  <img
-                    src="/assets/imgs/banner/promo-card-3.jpg"
-                    alt="Workplace Safety & Emergency First Aid Kits"
-                    className="promo-card-img"
-                  />
-                </Link>
+        return (
+          <section className="banners section-spacer-mb">
+            <div className="container">
+              <div className="row g-4">
+                {activePromos.map((promo, idx) => (
+                  <div key={promo.id || `promo-card-${idx}`} className={colClass}>
+                    <div className="promo-feature-card overflow-hidden">
+                      <Link href={promo.link || '/products'} className="d-block position-relative overflow-hidden w-100 h-100">
+                        <img
+                          src={promo.image}
+                          alt={promo.title || `Promotional Banner ${idx + 1}`}
+                          className="promo-card-img"
+                        />
+                      </Link>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
+        );
+      })()}
 
       {/* Most Searched Items (Slider + View All Button Style + Arrow Keys) */}
       <section className="product-tabs section-padding position-relative section-spacer-mb">

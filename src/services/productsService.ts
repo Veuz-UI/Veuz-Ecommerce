@@ -5,7 +5,13 @@ import { ProductItem, CATEGORY_PRODUCTS_DATA } from '@/data/categoryProductsData
 const STORAGE_KEY = 'veuz_products_cache';
 export const PRODUCTS_EVENT = 'veuz:products-updated';
 
+// Returns the synchronous baseline products for SSR and initial hydration pass (guaranteeing 0 hydration mismatch)
 export function getCachedProducts(): ProductItem[] {
+  return CATEGORY_PRODUCTS_DATA.filter((p) => !p.isDraft && p.isActive !== false);
+}
+
+// Reads client-only localStorage cache if available (call ONLY inside useEffect / event handlers on client)
+export function getClientCachedProducts(): ProductItem[] | null {
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -19,7 +25,7 @@ export function getCachedProducts(): ProductItem[] {
       // Ignore cache read error
     }
   }
-  return CATEGORY_PRODUCTS_DATA.filter((p) => !p.isDraft && p.isActive !== false);
+  return null;
 }
 
 export async function fetchProducts(filter?: string, options?: { includeDrafts?: boolean }): Promise<ProductItem[]> {
@@ -98,11 +104,12 @@ export async function createProduct(product: Partial<ProductItem>): Promise<{ su
     }
 
     // Refresh full list in cache
-    const freshRes = await fetch('/api/products', { cache: 'no-store' });
+    const freshRes = await fetch('/api/products?includeDrafts=true', { cache: 'no-store' });
     if (freshRes.ok) {
       const freshJson = await freshRes.json();
       if (freshJson.success && typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(freshJson.data));
+        const activeOnly = freshJson.data.filter((p: ProductItem) => !p.isDraft && p.isActive !== false);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(activeOnly));
         window.dispatchEvent(new CustomEvent(PRODUCTS_EVENT, { detail: freshJson.data }));
       }
     }
@@ -127,11 +134,12 @@ export async function updateProduct(product: Partial<ProductItem>): Promise<{ su
     }
 
     // Refresh full list in cache
-    const freshRes = await fetch('/api/products', { cache: 'no-store' });
+    const freshRes = await fetch('/api/products?includeDrafts=true', { cache: 'no-store' });
     if (freshRes.ok) {
       const freshJson = await freshRes.json();
       if (freshJson.success && typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(freshJson.data));
+        const activeOnly = freshJson.data.filter((p: ProductItem) => !p.isDraft && p.isActive !== false);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(activeOnly));
         window.dispatchEvent(new CustomEvent(PRODUCTS_EVENT, { detail: freshJson.data }));
       }
     }
@@ -156,11 +164,12 @@ export async function deleteProduct(id: string): Promise<{ success: boolean; mes
     }
 
     // Refresh full list in cache
-    const freshRes = await fetch('/api/products', { cache: 'no-store' });
+    const freshRes = await fetch('/api/products?includeDrafts=true', { cache: 'no-store' });
     if (freshRes.ok) {
       const freshJson = await freshRes.json();
       if (freshJson.success && typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(freshJson.data));
+        const activeOnly = freshJson.data.filter((p: ProductItem) => !p.isDraft && p.isActive !== false);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(activeOnly));
         window.dispatchEvent(new CustomEvent(PRODUCTS_EVENT, { detail: freshJson.data }));
       }
     }
@@ -185,11 +194,12 @@ export async function toggleProductStatus(id: string): Promise<{ success: boolea
     }
 
     // Refresh full list in cache
-    const freshRes = await fetch('/api/products', { cache: 'no-store' });
+    const freshRes = await fetch('/api/products?includeDrafts=true', { cache: 'no-store' });
     if (freshRes.ok) {
       const freshJson = await freshRes.json();
       if (freshJson.success && typeof window !== 'undefined') {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(freshJson.data));
+        const activeOnly = freshJson.data.filter((p: ProductItem) => !p.isDraft && p.isActive !== false);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(activeOnly));
         window.dispatchEvent(new CustomEvent(PRODUCTS_EVENT, { detail: freshJson.data }));
       }
     }

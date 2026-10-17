@@ -284,7 +284,22 @@ export const getMe = async (req: AuthenticatedRequest, res: Response): Promise<v
         avatar: user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}`,
       },
     });
-  } catch (error) {
+  } catch (error: any) {
+    const isDbUnreachable =
+      error?.name === 'PrismaClientInitializationError' ||
+      error?.message?.includes("Can't reach database server") ||
+      error?.code === 'P1001';
+
+    if (isDbUnreachable) {
+      console.warn('⚠️ [GetMe] Database server is unreachable at localhost:3306. Please ensure MySQL is started in XAMPP.');
+      res.status(503).json({
+        success: false,
+        isDatabaseDown: true,
+        message: 'Database server is not running at localhost:3306. Please start MySQL in XAMPP.',
+      });
+      return;
+    }
+
     console.error('GetMe Error:', error);
     res.status(500).json({ success: false, message: 'Internal server error.' });
   }

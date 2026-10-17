@@ -1,3 +1,5 @@
+import bannerSettingsStoreJson from './banner-settings-store.json';
+
 export interface MainBannerItem {
   id: string;
   image: string;
@@ -38,65 +40,4 @@ export const countWords = (text: string): number => {
   return text.trim().split(/\s+/).filter(Boolean).length;
 };
 
-export const DEFAULT_BANNER_SETTINGS: BannerSettingsData = {
-  mainBanners: [
-    {
-      id: "main-banner-1",
-      image: "/assets/imgs/banner/hero-iphone-16.jpg",
-      title: "",
-      subtitle: "",
-      desc: "",
-      price: "",
-      buttonText: "",
-      showButton: false,
-      link: "/products",
-      isActive: true,
-      order: 1
-    },
-    {
-      id: "main-banner-4",
-      image: "/assets/imgs/banner/clean-hero-1.jpg",
-      title: "",
-      subtitle: "",
-      desc: "",
-      price: "",
-      buttonText: "",
-      showButton: false,
-      link: "/products",
-      isActive: true,
-      order: 2
-    }
-  ],
-  promoBanners: [
-    {
-      id: "promo-banner-1",
-      image: "/assets/imgs/banner/promo-shoe-sale.jpg",
-      title: "",
-      subtitle: "",
-      desc: "",
-      price: "",
-      saleBadge: "",
-      discount: "",
-      buttonText: "",
-      showButton: false,
-      link: "/products",
-      isActive: true,
-      order: 1
-    },
-    {
-      id: "promo-banner-1792059520031",
-      image: "/assets/imgs/banner/clean-side-1.jpg",
-      title: "",
-      subtitle: "",
-      desc: "",
-      price: "",
-      saleBadge: "",
-      discount: "",
-      buttonText: "",
-      showButton: false,
-      link: "/products",
-      isActive: true,
-      order: 2
-    }
-  ]
-};
+export const DEFAULT_BANNER_SETTINGS: BannerSettingsData = bannerSettingsStoreJson as unknown as BannerSettingsData;

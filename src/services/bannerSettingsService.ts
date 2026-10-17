@@ -5,7 +5,13 @@ import { DEFAULT_BANNER_SETTINGS, BannerSettingsData, MainBannerItem, PromoBanne
 const STORAGE_KEY = 'veuz_banners_cache';
 export const BANNER_SETTINGS_EVENT = 'veuz:banners-updated';
 
+// Returns synchronous baseline for SSR and initial hydration pass (guaranteeing 0 mismatch)
 export function getCachedBannerSettings(): BannerSettingsData {
+  return DEFAULT_BANNER_SETTINGS;
+}
+
+// Client-only cache reader for useEffect
+export function getClientCachedBannerSettings(): BannerSettingsData | null {
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -19,7 +25,7 @@ export function getCachedBannerSettings(): BannerSettingsData {
       // Ignore cache read error
     }
   }
-  return DEFAULT_BANNER_SETTINGS;
+  return null;
 }
 
 export async function fetchBannerSettings(): Promise<BannerSettingsData> {
@@ -58,26 +64,76 @@ export async function fetchBannerSettings(): Promise<BannerSettingsData> {
   return cached || DEFAULT_BANNER_SETTINGS;
 }
 
+export function normalizeBannerList<T extends { id: string; order: number }>(list: T[]): T[] {
+  return [...list]
+    .sort((a, b) => (a.order || 0) - (b.order || 0))
+    .map((item, idx) => ({
+      ...item,
+      order: idx + 1,
+    }));
+}
+
+export function swapBannerOrder<T extends { id: string; order: number }>(
+  list: T[],
+  targetId: string,
+  newOrder: number
+): T[] {
+  const currentList = normalizeBannerList(list);
+  const targetIndex = currentList.findIndex((item) => item.id === targetId);
+  if (targetIndex === -1) {
+    return currentList;
+  }
+
+  const currentItem = currentList[targetIndex];
+  const oldOrder = currentItem.order;
+  const targetOrder = Math.max(1, Math.min(newOrder, currentList.length));
+
+  if (oldOrder === targetOrder) {
+    return currentList;
+  }
+
+  // Find item currently at targetOrder
+  const otherIndex = currentList.findIndex(
+    (item) => item.id !== targetId && item.order === targetOrder
+  );
+
+  if (otherIndex !== -1) {
+    // Direct clean swap: conflicting item takes oldOrder, target gets targetOrder
+    currentList[otherIndex] = { ...currentList[otherIndex], order: oldOrder };
+    currentList[targetIndex] = { ...currentList[targetIndex], order: targetOrder };
+  } else {
+    currentList[targetIndex] = { ...currentList[targetIndex], order: targetOrder };
+  }
+
+  return normalizeBannerList(currentList);
+}
+
 export async function saveBannerSettings(data: BannerSettingsData): Promise<{ success: boolean; message?: string }> {
+  // Normalize & sort so orders are always 1, 2, 3, ... N with zero duplicates
+  const normalizedData: BannerSettingsData = {
+    mainBanners: normalizeBannerList(data.mainBanners || []),
+    promoBanners: normalizeBannerList(data.promoBanners || []),
+  };
+
   // Enforce 12 banner limits on client
-  if (data.mainBanners.length > 12) {
+  if (normalizedData.mainBanners.length > 12) {
     return { success: false, message: 'Maximum 12 Main Banners allowed' };
   }
-  if (data.promoBanners.length > 12) {
+  if (normalizedData.promoBanners.length > 12) {
     return { success: false, message: 'Maximum 12 Promotion Banners allowed' };
   }
 
   // Update local cache immediately for zero latency
   if (typeof window !== 'undefined') {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-    window.dispatchEvent(new CustomEvent(BANNER_SETTINGS_EVENT, { detail: data }));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizedData));
+    window.dispatchEvent(new CustomEvent(BANNER_SETTINGS_EVENT, { detail: normalizedData }));
   }
 
   try {
     const res = await fetch('/api/banners', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
+      body: JSON.stringify(normalizedData),
     });
 
     const json = await res.json();

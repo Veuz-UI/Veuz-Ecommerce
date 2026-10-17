@@ -36,7 +36,13 @@ function writeStoredBanners(data: BannerSettingsData): boolean {
 
 export async function GET() {
   const data = readStoredBanners();
-  return NextResponse.json({ success: true, data });
+  const sortedMain = (data.mainBanners || [])
+    .sort((a, b) => (a.order || 0) - (b.order || 0))
+    .map((b, idx) => ({ ...b, order: idx + 1 }));
+  const sortedPromo = (data.promoBanners || [])
+    .sort((a, b) => (a.order || 0) - (b.order || 0))
+    .map((b, idx) => ({ ...b, order: idx + 1 }));
+  return NextResponse.json({ success: true, data: { mainBanners: sortedMain, promoBanners: sortedPromo } });
 }
 
 export async function POST(req: Request) {
@@ -107,16 +113,30 @@ export async function POST(req: Request) {
       }
     }
 
+    const normalizedMain = (body.mainBanners || [])
+      .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+      .map((b: any, idx: number) => ({ ...b, order: idx + 1 }));
+
+    const normalizedPromo = (body.promoBanners || [])
+      .sort((a: any, b: any) => (a.order || 0) - (b.order || 0))
+      .map((b: any, idx: number) => ({ ...b, order: idx + 1 }));
+
     const saved = writeStoredBanners({
-      mainBanners: body.mainBanners,
-      promoBanners: body.promoBanners,
+      mainBanners: normalizedMain,
+      promoBanners: normalizedPromo,
     });
 
     if (!saved) {
       return NextResponse.json({ success: false, message: 'Failed to write banner settings to disk' }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, data: body });
+    return NextResponse.json({
+      success: true,
+      data: {
+        mainBanners: normalizedMain,
+        promoBanners: normalizedPromo,
+      },
+    });
   } catch (error: any) {
     return NextResponse.json(
       { success: false, message: error.message || 'Error saving banner settings' },

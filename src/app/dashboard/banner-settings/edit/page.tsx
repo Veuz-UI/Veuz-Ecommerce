@@ -3,10 +3,211 @@
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { fetchBannerSettings, saveBannerSettings } from '@/services/bannerSettingsService';
+import { fetchBannerSettings, saveBannerSettings, swapBannerOrder, normalizeBannerList } from '@/services/bannerSettingsService';
 import { MainBannerItem, PromoBannerItem, BannerSettingsData, countWords } from '@/data/defaultBannerSettings';
+import { fetchShopSettings } from '@/services/shopSettingsService';
+import { ShopCategory } from '@/data/defaultShopSettings';
 import { validateImageFile, compressImage } from '@/utils/imageSecurity';
 import { useToast } from '@/context/ToastContext';
+
+const STORE_PAGES = [
+  { label: 'All Products (/products)', value: '/products' },
+  { label: 'New Arrivals (/new-arrival-products)', value: '/new-arrival-products' },
+  { label: 'Most Searched (/most-searched-products)', value: '/most-searched-products' },
+  { label: 'Limited Offers (/limited-offers)', value: '/limited-offers' },
+  { label: 'All Categories (/categories)', value: '/categories' },
+];
+
+interface DestinationDropdownProps {
+  value: string;
+  onChange: (newVal: string) => void;
+  categories: ShopCategory[];
+}
+
+function DestinationDropdown({ value, onChange, categories }: DestinationDropdownProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [customInput, setCustomInput] = useState(value);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setCustomInput(value);
+  }, [value]);
+
+  // Close when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
+
+  // Selected item display text
+  const selectedPage = STORE_PAGES.find((p) => p.value === value);
+  const selectedCat = categories.find((c) => (c.link || `/products?category=${encodeURIComponent(c.name)}`) === value);
+  const displayLabel = selectedPage?.label || (selectedCat ? `${selectedCat.name} (${selectedCat.link || `/products?category=${encodeURIComponent(selectedCat.name)}`})` : value || '/products');
+
+  return (
+    <div className="position-relative w-100" ref={dropdownRef}>
+      {/* Trigger Button */}
+      <button
+        type="button"
+        className="form-control d-flex align-items-center justify-content-between text-dark fw-medium bg-white text-start shadow-none"
+        style={{
+          height: '42px',
+          borderRadius: '8px',
+          borderColor: isOpen ? '#0f172a' : '#cbd5e1',
+          boxShadow: isOpen ? '0 0 0 2px rgba(15, 23, 42, 0.1)' : 'none',
+          padding: '0 12px',
+          cursor: 'pointer',
+        }}
+        onClick={() => setIsOpen((prev) => !prev)}
+      >
+        <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
+          <iconify-icon icon="solar:cursor-bold" class="fs-15 text-secondary flex-shrink-0"></iconify-icon>
+          <span className="text-truncate fs-13 fw-medium text-dark">{displayLabel}</span>
+        </div>
+        <iconify-icon
+          icon="solar:alt-arrow-down-linear"
+          class="fs-15 text-muted flex-shrink-0"
+          style={{
+            transform: isOpen ? 'rotate(180deg)' : 'none',
+            transition: 'transform 0.2s ease',
+          }}
+        ></iconify-icon>
+      </button>
+
+      {/* Floating Dropdown List - 5 items shown, remainder scrolls */}
+      {isOpen && (
+        <div
+          className="position-absolute start-0 w-100 bg-white border rounded-3 shadow-lg"
+          style={{
+            top: '46px',
+            zIndex: 1050,
+            maxHeight: '190px', // Exactly 5 items visible, balance scrolls
+            overflowY: 'auto',
+            borderColor: '#e2e8f0',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.14), 0 8px 10px -6px rgba(0, 0, 0, 0.08)',
+          }}
+        >
+          {/* Custom Link Input inside dropdown */}
+          <div className="p-2 border-bottom bg-light sticky-top" style={{ backgroundColor: '#f8fafc' }}>
+            <div className="input-group input-group-sm">
+              <span className="input-group-text bg-white" style={{ borderColor: '#cbd5e1' }}>
+                <iconify-icon icon="solar:link-linear" class="fs-13 text-muted"></iconify-icon>
+              </span>
+              <input
+                type="text"
+                className="form-control fs-12"
+                placeholder="Or type custom URL (e.g. /products)..."
+                value={customInput}
+                onChange={(e) => {
+                  setCustomInput(e.target.value);
+                  onChange(e.target.value);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    setIsOpen(false);
+                  }
+                }}
+                style={{ borderColor: '#cbd5e1' }}
+              />
+            </div>
+          </div>
+
+          {/* Group 1: Store Pages */}
+          <div className="px-3 pt-2 pb-1 text-uppercase fs-10 fw-bold text-muted" style={{ letterSpacing: '0.6px', backgroundColor: '#f8fafc' }}>
+            Store Pages
+          </div>
+          {STORE_PAGES.map((page) => {
+            const isSelected = value === page.value;
+            return (
+              <button
+                key={page.value}
+                type="button"
+                className="w-100 text-start px-3 py-2 border-0 bg-transparent d-flex align-items-center justify-content-between fs-12"
+                style={{
+                  backgroundColor: isSelected ? '#f1f5f9' : 'transparent',
+                  color: isSelected ? '#0f172a' : '#334155',
+                  fontWeight: isSelected ? 600 : 400,
+                  transition: 'background-color 0.15s ease',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) (e.currentTarget as HTMLElement).style.backgroundColor = '#f8fafc';
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                }}
+                onClick={() => {
+                  onChange(page.value);
+                  setIsOpen(false);
+                }}
+              >
+                <span className="text-truncate">{page.label}</span>
+                {isSelected && (
+                  <iconify-icon icon="solar:check-read-bold" class="fs-14 text-dark ms-2 flex-shrink-0"></iconify-icon>
+                )}
+              </button>
+            );
+          })}
+
+          {/* Group 2: Product Categories */}
+          {categories.length > 0 && (
+            <>
+              <div className="px-3 pt-2 pb-1 text-uppercase fs-10 fw-bold text-muted border-top" style={{ letterSpacing: '0.6px', backgroundColor: '#f8fafc' }}>
+                Product Categories
+              </div>
+              {categories.map((cat) => {
+                const catLink = cat.link || `/products?category=${encodeURIComponent(cat.name)}`;
+                const isSelected = value === catLink;
+                return (
+                  <button
+                    key={cat.id || cat.name}
+                    type="button"
+                    className="w-100 text-start px-3 py-2 border-0 bg-transparent d-flex align-items-center justify-content-between fs-12"
+                    style={{
+                      backgroundColor: isSelected ? '#f1f5f9' : 'transparent',
+                      color: isSelected ? '#0f172a' : '#334155',
+                      fontWeight: isSelected ? 600 : 400,
+                      transition: 'background-color 0.15s ease',
+                      cursor: 'pointer',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isSelected) (e.currentTarget as HTMLElement).style.backgroundColor = '#f8fafc';
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isSelected) (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+                    }}
+                    onClick={() => {
+                      onChange(catLink);
+                      setIsOpen(false);
+                    }}
+                  >
+                    <span className="text-truncate">
+                      {cat.name}{' '}
+                      <small className="text-muted fw-normal">({catLink})</small>
+                    </span>
+                    {isSelected && (
+                      <iconify-icon icon="solar:check-read-bold" class="fs-14 text-dark ms-2 flex-shrink-0"></iconify-icon>
+                    )}
+                  </button>
+                );
+              })}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function BannerEditForm() {
   const router = useRouter();
@@ -22,6 +223,7 @@ function BannerEditForm() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [categories, setCategories] = useState<ShopCategory[]>([]);
   const [fullData, setFullData] = useState<BannerSettingsData>({
     mainBanners: [],
     promoBanners: [],
@@ -93,6 +295,13 @@ function BannerEditForm() {
           // Create new banner mode - NO DUMMY VALUES
           initCreateDefaults(queryType, data);
         }
+
+        // Load categories for destination link dropdown
+        fetchShopSettings().then((res) => {
+          if (res?.categories && Array.isArray(res.categories)) {
+            setCategories(res.categories);
+          }
+        }).catch(() => {});
       } catch (err: any) {
         showToast('danger', 'Failed to load banner details.');
       } finally {
@@ -199,7 +408,7 @@ function BannerEditForm() {
 
     // 1. Mandatory Image validation (Image is the only mandatory field)
     if (!image.trim()) {
-      showToast('warning', 'Banner image is mandatory. Please upload or specify an image.');
+      showToast('warning', 'Banner image is mandatory. Please upload an image.');
       return;
     }
 
@@ -240,6 +449,7 @@ function BannerEditForm() {
       let updatedPromo = [...fullData.promoBanners];
 
       const finalButtonText = showButton ? (buttonText.trim() || 'Shop Now') : '';
+      const targetOrder = Math.max(1, Number(order) || 1);
 
       if (bannerType === 'main') {
         const item: MainBannerItem = {
@@ -253,13 +463,17 @@ function BannerEditForm() {
           showButton: showButton,
           link: link.trim() || '/products',
           isActive,
-          order: Number(order) || 1,
+          order: targetOrder,
         };
 
         if (isCreateMode) {
+          updatedMain = updatedMain.map((b) => (b.order >= targetOrder ? { ...b, order: b.order + 1 } : b));
           updatedMain.push(item);
+          updatedMain = normalizeBannerList(updatedMain);
         } else {
-          updatedMain = updatedMain.map((b) => (b.id === id ? item : b));
+          // Automatic swap: if changing from 2 to 1, the banner currently at 1 swaps to 2
+          updatedMain = swapBannerOrder(updatedMain, id, targetOrder);
+          updatedMain = updatedMain.map((b) => (b.id === id ? { ...item, order: b.order } : b));
         }
       } else {
         const item: PromoBannerItem = {
@@ -275,13 +489,17 @@ function BannerEditForm() {
           showButton: showButton,
           link: link.trim() || '/products',
           isActive,
-          order: Number(order) || 1,
+          order: targetOrder,
         };
 
         if (isCreateMode) {
+          updatedPromo = updatedPromo.map((b) => (b.order >= targetOrder ? { ...b, order: b.order + 1 } : b));
           updatedPromo.push(item);
+          updatedPromo = normalizeBannerList(updatedPromo);
         } else {
-          updatedPromo = updatedPromo.map((b) => (b.id === id ? item : b));
+          // Automatic swap: if changing from 2 to 1, the banner currently at 1 swaps to 2
+          updatedPromo = swapBannerOrder(updatedPromo, id, targetOrder);
+          updatedPromo = updatedPromo.map((b) => (b.id === id ? { ...item, order: b.order } : b));
         }
       }
 
@@ -473,7 +691,7 @@ function BannerEditForm() {
                     </div>
                   </div>
 
-                  {/* Banner Image Upload & Security Notice (Mandatory) */}
+                  {/* Banner Image Upload & Guidelines (Mandatory) */}
                   <div className="mb-4">
                     <div className="d-flex align-items-center justify-content-between mb-2">
                       <label className="form-label fs-13 fw-bold text-dark mb-0">
@@ -482,6 +700,44 @@ function BannerEditForm() {
                       <span className="badge bg-light text-muted border fs-11">
                         Format: JPG, PNG, WebP • Max 5MB
                       </span>
+                    </div>
+
+                    {/* Banner Dimension & Size Info Message */}
+                    <div
+                      className="p-3 rounded-3 d-flex align-items-start gap-2.5 mb-3"
+                      style={{
+                        backgroundColor: '#eff6ff',
+                        border: '1px solid #bfdbfe',
+                      }}
+                    >
+                      <iconify-icon
+                        icon="solar:info-circle-bold"
+                        class="fs-20 flex-shrink-0 text-primary mt-0.5"
+                      ></iconify-icon>
+                      <div className="fs-12 leading-relaxed">
+                        <div className="fw-bold fs-13 text-primary mb-1">
+                          {bannerType === 'main'
+                            ? 'Main Hero Banner Dimension & Size Guidelines'
+                            : 'Side Promotion Banner Dimension & Size Guidelines'}
+                        </div>
+                        <div className="text-secondary d-flex flex-wrap gap-x-4 gap-y-1 mb-1">
+                          <span>
+                            <strong className="text-dark">Recommended Dimensions:</strong>{' '}
+                            {bannerType === 'main'
+                              ? '1200 × 530 px (or 1920 × 800 px for ultra-wide)'
+                              : '500 × 530 px (portrait side offer card)'}
+                          </span>
+                          <span>
+                            <strong className="text-dark">Maximum File Size:</strong> 5 MB
+                          </span>
+                          <span>
+                            <strong className="text-dark">Accepted Formats:</strong> JPG, PNG, WebP
+                          </span>
+                        </div>
+                        <div className="text-muted fs-11">
+                          Uploaded banner will automatically scale and fit within the storefront display smoothly.
+                        </div>
+                      </div>
                     </div>
 
                     <div
@@ -554,26 +810,6 @@ function BannerEditForm() {
                               ? 'Recommended: 1200 x 530px high resolution image for crisp hero display.'
                               : 'Recommended: 500 x 530px portrait image for side offer display.'}
                           </span>
-                        </div>
-                      </div>
-
-                      {/* Image URL Manual Input */}
-                      <div>
-                        <label className="form-label fs-12 text-muted mb-1">
-                          Or enter image URL / asset path:
-                        </label>
-                        <div className="input-group input-group-sm">
-                          <span className="input-group-text bg-white" style={{ borderColor: '#cbd5e1' }}>
-                            <iconify-icon icon="solar:link-linear" class="fs-15 text-muted"></iconify-icon>
-                          </span>
-                          <input
-                            type="text"
-                            className="form-control fs-12"
-                            placeholder="Enter image URL or /assets/imgs/banner/..."
-                            value={image}
-                            onChange={(e) => setImage(e.target.value)}
-                            style={{ borderColor: '#cbd5e1' }}
-                          />
                         </div>
                       </div>
                     </div>
@@ -742,17 +978,10 @@ function BannerEditForm() {
                     <label className="form-label fs-13 fw-semibold text-dark mb-1">
                       Destination Link <span className="text-danger">*</span>
                     </label>
-                    <input
-                      type="text"
-                      className="form-control fs-13"
-                      placeholder="/products"
+                    <DestinationDropdown
                       value={link}
-                      onChange={(e) => setLink(e.target.value)}
-                      required
-                      style={{
-                        borderRadius: '8px',
-                        borderColor: '#cbd5e1',
-                      }}
+                      onChange={(newVal) => setLink(newVal)}
+                      categories={categories}
                     />
                   </div>
 

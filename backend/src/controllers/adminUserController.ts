@@ -131,6 +131,21 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response): Promis
       },
     });
   } catch (error: any) {
+    const isDbUnreachable =
+      error?.name === 'PrismaClientInitializationError' ||
+      error?.message?.includes("Can't reach database server") ||
+      error?.code === 'P1001';
+
+    if (isDbUnreachable) {
+      console.warn('⚠️ [getUsers] Database server is unreachable at localhost:3306. Please ensure MySQL is started in XAMPP.');
+      res.status(503).json({
+        success: false,
+        isDatabaseDown: true,
+        message: 'Cannot reach database server at localhost:3306. Please start MySQL in XAMPP Control Panel.',
+      });
+      return;
+    }
+
     console.error('getUsers error:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch users. Please refresh or try again later.' });
   }

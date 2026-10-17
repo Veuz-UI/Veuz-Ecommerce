@@ -36,18 +36,6 @@ export default function RootLayout({
         />
         <link rel="preload" as="style" href="/assets/css/vendors/bootstrap.min.css" />
         <link rel="preload" as="style" href="/assets/css/style.css" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                if ('scrollRestoration' in history) {
-                  history.scrollRestoration = 'manual';
-                }
-                window.scrollTo(0, 0);
-              } catch (e) {}
-            `,
-          }}
-        />
       </head>
       <body>
         <AppLayoutShell>{children}</AppLayoutShell>

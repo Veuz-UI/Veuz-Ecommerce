@@ -6,8 +6,8 @@
     "category": "Safety Helmet",
     "categoryId": "cat-1",
     "price": "320 SR",
-    "rating": "0.0",
-    "reviews": "0",
+    "rating": "5.0",
+    "reviews": "1",
     "image": "/uploads/img_1792094049136_45487352b9d15e40f208bc9ff0ade528.png",
     "badge": "New Arrival",
     "badgeClass": "new",
@@ -19,40 +19,35 @@
     "isSpecialOffer": false,
     "isNewArrival": true,
     "createdAt": 1792088439786,
-    "views": 55,
-    "clicks": 54,
+    "views": 114,
+    "clicks": 113,
     "isActive": true,
     "isDraft": false,
     "specifications": [
       {
-        "id": "sec-1792088453980",
-        "heading": "About this item",
+        "id": "sec-specs-table",
+        "heading": "Technical Specifications",
         "type": "points",
         "points": [
           {
-            "id": "pt-1792088453980-1",
-            "heading": "",
-            "text": "SECUREFIT PRESSURE DIFFUSION TECHNOLOGY: Flexes and self-adjusts to the size of the wearer's head. Reduces pressure and increases comfort for all day wear. Fits head sizes from 6-1/4 to 8 (50-64 cm)"
+            "id": "spec-pname",
+            "heading": "Product Name",
+            "text": "3M Hard Hat SecureFit H-700 Series Cap Style Safety Helmet with Uvicator Sensor, 4-Point Pressure Diffusion Ratchet Suspension"
           },
           {
-            "id": "pt-1792088475732",
-            "heading": "",
-            "text": "OPTIMIZED COMFORT: With 2 levels of height adjustment. Contains a premium washable and replaceable sweatband that is made of moisture-wicking material designed to help keep workers cool and dry"
+            "id": "spec-standards",
+            "heading": "Safety Standard & Certification",
+            "text": "Certified Safety Standard"
           },
           {
-            "id": "pt-1792088484364",
-            "heading": "",
-            "text": "3M UVICATOR SENSOR: A visual cue when it's time to replace the hard hat due to UV exposure"
+            "id": "spec-sizes",
+            "heading": "Available Sizes",
+            "text": "Adjustable"
           },
           {
-            "id": "pt-1792088486500",
-            "heading": "",
-            "text": "PROTECTION AND COMFORT: H-Series non-vented hats meet ANSI/ISEA Z89.1 Type 1, Class G and E requirements. H-Series vented hats meet ANSI/ISEA Z89.1 Type 1, Class C requirements. H-Series non-vented hats meet CSA Z94.1 Type 1 Class G and E requirements. Cap-style H-700 series vented construction hard hats meet CSA Z94.1 Type 1 Class C requirements"
-          },
-          {
-            "id": "pt-1792088509868",
-            "heading": "",
-            "text": "COMPATIBLE: With cap-attached 3M hearing protection and communication products, a variety of 3M faceshields and other accessories"
+            "id": "spec-color",
+            "heading": "Color / Finish",
+            "text": "Green, Slate Gray, Orange"
           }
         ]
       }
@@ -66,10 +61,10 @@
       "Orange"
     ],
     "gender": "Unisex",
-    "deliveryOptionId": "del-free",
-    "deliveryOptionName": "Free Delivery",
-    "deliveryCharge": 0,
-    "deliveryEstimatedDays": "5-6 Business Days",
+    "deliveryOptionId": "del-standard",
+    "deliveryOptionName": "Standard Delivery",
+    "deliveryCharge": 15,
+    "deliveryEstimatedDays": "3-5 Business Days",
     "colorImages": {
       "Green": [
         "/uploads/img_1792094049136_45487352b9d15e40f208bc9ff0ade528.png",
@@ -98,6 +93,28 @@
       "/uploads/img_1792094066152_f9c6e1fa5127a4acddba3623933ebec1.png",
       "/uploads/img_1792094084841_dbf6656fe86cd8530fb4053083664d64.png",
       "/uploads/img_1792094104971_d5e2c436be934703dcb3814c5e4c3d20.png"
+    ],
+    "technicalSpecs": [
+      {
+        "id": "spec-pname",
+        "label": "Product Name",
+        "value": "3M Hard Hat SecureFit H-700 Series Cap Style Safety Helmet with Uvicator Sensor, 4-Point Pressure Diffusion Ratchet Suspension"
+      },
+      {
+        "id": "spec-standards",
+        "label": "Safety Standard & Certification",
+        "value": "Certified Safety Standard"
+      },
+      {
+        "id": "spec-sizes",
+        "label": "Available Sizes",
+        "value": "Adjustable"
+      },
+      {
+        "id": "spec-color",
+        "label": "Color / Finish",
+        "value": "Green, Slate Gray, Orange"
+      }
     ]
   },
   {
@@ -120,8 +137,8 @@
     "isSpecialOffer": false,
     "isNewArrival": true,
     "createdAt": 1792066473722,
-    "views": 19,
-    "clicks": 18,
+    "views": 26,
+    "clicks": 25,
     "isActive": true,
     "specifications": [],
     "sizes": [
@@ -162,8 +179,8 @@
     "isSpecialOffer": false,
     "isNewArrival": true,
     "createdAt": 1792064607781,
-    "views": 9,
-    "clicks": 8,
+    "views": 20,
+    "clicks": 19,
     "isActive": true,
     "specifications": [],
     "sizes": [
@@ -262,8 +279,8 @@
     "isSpecialOffer": false,
     "isNewArrival": true,
     "createdAt": 1792008124976,
-    "views": 24,
-    "clicks": 23,
+    "views": 26,
+    "clicks": 25,
     "isActive": true,
     "specifications": [
       {
@@ -351,8 +368,8 @@
     "isSpecialOffer": false,
     "isNewArrival": true,
     "createdAt": 1791741314174,
-    "views": 78,
-    "clicks": 77,
+    "views": 80,
+    "clicks": 79,
     "isActive": true,
     "specifications": [
       {

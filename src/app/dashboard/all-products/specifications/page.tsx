@@ -4,8 +4,29 @@ import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { updateProduct } from '@/services/productsService';
-import { ProductItem, ProductDetailSection } from '@/data/categoryProductsData';
+import { ProductItem, TechnicalSpecification } from '@/data/categoryProductsData';
 import { useToast } from '@/context/ToastContext';
+
+interface StandardSpecsState {
+  productName: string;
+  brand: string;
+  modelNo: string;
+  standards: string;
+  protectionRating: string;
+  material: string;
+  weight: string;
+  sizes: string;
+  color: string;
+  temperatureRange: string;
+  application: string;
+  warranty: string;
+}
+
+interface CustomSpecItem {
+  id: string;
+  label: string;
+  value: string;
+}
 
 function SpecificationsEditor() {
   const router = useRouter();
@@ -18,10 +39,27 @@ function SpecificationsEditor() {
   const [isSaving, setIsSaving] = useState(false);
   const [product, setProduct] = useState<ProductItem | null>(null);
   const [imageError, setImageError] = useState<boolean>(false);
-  const [sections, setSections] = useState<ProductDetailSection[]>([]);
-  const [activeTab, setActiveTab] = useState<'editor' | 'preview'>('editor');
 
-  // Load Product and existing specifications with fresh cache-bypassing fetch
+  // Form states
+  const [standardSpecs, setStandardSpecs] = useState<StandardSpecsState>({
+    productName: '',
+    brand: '',
+    modelNo: '',
+    standards: '',
+    protectionRating: '',
+    material: '',
+    weight: '',
+    sizes: '',
+    color: '',
+    temperatureRange: '',
+    application: '',
+    warranty: '',
+  });
+
+  const [customSpecs, setCustomSpecs] = useState<CustomSpecItem[]>([]);
+  const [overview, setOverview] = useState<string>('');
+
+  // Load Product and populate specification fields
   useEffect(() => {
     if (!productId) {
       setIsLoading(false);
@@ -38,11 +76,125 @@ function SpecificationsEditor() {
             const found: ProductItem = json.data;
             setProduct(found);
 
-            // Crucial fix: Respect empty array [] if user previously deleted all sections!
-            if (found.specifications !== undefined && Array.isArray(found.specifications)) {
-              setSections(found.specifications);
+            if (found.technicalSpecs && Array.isArray(found.technicalSpecs) && found.technicalSpecs.length > 0) {
+              // Populate from existing technicalSpecs
+              const std: StandardSpecsState = {
+                productName: '',
+                brand: '',
+                modelNo: '',
+                standards: found.standard || '',
+                protectionRating: '',
+                material: '',
+                weight: '',
+                sizes: found.sizes?.join(', ') || '',
+                color: found.colors?.join(', ') || '',
+                temperatureRange: '',
+                application: '',
+                warranty: '',
+              };
+              const custom: CustomSpecItem[] = [];
+
+              found.technicalSpecs.forEach((spec) => {
+                const l = spec.label.toLowerCase();
+                if (l.includes('product name') || l === 'name') std.productName = spec.value;
+                else if (l.includes('brand') || l.includes('manufacturer')) std.brand = spec.value;
+                else if (l.includes('model') || l.includes('part number') || l.includes('item code')) std.modelNo = spec.value;
+                else if (l.includes('standard') || l.includes('certification') || l.includes('compliance')) std.standards = spec.value;
+                else if (l.includes('protection') || l.includes('rating') || l.includes('class')) std.protectionRating = spec.value;
+                else if (l.includes('material')) std.material = spec.value;
+                else if (l.includes('weight')) std.weight = spec.value;
+                else if (l.includes('size')) std.sizes = spec.value;
+                else if (l.includes('color') || l.includes('finish')) std.color = spec.value;
+                else if (l.includes('temp') || l.includes('temperature') || l.includes('environmental')) std.temperatureRange = spec.value;
+                else if (l.includes('application') || l.includes('industry') || l.includes('usage')) std.application = spec.value;
+                else if (l.includes('warranty') || l.includes('shelf life') || l.includes('lifespan')) std.warranty = spec.value;
+                else {
+                  custom.push({ id: spec.id || `cs-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`, label: spec.label, value: spec.value });
+                }
+              });
+
+              if (!std.productName) std.productName = found.title || '';
+              if (!std.standards && found.standard) std.standards = found.standard;
+              if (!std.sizes && found.sizes && found.sizes.length > 0) std.sizes = found.sizes.join(', ');
+              if (!std.color && found.colors && found.colors.length > 0) std.color = found.colors.join(', ');
+
+              setStandardSpecs(std);
+              setCustomSpecs(custom);
+              setOverview(found.specificationsOverview || '');
+            } else if (found.specifications && Array.isArray(found.specifications) && found.specifications.length > 0) {
+              // Legacy migration from sections
+              const std: StandardSpecsState = {
+                productName: found.title || '',
+                brand: '',
+                modelNo: '',
+                standards: found.standard || '',
+                protectionRating: '',
+                material: '',
+                weight: '',
+                sizes: found.sizes?.join(', ') || '',
+                color: found.colors?.join(', ') || '',
+                temperatureRange: '',
+                application: '',
+                warranty: '',
+              };
+              const custom: CustomSpecItem[] = [];
+              let foundOverview = '';
+
+              found.specifications.forEach((sec) => {
+                if (sec.type === 'description' && sec.description) {
+                  if (!foundOverview) foundOverview = sec.description;
+                } else if (sec.points && Array.isArray(sec.points)) {
+                  sec.points.forEach((pt) => {
+                    let label = pt.heading || '';
+                    let value = pt.text || '';
+                    if (!label && value.includes(':')) {
+                      const colonIdx = value.indexOf(':');
+                      label = value.slice(0, colonIdx).trim();
+                      value = value.slice(colonIdx + 1).trim();
+                    }
+                    if (!label) label = 'Specification';
+
+                    const l = label.toLowerCase();
+                    if (l.includes('product name') || l === 'name') std.productName = value;
+                    else if (l.includes('brand') || l.includes('manufacturer')) std.brand = value;
+                    else if (l.includes('model') || l.includes('part number') || l.includes('item code')) std.modelNo = value;
+                    else if (l.includes('standard') || l.includes('certification') || l.includes('compliance')) std.standards = value;
+                    else if (l.includes('protection') || l.includes('rating') || l.includes('class')) std.protectionRating = value;
+                    else if (l.includes('material')) std.material = value;
+                    else if (l.includes('weight')) std.weight = value;
+                    else if (l.includes('size')) std.sizes = value;
+                    else if (l.includes('color') || l.includes('finish')) std.color = value;
+                    else if (l.includes('temp') || l.includes('temperature') || l.includes('environmental')) std.temperatureRange = value;
+                    else if (l.includes('application') || l.includes('industry') || l.includes('usage')) std.application = value;
+                    else if (l.includes('warranty') || l.includes('shelf life') || l.includes('lifespan')) std.warranty = value;
+                    else {
+                      custom.push({ id: pt.id || `cs-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`, label, value });
+                    }
+                  });
+                }
+              });
+
+              setStandardSpecs(std);
+              setCustomSpecs(custom);
+              setOverview(foundOverview);
             } else {
-              setSections([]);
+              // Default prefill from product base data
+              setStandardSpecs({
+                productName: found.title || '',
+                brand: '',
+                modelNo: '',
+                standards: found.standard || '',
+                protectionRating: '',
+                material: '',
+                weight: '',
+                sizes: found.sizes?.join(', ') || '',
+                color: found.colors?.join(', ') || '',
+                temperatureRange: '',
+                application: '',
+                warranty: '',
+              });
+              setCustomSpecs([]);
+              setOverview('');
             }
             return;
           }
@@ -58,142 +210,105 @@ function SpecificationsEditor() {
     loadProductData();
   }, [productId, showToast]);
 
-  // Add a new section
-  const handleAddSection = (type: 'description' | 'points' = 'description') => {
-    const newSection: ProductDetailSection = {
-      id: `sec-${Date.now()}`,
-      heading: type === 'points' ? 'Technical Specifications' : 'Product Overview',
-      type: type,
-      description: type === 'description' ? '' : undefined,
-      points: type === 'points' ? [{ id: `pt-${Date.now()}-1`, heading: '', text: '' }] : undefined,
+  // Handle standard specs field changes
+  const handleStandardChange = (field: keyof StandardSpecsState, value: string) => {
+    setStandardSpecs((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Add custom specification row
+  const handleAddCustomSpec = () => {
+    setCustomSpecs((prev) => [
+      ...prev,
+      { id: `cs-${Date.now()}`, label: '', value: '' },
+    ]);
+  };
+
+  // Update custom specification
+  const handleUpdateCustomSpec = (id: string, field: 'label' | 'value', val: string) => {
+    setCustomSpecs((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: val } : item))
+    );
+  };
+
+  // Remove custom specification
+  const handleRemoveCustomSpec = (id: string) => {
+    setCustomSpecs((prev) => prev.filter((item) => item.id !== id));
+  };
+
+  // Compile active specifications list for table display / saving
+  const getCompiledSpecs = (): TechnicalSpecification[] => {
+    const list: TechnicalSpecification[] = [];
+
+    const addIfFilled = (id: string, label: string, val: string) => {
+      if (val && val.trim().length > 0) {
+        list.push({ id, label, value: val.trim() });
+      }
     };
-    setSections([...sections, newSection]);
-    showToast('info', 'New specification section added.');
+
+    addIfFilled('spec-pname', 'Product Name', standardSpecs.productName);
+    addIfFilled('spec-brand', 'Brand / Manufacturer', standardSpecs.brand);
+    addIfFilled('spec-model', 'Model / Item Code', standardSpecs.modelNo);
+    addIfFilled('spec-standards', 'Safety Standard & Certification', standardSpecs.standards);
+    addIfFilled('spec-rating', 'Protection Level / Class', standardSpecs.protectionRating);
+    addIfFilled('spec-weight', 'Product Weight', standardSpecs.weight);
+    addIfFilled('spec-sizes', 'Available Sizes', standardSpecs.sizes);
+    addIfFilled('spec-material', 'Primary Material', standardSpecs.material);
+    addIfFilled('spec-color', 'Color / Finish', standardSpecs.color);
+    addIfFilled('spec-temp', 'Operating Temperature Range', standardSpecs.temperatureRange);
+    addIfFilled('spec-app', 'Recommended Application', standardSpecs.application);
+    addIfFilled('spec-warranty', 'Warranty / Lifespan', standardSpecs.warranty);
+
+    customSpecs.forEach((cs) => {
+      if (cs.label.trim() && cs.value.trim()) {
+        list.push({
+          id: cs.id,
+          label: cs.label.trim(),
+          value: cs.value.trim(),
+        });
+      }
+    });
+
+    return list;
   };
 
-  // Remove section
-  const handleRemoveSection = (sectionId: string) => {
-    const updated = sections.filter((s) => s.id !== sectionId);
-    setSections(updated);
-    showToast('info', 'Section removed. Remember to click "Save Specifications" to commit changes.');
-  };
-
-  // Move section up/down
-  const handleMoveSection = (index: number, direction: 'up' | 'down') => {
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= sections.length) return;
-    const updated = [...sections];
-    const temp = updated[index];
-    updated[index] = updated[targetIndex];
-    updated[targetIndex] = temp;
-    setSections(updated);
-  };
-
-  // Update section heading
-  const handleUpdateHeading = (sectionId: string, heading: string) => {
-    setSections(sections.map((s) => (s.id === sectionId ? { ...s, heading } : s)));
-  };
-
-  // Switch section type (Description vs Points)
-  const handleSwitchType = (sectionId: string, newType: 'description' | 'points') => {
-    setSections(
-      sections.map((s) => {
-        if (s.id !== sectionId) return s;
-        if (newType === 'points') {
-          return {
-            ...s,
-            type: 'points',
-            points: s.points && s.points.length > 0 ? s.points : [{ id: `pt-${Date.now()}`, heading: '', text: '' }],
-          };
-        } else {
-          return {
-            ...s,
-            type: 'description',
-            description: s.description || '',
-          };
-        }
-      })
-    );
-  };
-
-  // Update section description
-  const handleUpdateDescription = (sectionId: string, description: string) => {
-    setSections(sections.map((s) => (s.id === sectionId ? { ...s, description } : s)));
-  };
-
-  // Add point to section
-  const handleAddPoint = (sectionId: string) => {
-    setSections(
-      sections.map((s) => {
-        if (s.id !== sectionId) return s;
-        const pts = s.points ? [...s.points] : [];
-        pts.push({ id: `pt-${Date.now()}`, heading: '', text: '' });
-        return { ...s, points: pts };
-      })
-    );
-  };
-
-  // Remove point from section
-  const handleRemovePoint = (sectionId: string, pointId: string) => {
-    setSections(
-      sections.map((s) => {
-        if (s.id !== sectionId) return s;
-        const pts = s.points?.filter((p) => p.id !== pointId) || [];
-        return { ...s, points: pts.length > 0 ? pts : [{ id: `pt-${Date.now()}`, heading: '', text: '' }] };
-      })
-    );
-  };
-
-  // Update point heading
-  const handleUpdatePointHeading = (sectionId: string, pointId: string, heading: string) => {
-    setSections(
-      sections.map((s) => {
-        if (s.id !== sectionId) return s;
-        const pts = s.points?.map((p) => (p.id === pointId ? { ...p, heading } : p)) || [];
-        return { ...s, points: pts };
-      })
-    );
-  };
-
-  // Update point text
-  const handleUpdatePointText = (sectionId: string, pointId: string, text: string) => {
-    setSections(
-      sections.map((s) => {
-        if (s.id !== sectionId) return s;
-        const pts = s.points?.map((p) => (p.id === pointId ? { ...p, text } : p)) || [];
-        return { ...s, points: pts };
-      })
-    );
-  };
-
-  // Save specifications (commits deletion or updates directly to database)
+  // Save specifications
   const handleSave = async () => {
     if (!product) return;
 
-    // Filter out completely blank unedited entries
-    const cleaned = sections.filter((s) => {
-      if (s.type === 'description') {
-        return s.heading.trim().length > 0 || (s.description && s.description.trim().length > 0);
-      } else {
-        const hasValidPoint = s.points?.some((p) => p.text.trim().length > 0 || (p.heading && p.heading.trim().length > 0));
-        return s.heading.trim().length > 0 || hasValidPoint;
-      }
-    });
+    const compiled = getCompiledSpecs();
 
     setIsSaving(true);
     try {
       const res = await updateProduct({
         ...product,
-        desc: product.desc || '',
-        specifications: cleaned,
+        standard: standardSpecs.standards.trim() || product.standard,
+        technicalSpecs: compiled,
+        specificationsOverview: overview.trim(),
+        // Sync backward-compatible specifications structure
+        specifications: compiled.length > 0 ? [
+          ...(overview.trim() ? [{
+            id: 'sec-overview',
+            heading: 'Product Overview',
+            type: 'description' as const,
+            description: overview.trim(),
+          }] : []),
+          {
+            id: 'sec-specs-table',
+            heading: 'Technical Specifications',
+            type: 'points' as const,
+            points: compiled.map((s) => ({
+              id: s.id,
+              heading: s.label,
+              text: s.value,
+            })),
+          }
+        ] : [],
       });
 
       if (res.success) {
         showToast(
           'success',
-          cleaned.length > 0
-            ? `Saved ${cleaned.length} specification sections for "${product.title}".`
-            : `All specification sections cleared for "${product.title}".`,
+          `Saved ${compiled.length} technical specifications for "${product.title}".`,
           'Specifications Saved'
         );
         router.push(`/dashboard/all-products/edit?id=${product.id}`);
@@ -201,11 +316,13 @@ function SpecificationsEditor() {
         showToast('danger', res.message || 'Failed to save specifications.');
       }
     } catch (err: any) {
-      showToast('danger', err.message || 'Error saving specifications.');
+      showToast('danger', err.message || 'Network error saving specifications.');
     } finally {
       setIsSaving(false);
     }
   };
+
+  const activeSpecsList = getCompiledSpecs();
 
   if (isLoading) {
     return (
@@ -247,8 +364,9 @@ function SpecificationsEditor() {
         }}
       >
         <div className="card-body p-4 p-md-4">
-          {/* 1. Breadcrumbs Navigation */}
-          <div className="d-flex align-items-center text-muted fs-13 mb-4 gap-2">
+
+          {/* 1. Breadcrumbs Navigation (Matching Dashboard Layout) */}
+          <div className="d-flex align-items-center text-muted fs-13 mb-3 gap-2">
             <Link href="/dashboard" className="text-muted text-decoration-none">
               Dashboard
             </Link>
@@ -261,42 +379,22 @@ function SpecificationsEditor() {
               {product.title}
             </Link>
             <iconify-icon icon="solar:alt-arrow-right-linear" class="fs-13"></iconify-icon>
-            <span className="text-dark fw-bold">Specifications &amp; Details</span>
+            <span className="text-dark fw-bold">Specifications Table</span>
           </div>
 
-          {/* 2. Header & Action Buttons Bar */}
-          <div className="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-3">
+          {/* 2. Top Header Title & Save Button Bar */}
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 pb-3">
             <div>
-              <h2
-                className="fw-bold text-dark mb-1"
-                style={{ fontSize: '23px', letterSpacing: '-0.4px', color: '#0f172a' }}
-              >
-                Product Specifications &amp; Details
-              </h2>
-              <p className="text-muted fs-14 mb-0" style={{ color: '#64748b' }}>
-                Add rich headings, paragraph descriptions, and point-by-point specifications for <strong>{product.title}</strong>.
+              <h3 className="fw-bold text-dark mb-1" style={{ fontSize: '22px', letterSpacing: '-0.4px' }}>
+                Product Specifications & Details
+              </h3>
+              <p className="text-muted fs-13 mb-0">
+                Fill out structured safety specifications. Filled attributes are formatted as a clear specifications table on the product page.
               </p>
             </div>
 
+            {/* Save Specifications Button */}
             <div className="d-flex align-items-center gap-2">
-              <Link
-                href={`/dashboard/all-products/edit?id=${product.id}`}
-                className="btn btn-sm d-flex align-items-center gap-1.5"
-                style={{
-                  borderRadius: '8px',
-                  padding: '9px 18px',
-                  backgroundColor: '#ffffff',
-                  border: '1px solid #d1d5db',
-                  color: '#374151',
-                  fontWeight: 500,
-                  fontSize: '13px',
-                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                Cancel
-              </Link>
-
               <button
                 type="button"
                 onClick={handleSave}
@@ -304,7 +402,7 @@ function SpecificationsEditor() {
                 className="btn btn-sm d-flex align-items-center gap-2 text-white"
                 style={{
                   borderRadius: '8px',
-                  padding: '10px 22px',
+                  padding: '10px 24px',
                   backgroundColor: '#0f172a',
                   border: '1px solid #0f172a',
                   fontWeight: 600,
@@ -331,7 +429,7 @@ function SpecificationsEditor() {
           {/* Divider */}
           <div style={{ borderBottom: '1px solid #f1f5f9', margin: '16px 0 24px 0' }}></div>
 
-          {/* 3. Product Summary Context Banner (Well Padded & Formatted) */}
+          {/* 3. Product Summary Context Banner */}
           <div
             className="rounded-3 border d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4"
             style={{
@@ -381,7 +479,7 @@ function SpecificationsEditor() {
               <div>
                 <h4
                   className="fw-bold text-dark mb-1"
-                  style={{ fontSize: '17px', letterSpacing: '-0.3px', color: '#0f172a' }}
+                  style={{ fontSize: '16px', letterSpacing: '-0.3px', color: '#0f172a' }}
                 >
                   {product.title}
                 </h4>
@@ -409,478 +507,411 @@ function SpecificationsEditor() {
                     className="badge bg-light text-secondary border fs-11 fw-medium"
                     style={{ padding: '3px 8px', borderRadius: '4px' }}
                   >
-                    {sections.length} {sections.length === 1 ? 'Section' : 'Sections'} Configured
+                    {activeSpecsList.length} Attributes Active in Table
                   </span>
                 </div>
               </div>
             </div>
-
-            {/* View Mode Toggle */}
-            <div className="d-flex align-items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setActiveTab('editor')}
-                className={`btn btn-sm d-flex align-items-center gap-1.5 fw-medium ${
-                  activeTab === 'editor' ? 'btn-dark text-white' : 'btn-light border text-dark'
-                }`}
-                style={{
-                  height: '38px',
-                  borderRadius: '8px',
-                  padding: '0 16px',
-                  fontSize: '13px',
-                  boxShadow: activeTab === 'editor' ? '0 2px 4px rgba(15, 23, 42, 0.2)' : 'none',
-                }}
-              >
-                <iconify-icon icon="solar:pen-bold" class="fs-15"></iconify-icon>
-                <span>Specification Builder</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('preview')}
-                className={`btn btn-sm d-flex align-items-center gap-1.5 fw-medium ${
-                  activeTab === 'preview' ? 'btn-dark text-white' : 'btn-light border text-dark'
-                }`}
-                style={{
-                  height: '38px',
-                  borderRadius: '8px',
-                  padding: '0 16px',
-                  fontSize: '13px',
-                  boxShadow: activeTab === 'preview' ? '0 2px 4px rgba(15, 23, 42, 0.2)' : 'none',
-                }}
-              >
-                <iconify-icon icon="solar:eye-bold" class="fs-15"></iconify-icon>
-                <span>Storefront Preview</span>
-              </button>
-            </div>
           </div>
 
-          {/* 4. Main Body: Builder Mode or Preview Mode */}
-          {activeTab === 'editor' ? (
-            <div>
+          {/* 4. MAIN CONTENT: SPECIFICATIONS FORM */}
+          <div className="d-flex flex-column gap-4">
 
-              {/* Sections List */}
-              {sections.length === 0 ? (
+              {/* SECTION 1: CORE SAFETY SPECIFICATIONS */}
+              <div
+                className="rounded-3 border overflow-hidden"
+                style={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)' }}
+              >
                 <div
-                  className="text-center py-5 rounded-3 border border-dashed mb-4"
-                  style={{ borderColor: '#cbd5e1', backgroundColor: '#fcfdfe', padding: '48px 24px' }}
+                  className="d-flex align-items-center justify-content-between border-bottom"
+                  style={{ padding: '18px 28px', backgroundColor: '#fcfdfe', borderColor: '#f1f5f9' }}
                 >
-                  <div
-                    className="mx-auto rounded-circle d-flex align-items-center justify-content-center text-muted mb-3"
-                    style={{ width: '56px', height: '56px', backgroundColor: '#f1f5f9' }}
-                  >
-                    <iconify-icon icon="solar:document-add-linear" class="fs-28"></iconify-icon>
-                  </div>
-                  <h5 className="fw-bold text-dark mb-1">No Specifications Configured</h5>
-                  <p className="text-muted fs-13 mb-4" style={{ maxWidth: '440px', margin: '0 auto' }}>
-                    You can add technical specifications, compliance standards, or paragraph overviews. If left empty, only basic product details will show on the storefront.
-                  </p>
-                  <div className="d-flex align-items-center justify-content-center gap-3 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={() => handleAddSection('points')}
-                      className="btn btn-dark btn-sm d-flex align-items-center gap-2 text-white"
+                  <div className="d-flex align-items-center gap-2.5">
+                    <span
+                      className="d-inline-flex align-items-center justify-content-center text-white fw-bold"
                       style={{
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        padding: '10px 22px',
+                        height: '32px',
+                        padding: '0 14px',
+                        borderRadius: '6px',
                         backgroundColor: '#0f172a',
-                        border: '1px solid #0f172a',
-                        fontWeight: 600,
+                        fontSize: '12px',
+                        letterSpacing: '0.3px',
                       }}
                     >
-                      <iconify-icon icon="solar:list-check-bold" class="fs-17"></iconify-icon>
-                      <span>+ Add Point-by-Point Section</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAddSection('description')}
-                      className="btn btn-light border btn-sm d-flex align-items-center gap-2"
-                      style={{
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        padding: '10px 22px',
-                        backgroundColor: '#ffffff',
-                        borderColor: '#cbd5e1',
-                        color: '#374151',
-                        fontWeight: 500,
-                      }}
-                    >
-                      <iconify-icon icon="solar:text-bold" class="fs-17"></iconify-icon>
-                      <span>+ Add Paragraph Section</span>
-                    </button>
+                      Core Safety Specifications
+                    </span>
+                    <span className="text-muted fs-13">
+                      Common technical attributes standard across safety equipment
+                    </span>
                   </div>
                 </div>
-              ) : (
-                <div className="d-flex flex-column gap-4">
-                  {sections.map((section, index) => (
-                    <div
-                      key={section.id}
-                      className="rounded-3 border"
-                      style={{
-                        backgroundColor: '#ffffff',
-                        borderColor: '#e2e8f0',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
-                        overflow: 'hidden',
-                      }}
-                    >
-                      {/* Section Card Top Header */}
-                      <div
-                        className="d-flex align-items-center justify-content-between flex-wrap gap-2 border-bottom"
-                        style={{ padding: '16px 24px', backgroundColor: '#fcfdfe', borderColor: '#f1f5f9' }}
-                      >
-                        <div className="d-flex align-items-center gap-3">
-                          <span
-                            className="badge bg-dark text-white rounded-pill px-3 py-1 fw-bold"
-                            style={{ fontSize: '11px', letterSpacing: '0.4px' }}
-                          >
-                            Section #{index + 1}
-                          </span>
 
-                          <div className="btn-group btn-group-sm" style={{ borderRadius: '8px', overflow: 'hidden' }}>
-                            <button
-                              type="button"
-                              onClick={() => handleSwitchType(section.id, 'description')}
-                              className={`btn btn-sm ${
-                                section.type === 'description' ? 'btn-dark text-white fw-semibold' : 'btn-light border text-dark'
-                              }`}
-                              style={{ fontSize: '12px', padding: '6px 14px' }}
-                            >
-                              <iconify-icon icon="solar:text-bold" class="fs-13 me-1.5"></iconify-icon>
-                              Paragraph Description
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleSwitchType(section.id, 'points')}
-                              className={`btn btn-sm ${
-                                section.type === 'points' ? 'btn-dark text-white fw-semibold' : 'btn-light border text-dark'
-                              }`}
-                              style={{ fontSize: '12px', padding: '6px 14px' }}
-                            >
-                              <iconify-icon icon="solar:list-check-bold" class="fs-13 me-1.5"></iconify-icon>
-                              Point-by-Point Items
-                            </button>
-                          </div>
-                        </div>
+                <div style={{ padding: '28px 32px' }}>
+                  <div
+                    className="alert alert-light border py-2.5 px-3 rounded-3 d-flex align-items-center gap-2 mb-4"
+                    style={{ backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }}
+                  >
+                    <iconify-icon icon="solar:info-circle-bold" class="fs-18 text-primary flex-shrink-0"></iconify-icon>
+                    <span className="fs-13 text-secondary">
+                      Fill out the parameters relevant to this equipment. <strong>Empty fields are automatically excluded</strong> from the customer storefront table.
+                    </span>
+                  </div>
 
-                        {/* Section Control Buttons */}
-                        <div className="d-flex align-items-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => handleMoveSection(index, 'up')}
-                            disabled={index === 0}
-                            className="btn btn-sm btn-light border text-muted px-2.5 py-1.5"
-                            title="Move section up"
-                            style={{ borderRadius: '6px' }}
-                          >
-                            <iconify-icon icon="solar:arrow-up-linear" class="fs-14"></iconify-icon>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleMoveSection(index, 'down')}
-                            disabled={index === sections.length - 1}
-                            className="btn btn-sm btn-light border text-muted px-2.5 py-1.5"
-                            title="Move section down"
-                            style={{ borderRadius: '6px' }}
-                          >
-                            <iconify-icon icon="solar:arrow-down-linear" class="fs-14"></iconify-icon>
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveSection(section.id)}
-                            className="btn btn-sm btn-light border text-danger px-2.5 py-1.5"
-                            title="Delete section"
-                            style={{ borderRadius: '6px', borderColor: '#fee2e2', backgroundColor: '#fef2f2' }}
-                          >
-                            <iconify-icon icon="solar:trash-bin-trash-linear" class="fs-14"></iconify-icon>
-                          </button>
-                        </div>
-                      </div>
-
-                      {/* Section Card Content Body */}
-                      <div className="p-4" style={{ padding: '24px 28px' }}>
-                        {/* Section Heading Input */}
-                        <div className="mb-4">
-                          <label className="form-label fs-13 fw-semibold text-dark mb-1.5">
-                            Section Heading <span className="text-danger">*</span>
-                          </label>
-                          <input
-                            type="text"
-                            className="form-control"
-                            placeholder="e.g. Technical Specifications, Key Protection Features, Material Standards..."
-                            value={section.heading}
-                            onChange={(e) => handleUpdateHeading(section.id, e.target.value)}
-                            style={{ borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '14px', height: '42px', fontWeight: 500 }}
-                          />
-                        </div>
-
-                        {/* Type 1: Paragraph Description (Well-Padded) */}
-                        {section.type === 'description' && (
-                          <div>
-                            <label className="form-label fs-13 fw-semibold text-dark mb-1.5">
-                              Section Paragraph Description
-                            </label>
-                            <textarea
-                              className="form-control"
-                              rows={5}
-                              placeholder="Enter comprehensive paragraph description, product background, guidelines, or details..."
-                              value={section.description || ''}
-                              onChange={(e) => handleUpdateDescription(section.id, e.target.value)}
-                              style={{
-                                borderRadius: '10px',
-                                borderColor: '#cbd5e1',
-                                fontSize: '14px',
-                                lineHeight: '1.65',
-                                padding: '16px 18px',
-                              }}
-                            ></textarea>
-                            <div className="form-text fs-12 text-muted mt-2">
-                              Renders as formatted paragraph text under this section heading on the storefront product page.
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Type 2: Point by Point (Well-Padded & Aligned) */}
-                        {section.type === 'points' && (
-                          <div>
-                            <div className="d-flex align-items-center justify-content-between mb-3">
-                              <div>
-                                <label className="form-label fs-13 fw-semibold text-dark mb-0">
-                                  Point-by-Point Specification Items
-                                </label>
-                                <span className="text-muted fs-12 d-block">
-                                  Define point headings and descriptions for bulleted specifications.
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => handleAddPoint(section.id)}
-                                className="btn btn-sm btn-dark d-flex align-items-center gap-1.5 text-white"
-                                style={{
-                                  borderRadius: '8px',
-                                  fontSize: '12px',
-                                  padding: '7px 16px',
-                                  backgroundColor: '#0f172a',
-                                  border: '1px solid #0f172a',
-                                  fontWeight: 500,
-                                }}
-                              >
-                                <iconify-icon icon="solar:add-circle-bold" class="fs-15"></iconify-icon>
-                                <span>+ Add Another Point</span>
-                              </button>
-                            </div>
-
-                            <div className="d-flex flex-column gap-3">
-                              {section.points?.map((pt, ptIndex) => (
-                                <div
-                                  key={pt.id}
-                                  className="rounded-3 border d-flex align-items-start gap-3"
-                                  style={{
-                                    padding: '18px 20px',
-                                    backgroundColor: '#f8fafc',
-                                    borderColor: '#e2e8f0',
-                                  }}
-                                >
-                                  {/* Number Circle Badge */}
-                                  <div
-                                    className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-white fw-bold"
-                                    style={{
-                                      width: '26px',
-                                      height: '26px',
-                                      backgroundColor: '#0f172a',
-                                      fontSize: '11px',
-                                      marginTop: '28px',
-                                    }}
-                                  >
-                                    {ptIndex + 1}
-                                  </div>
-
-                                  {/* Point Heading (e.g. "Outer Shell" or "Certification") */}
-                                  <div style={{ width: '32%', minWidth: '160px' }}>
-                                    <label className="form-label fs-12 text-dark mb-1.5 fw-semibold">
-                                      Point Heading / Label (Optional)
-                                    </label>
-                                    <input
-                                      type="text"
-                                      className="form-control"
-                                      placeholder="e.g. Shell Material"
-                                      value={pt.heading || ''}
-                                      onChange={(e) => handleUpdatePointHeading(section.id, pt.id, e.target.value)}
-                                      style={{ borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '13px', height: '40px' }}
-                                    />
-                                  </div>
-
-                                  {/* Point Description / Value */}
-                                  <div className="flex-grow-1">
-                                    <label className="form-label fs-12 text-dark mb-1.5 fw-semibold">
-                                      Point Description / Detail <span className="text-danger">*</span>
-                                    </label>
-                                    <input
-                                      type="text"
-                                      className="form-control"
-                                      placeholder="e.g. High-density polycarbonate with ventilation slots..."
-                                      value={pt.text}
-                                      onChange={(e) => handleUpdatePointText(section.id, pt.id, e.target.value)}
-                                      style={{ borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '13px', height: '40px' }}
-                                    />
-                                  </div>
-
-                                  {/* Remove Point */}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemovePoint(section.id, pt.id)}
-                                    className="btn btn-sm text-danger flex-shrink-0"
-                                    title="Remove this point"
-                                    style={{
-                                      width: '36px',
-                                      height: '36px',
-                                      borderRadius: '8px',
-                                      border: '1px solid #fee2e2',
-                                      backgroundColor: '#fef2f2',
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      justifyContent: 'center',
-                                      marginTop: '26px',
-                                      padding: 0,
-                                    }}
-                                  >
-                                    <iconify-icon icon="solar:trash-bin-trash-linear" class="fs-17"></iconify-icon>
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                      </div>
+                  {/* Clean 2-Column Grid with Perfect Alignment and 24px Gaps */}
+                  <div className="row g-4">
+                    {/* Row 1: Product Name & Brand */}
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-2">
+                        Product / Equipment Name <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. Safety Rescue Kit / Hard Hat H-700"
+                        value={standardSpecs.productName}
+                        onChange={(e) => handleStandardChange('productName', e.target.value)}
+                        style={{ height: '44px', padding: '0 16px', borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '13.5px' }}
+                      />
                     </div>
-                  ))}
 
-                  {/* Add New Section Buttons Bar */}
-                  <div
-                    className="rounded-3 border d-flex align-items-center justify-content-center gap-3 flex-wrap"
-                    style={{
-                      padding: '24px 28px',
-                      backgroundColor: '#ffffff',
-                      borderColor: '#e2e8f0',
-                      boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)',
-                    }}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleAddSection('points')}
-                      className="btn btn-dark btn-sm d-flex align-items-center gap-2 px-4 py-2 text-white"
-                      style={{
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        padding: '10px 22px',
-                        backgroundColor: '#0f172a',
-                        border: '1px solid #0f172a',
-                        fontWeight: 600,
-                        boxShadow: '0 2px 4px rgba(15, 23, 42, 0.15)',
-                      }}
-                    >
-                      <iconify-icon icon="solar:list-check-bold" class="fs-17"></iconify-icon>
-                      <span>+ Add Point-by-Point Section</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleAddSection('description')}
-                      className="btn btn-light border btn-sm d-flex align-items-center gap-2 px-4 py-2"
-                      style={{
-                        borderRadius: '8px',
-                        fontSize: '13px',
-                        padding: '10px 22px',
-                        backgroundColor: '#ffffff',
-                        borderColor: '#cbd5e1',
-                        color: '#374151',
-                        fontWeight: 500,
-                      }}
-                    >
-                      <iconify-icon icon="solar:text-bold" class="fs-17"></iconify-icon>
-                      <span>+ Add Paragraph Section</span>
-                    </button>
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-2">
+                        Brand / Manufacturer
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. 3M, Honeywell, MSA Safety, Veuz Safety"
+                        value={standardSpecs.brand}
+                        onChange={(e) => handleStandardChange('brand', e.target.value)}
+                        style={{ height: '44px', padding: '0 16px', borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '13.5px' }}
+                      />
+                    </div>
+
+                    {/* Row 2: Safety Standards & Protection Level */}
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-2 d-flex align-items-center gap-1.5">
+                        <iconify-icon icon="solar:shield-check-bold" class="fs-15 text-success"></iconify-icon>
+                        <span>Safety Standard &amp; Certification</span>
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. EN 397:2012 / ANSI Z89.1 Type 1 / CE Certified / OSHA"
+                        value={standardSpecs.standards}
+                        onChange={(e) => handleStandardChange('standards', e.target.value)}
+                        style={{ height: '44px', padding: '0 16px', borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '13.5px' }}
+                      />
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-2">
+                        Protection Level / Class / Rating
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. Class E &amp; G / FFP3 / Cut Level 5 / Class A Fall Arrest"
+                        value={standardSpecs.protectionRating}
+                        onChange={(e) => handleStandardChange('protectionRating', e.target.value)}
+                        style={{ height: '44px', padding: '0 16px', borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '13.5px' }}
+                      />
+                    </div>
+
+                    {/* Row 3: Model & Primary Material */}
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-2">
+                        Model / Item Code
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. H-700V, SF-900, SKU-4821"
+                        value={standardSpecs.modelNo}
+                        onChange={(e) => handleStandardChange('modelNo', e.target.value)}
+                        style={{ height: '44px', padding: '0 16px', borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '13.5px' }}
+                      />
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-2">
+                        Primary Material
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. High-Density Polyethylene (HDPE), Kevlar, Steel"
+                        value={standardSpecs.material}
+                        onChange={(e) => handleStandardChange('material', e.target.value)}
+                        style={{ height: '44px', padding: '0 16px', borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '13.5px' }}
+                      />
+                    </div>
+
+                    {/* Row 4: Weight & Available Sizes */}
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-2">
+                        Product Weight
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. 30 kg, 450 grams, 1.2 kg"
+                        value={standardSpecs.weight}
+                        onChange={(e) => handleStandardChange('weight', e.target.value)}
+                        style={{ height: '44px', padding: '0 16px', borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '13.5px' }}
+                      />
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-2">
+                        Available Sizes / Adjustment
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. M / L / XL, Universal Fit, 52-64 cm"
+                        value={standardSpecs.sizes}
+                        onChange={(e) => handleStandardChange('sizes', e.target.value)}
+                        style={{ height: '44px', padding: '0 16px', borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '13.5px' }}
+                      />
+                    </div>
+
+                    {/* Row 5: Color / Finish & Temperature Range */}
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-2">
+                        Color / Finish
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. Hi-Vis Yellow, White, Orange, Matte Black"
+                        value={standardSpecs.color}
+                        onChange={(e) => handleStandardChange('color', e.target.value)}
+                        style={{ height: '44px', padding: '0 16px', borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '13.5px' }}
+                      />
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-2">
+                        Operating Temperature / Environmental Range
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. -30°C to +60°C / Flame Retardant"
+                        value={standardSpecs.temperatureRange}
+                        onChange={(e) => handleStandardChange('temperatureRange', e.target.value)}
+                        style={{ height: '44px', padding: '0 16px', borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '13.5px' }}
+                      />
+                    </div>
+
+                    {/* Row 6: Application & Warranty */}
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-2">
+                        Recommended Application / Industry
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. Construction, Fire Fighting, Electrical, Oil &amp; Gas"
+                        value={standardSpecs.application}
+                        onChange={(e) => handleStandardChange('application', e.target.value)}
+                        style={{ height: '44px', padding: '0 16px', borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '13.5px' }}
+                      />
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fs-13 fw-semibold text-dark mb-2">
+                        Warranty / Expiration / Shelf Life
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        placeholder="e.g. 5 Years Shelf Life from MFG Date, 1 Year Warranty"
+                        value={standardSpecs.warranty}
+                        onChange={(e) => handleStandardChange('warranty', e.target.value)}
+                        style={{ height: '44px', padding: '0 16px', borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '13.5px' }}
+                      />
+                    </div>
                   </div>
                 </div>
-              )}
-            </div>
-          ) : (
-            /* PREVIEW MODE */
-            <div className="rounded-3 border" style={{ padding: '28px', backgroundColor: '#ffffff', borderColor: '#e2e8f0' }}>
-              <div className="mb-4 pb-3 border-bottom d-flex align-items-center justify-content-between">
-                <div>
-                  <h4 className="fw-bold text-dark mb-1">Customer Storefront View Preview</h4>
-                  <p className="text-muted fs-13 mb-0">How these specifications and details will appear on the product details page.</p>
-                </div>
-                <span className="badge bg-success-subtle text-success border border-success-subtle px-3 py-1.5 fs-12">
-                  Live Preview Mode
-                </span>
               </div>
 
-              {product?.desc && (
-                <div className="mb-4 pb-4 border-bottom">
-                  <h5 className="fw-bold text-dark mb-2 fs-15 d-flex align-items-center gap-2">
-                    <iconify-icon icon="solar:document-text-bold" class="fs-17 text-primary"></iconify-icon>
-                    <span>Product Overview</span>
+              {/* SECTION 2: CUSTOM SPECIFICATIONS (DYNAMIC KEY-VALUE ROWS) */}
+              <div
+                className="rounded-3 border overflow-hidden"
+                style={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)' }}
+              >
+                <div
+                  className="d-flex align-items-center justify-content-between flex-wrap gap-2 border-bottom"
+                  style={{ padding: '18px 28px', backgroundColor: '#fcfdfe', borderColor: '#f1f5f9' }}
+                >
+                  <div>
+                    <h5 className="fw-bold text-dark mb-1" style={{ fontSize: '15px' }}>
+                      Additional / Custom Specifications
+                    </h5>
+                    <p className="text-muted fs-12 mb-0">
+                      Add any specific attributes unique to this product (e.g. Discharge Duration, Harness D-Rings, Breaking Load).
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleAddCustomSpec}
+                    className="btn btn-sm btn-dark text-white d-inline-flex align-items-center gap-1.5 fw-semibold"
+                    style={{ borderRadius: '8px', height: '36px', fontSize: '12.5px', padding: '0 18px', backgroundColor: '#0f172a' }}
+                  >
+                    <iconify-icon icon="solar:add-circle-bold" class="fs-16"></iconify-icon>
+                    <span>+ Add Custom Spec Field</span>
+                  </button>
+                </div>
+
+                <div style={{ padding: '28px 32px' }}>
+                  {customSpecs.length === 0 ? (
+                    <div className="text-center py-4 rounded-3 border border-dashed" style={{ borderColor: '#cbd5e1', backgroundColor: '#f8fafc' }}>
+                      <iconify-icon icon="solar:document-add-linear" class="fs-28 text-muted mb-1"></iconify-icon>
+                      <p className="text-muted fs-13 mb-2">No custom specification rows added yet.</p>
+                      <button
+                        type="button"
+                        onClick={handleAddCustomSpec}
+                        className="btn btn-sm btn-outline-dark"
+                        style={{ borderRadius: '6px', fontSize: '12px' }}
+                      >
+                        + Add Custom Specification
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="d-flex flex-column gap-3">
+                      {customSpecs.map((item, index) => (
+                        <div
+                          key={item.id}
+                          className="d-flex align-items-center gap-3 p-3 rounded-3 border"
+                          style={{ backgroundColor: '#fcfdfe', borderColor: '#e2e8f0' }}
+                        >
+                          <span
+                            className="badge bg-light text-secondary border d-inline-flex align-items-center justify-content-center"
+                            style={{ width: '32px', height: '32px', borderRadius: '8px', fontSize: '12px', flexShrink: 0 }}
+                          >
+                            {index + 1}
+                          </span>
+
+                          <div className="flex-grow-1 row g-3">
+                            <div className="col-12 col-md-5">
+                              <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Specification Name (e.g. Cylinder Volume)"
+                                value={item.label}
+                                onChange={(e) => handleUpdateCustomSpec(item.id, 'label', e.target.value)}
+                                style={{ height: '42px', padding: '0 14px', borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '13px', fontWeight: 600 }}
+                              />
+                            </div>
+                            <div className="col-12 col-md-7">
+                              <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Specification Value (e.g. 6 Litres / 300 Bar)"
+                                value={item.value}
+                                onChange={(e) => handleUpdateCustomSpec(item.id, 'value', e.target.value)}
+                                style={{ height: '42px', padding: '0 14px', borderRadius: '8px', borderColor: '#cbd5e1', fontSize: '13px' }}
+                              />
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCustomSpec(item.id)}
+                            className="btn btn-sm btn-light border text-danger flex-shrink-0"
+                            title="Delete this row"
+                            style={{
+                              width: '42px',
+                              height: '42px',
+                              borderRadius: '8px',
+                              borderColor: '#fee2e2',
+                              backgroundColor: '#fef2f2',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: 0,
+                            }}
+                          >
+                            <iconify-icon icon="solar:trash-bin-trash-linear" class="fs-17"></iconify-icon>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* SECTION 3: SAFETY OVERVIEW / COMPLIANCE NOTES (OPTIONAL) */}
+              <div
+                className="rounded-3 border overflow-hidden"
+                style={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', boxShadow: '0 2px 4px rgba(0, 0, 0, 0.02)' }}
+              >
+                <div
+                  className="border-bottom"
+                  style={{ padding: '18px 28px', backgroundColor: '#fcfdfe', borderColor: '#f1f5f9' }}
+                >
+                  <h5 className="fw-bold text-dark mb-1" style={{ fontSize: '15px' }}>
+                    Specification Overview &amp; Safety Notes (Optional)
                   </h5>
-                  <p className="text-secondary fs-14 mb-0" style={{ lineHeight: '1.7', whiteSpace: 'pre-line' }}>
-                    {product.desc}
+                  <p className="text-muted fs-12 mb-0">
+                    Optional general summary paragraph or inspection guidelines displayed alongside the specifications table.
                   </p>
                 </div>
-              )}
-
-              {sections.length === 0 ? (
-                <div className="text-center py-5 text-muted fs-13">No specifications configured to preview yet.</div>
-              ) : (
-                <div className="d-flex flex-column gap-4">
-                  {sections.map((sec, idx) => (
-                    <div key={sec.id} className="pb-3 border-bottom">
-                      <h4 className="fw-bold text-dark fs-17 mb-2 d-flex align-items-center gap-2">
-                        <span className="text-primary fs-14">#{idx + 1}</span>
-                        <span>{sec.heading || 'Untitled Section'}</span>
-                      </h4>
-
-                      {sec.type === 'description' ? (
-                        <p className="text-muted fs-14 mb-0" style={{ lineHeight: '1.7', whiteSpace: 'pre-line' }}>
-                          {sec.description || 'No description provided.'}
-                        </p>
-                      ) : (
-                        <div className="row g-3 mt-1">
-                          {sec.points && sec.points.length > 0 ? (
-                            sec.points.map((pt) => (
-                              <div key={pt.id} className="col-12 col-md-6">
-                                <div
-                                  className="rounded-3 border h-100 d-flex align-items-start gap-2.5"
-                                  style={{ padding: '14px 16px', backgroundColor: '#f8fafc', borderColor: '#f1f5f9' }}
-                                >
-                                  <div
-                                    className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 text-success"
-                                    style={{ width: '22px', height: '22px', backgroundColor: '#dcfce7', marginTop: '2px' }}
-                                  >
-                                    <iconify-icon icon="solar:check-circle-bold" class="fs-14"></iconify-icon>
-                                  </div>
-                                  <div>
-                                    {pt.heading && (
-                                      <strong className="d-block text-dark fs-13 mb-0.5">{pt.heading}</strong>
-                                    )}
-                                    <span className="text-muted fs-13" style={{ lineHeight: '1.45' }}>
-                                      {pt.text || 'Point detail'}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            ))
-                          ) : (
-                            <div className="text-muted fs-13">No points added.</div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                <div style={{ padding: '28px 32px' }}>
+                  <textarea
+                    className="form-control"
+                    rows={4}
+                    placeholder="e.g. Heavy-duty industrial safety kit certified according to international EN and ANSI safety protocols. Recommended for construction, tower climbing, and high-altitude industrial maintenance."
+                    value={overview}
+                    onChange={(e) => setOverview(e.target.value)}
+                    style={{
+                      borderRadius: '8px',
+                      borderColor: '#cbd5e1',
+                      fontSize: '13.5px',
+                      lineHeight: '1.7',
+                      padding: '16px 18px',
+                    }}
+                  ></textarea>
                 </div>
-              )}
+              </div>
+
+              {/* Bottom Action Save Bar */}
+              <div
+                className="rounded-3 border d-flex align-items-center justify-content-between p-3.5 mb-2"
+                style={{ backgroundColor: '#ffffff', borderColor: '#e2e8f0', padding: '18px 24px' }}
+              >
+                <div className="d-flex align-items-center gap-2">
+                  <iconify-icon icon="solar:shield-check-bold" class="fs-20 text-success"></iconify-icon>
+                  <span className="fs-13 text-secondary">
+                    Total <strong>{activeSpecsList.length} specification rows</strong> will be rendered in the storefront table.
+                  </span>
+                </div>
+
+                <div className="d-flex align-items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="btn btn-sm btn-dark text-white fw-semibold"
+                    style={{
+                      borderRadius: '8px',
+                      padding: '10px 28px',
+                      fontSize: '13.5px',
+                      backgroundColor: '#0f172a',
+                      boxShadow: '0 2px 4px rgba(15, 23, 42, 0.2)',
+                    }}
+                  >
+                    {isSaving ? 'Saving...' : 'Save Specifications'}
+                  </button>
+                </div>
+              </div>
+
             </div>
-          )}
+          </div>
         </div>
-      </div>
     </>
   );
 }
@@ -889,9 +920,9 @@ export default function ProductSpecificationsPage() {
   return (
     <Suspense
       fallback={
-        <div className="container-fluid py-5 text-center" style={{ backgroundColor: '#f8fafc', minHeight: '100vh' }}>
-          <div className="spinner-border text-dark spinner-border-sm me-2" role="status"></div>
-          <span className="text-muted">Loading specifications editor...</span>
+        <div className="container-fluid py-5 text-center">
+          <div className="spinner-border text-primary" role="status"></div>
+          <p className="text-muted mt-2 fs-13">Loading specifications editor...</p>
         </div>
       }
     >

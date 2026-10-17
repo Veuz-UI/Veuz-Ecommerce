@@ -672,45 +672,56 @@ function ProductDetailsContent() {
     return [...sameCat, ...others].slice(0, 16);
   }, [product, allProducts]);
 
-  // Related products slider ref & scroll state
+  // Related products slider ref & 3 sets for infinite continuous forward loop
   const relatedSliderRef = useRef<HTMLDivElement>(null);
-  const [canScrollPrev, setCanScrollPrev] = useState(false);
-  const [canScrollNext, setCanScrollNext] = useState(true);
 
-  const checkRelatedScroll = useCallback(() => {
-    const el = relatedSliderRef.current;
-    if (!el) return;
-    const { scrollLeft, scrollWidth, clientWidth } = el;
-    setCanScrollPrev(scrollLeft > 6);
-    setCanScrollNext(scrollLeft < scrollWidth - clientWidth - 6);
-  }, []);
-
-  useEffect(() => {
-    const el = relatedSliderRef.current;
-    if (!el) return;
-    checkRelatedScroll();
-    el.addEventListener('scroll', checkRelatedScroll, { passive: true });
-    window.addEventListener('resize', checkRelatedScroll);
-    return () => {
-      el.removeEventListener('scroll', checkRelatedScroll);
-      window.removeEventListener('resize', checkRelatedScroll);
-    };
-  }, [checkRelatedScroll, relatedProducts]);
+  const repeatedRelatedProducts = useMemo(() => {
+    if (!relatedProducts || relatedProducts.length <= 3) {
+      return relatedProducts.map((p, i) => ({ ...p, loopKey: `rel-s1-${p.id}-${i}` }));
+    }
+    return [
+      ...relatedProducts.map((prod, i) => ({ ...prod, loopKey: `rel-s1-${prod.id}-${i}` })),
+      ...relatedProducts.map((prod, i) => ({ ...prod, loopKey: `rel-s2-${prod.id}-${i}` })),
+      ...relatedProducts.map((prod, i) => ({ ...prod, loopKey: `rel-s3-${prod.id}-${i}` })),
+    ];
+  }, [relatedProducts]);
 
   const handlePrevRelated = () => {
-    const el = relatedSliderRef.current;
-    if (!el) return;
-    const cardEl = el.firstElementChild as HTMLElement | null;
-    const scrollAmount = cardEl ? cardEl.offsetWidth + 20 : el.clientWidth * 0.75;
-    el.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    const container = relatedSliderRef.current;
+    if (!container) return;
+    const cardEl = container.firstElementChild as HTMLElement | null;
+    const colWidth = cardEl ? cardEl.offsetWidth + 20 : 280;
+    const step = colWidth * 2;
+    const setWidth = container.scrollWidth / 3;
+
+    if (setWidth <= 0) return;
+
+    if (container.scrollLeft < step) {
+      container.style.scrollBehavior = 'auto';
+      container.scrollLeft += setWidth;
+      void container.offsetWidth;
+    }
+    container.style.scrollBehavior = 'smooth';
+    container.scrollBy({ left: -step, behavior: 'smooth' });
   };
 
   const handleNextRelated = () => {
-    const el = relatedSliderRef.current;
-    if (!el) return;
-    const cardEl = el.firstElementChild as HTMLElement | null;
-    const scrollAmount = cardEl ? cardEl.offsetWidth + 20 : el.clientWidth * 0.75;
-    el.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    const container = relatedSliderRef.current;
+    if (!container) return;
+    const cardEl = container.firstElementChild as HTMLElement | null;
+    const colWidth = cardEl ? cardEl.offsetWidth + 20 : 280;
+    const step = colWidth * 2;
+    const setWidth = container.scrollWidth / 3;
+
+    if (setWidth <= 0) return;
+
+    if (container.scrollLeft >= setWidth * 2 - step) {
+      container.style.scrollBehavior = 'auto';
+      container.scrollLeft -= setWidth;
+      void container.offsetWidth;
+    }
+    container.style.scrollBehavior = 'smooth';
+    container.scrollBy({ left: step, behavior: 'smooth' });
   };
 
   const handleAddRelatedToCart = (rel: ProductItem, color?: string) => {
@@ -1340,12 +1351,20 @@ function ProductDetailsContent() {
               <span>Reviews and rating</span>
               <span
                 style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '20px',
+                  height: '20px',
+                  padding: '0 6px',
+                  borderRadius: '9999px',
                   fontSize: '11px',
                   fontWeight: 700,
-                  backgroundColor: activeTab === 'reviews' ? '#0f172a' : '#f1f5f9',
-                  color: activeTab === 'reviews' ? '#ffffff' : '#64748b',
-                  borderRadius: '12px',
-                  padding: '2px 8px',
+                  lineHeight: 1,
+                  backgroundColor: activeTab === 'reviews' ? '#0f172a' : '#e2e8f0',
+                  color: activeTab === 'reviews' ? '#ffffff' : '#475569',
+                  textAlign: 'center',
+                  flexShrink: 0,
                 }}
               >
                 {reviewSummary.totalReviews}
@@ -1356,10 +1375,7 @@ function ProductDetailsContent() {
           {/* TAB 1: PRODUCT DESCRIPTION */}
           {activeTab === 'description' && (
             <div className="py-2">
-              <h3 className="fw-bold text-dark mb-3" style={{ fontSize: '18px', lineHeight: '1.3' }}>
-                Product Description
-              </h3>
-              <p className="text-secondary fs-14 mb-0" style={{ lineHeight: '1.75', whiteSpace: 'pre-line', color: '#475569' }}>
+              <p className="text-secondary fs-14 mb-0" style={{ lineHeight: '1.8', whiteSpace: 'pre-line', color: '#475569' }}>
                 {product.desc || 'No detailed description available for this product.'}
               </p>
             </div>
@@ -1368,72 +1384,264 @@ function ProductDetailsContent() {
           {/* TAB 2: PRODUCT SPECIFICATION */}
           {activeTab === 'specifications' && (
             <div className="py-2">
-              <h3 className="fw-bold text-dark mb-4" style={{ fontSize: '18px', lineHeight: '1.3' }}>
-                Product Specification
-              </h3>
-
               {(() => {
-                const allPoints: Array<{ heading?: string; text: string }> = [];
-                if (product.specifications && Array.isArray(product.specifications)) {
-                  for (const sec of product.specifications) {
-                    if (sec.type === 'points' && sec.points) {
-                      for (const pt of sec.points) {
-                        allPoints.push({ heading: pt.heading, text: pt.text });
-                      }
-                    } else if (sec.type === 'description' && sec.description) {
-                      allPoints.push({ heading: sec.heading, text: sec.description });
-                    }
-                  }
-                }
+                const hasTechSpecs = Boolean(product.technicalSpecs && product.technicalSpecs.length > 0);
+                const hasLegacySpecs = Boolean(product.specifications && Array.isArray(product.specifications) && product.specifications.length > 0);
 
-                if (allPoints.length === 0) {
+                if (!hasTechSpecs && !hasLegacySpecs) {
                   return (
-                    <div className="p-4 border rounded-3 text-center" style={{ borderColor: '#e2e8f0', backgroundColor: '#f8fafc' }}>
+                    <div className="py-5 text-center">
+                      <iconify-icon icon="solar:clipboard-list-linear" class="fs-32 text-muted mb-2"></iconify-icon>
                       <p className="text-muted fs-14 mb-0">No technical specifications have been added for this product.</p>
                     </div>
                   );
                 }
 
+                if (hasTechSpecs && product.technicalSpecs) {
+                  return (
+                    <div>
+                      {product.specificationsOverview && (
+                        <div style={{ marginBottom: '28px' }}>
+                          <h5 className="fw-bold text-dark mb-2" style={{ fontSize: '15px', letterSpacing: '-0.2px' }}>
+                            Overview &amp; Compliance
+                          </h5>
+                          <p className="text-secondary fs-14 mb-0" style={{ lineHeight: '1.75', color: '#475569', whiteSpace: 'pre-line' }}>
+                            {product.specificationsOverview}
+                          </p>
+                        </div>
+                      )}
+
+                      <div
+                        className="table-responsive rounded-3"
+                        style={{
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '10px',
+                          boxShadow: 'none',
+                          overflow: 'hidden',
+                          backgroundColor: '#ffffff',
+                        }}
+                      >
+                        <table
+                          className="table mb-0 align-middle"
+                          style={{
+                            borderColor: '#f1f5f9',
+                            boxShadow: 'none',
+                            backgroundColor: '#ffffff',
+                          }}
+                        >
+                          <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                            <tr>
+                              <th
+                                style={{
+                                  width: '32%',
+                                  minWidth: '200px',
+                                  padding: '16px 24px',
+                                  fontSize: '12px',
+                                  fontWeight: 700,
+                                  letterSpacing: '0.5px',
+                                  border: 'none',
+                                  borderBottom: '1px solid #e2e8f0',
+                                  borderRight: '1px solid #f1f5f9',
+                                  backgroundColor: '#f8fafc',
+                                  color: '#475569',
+                                  textTransform: 'uppercase',
+                                }}
+                              >
+                                SPECIFICATION ATTRIBUTE
+                              </th>
+                              <th
+                                style={{
+                                  width: '68%',
+                                  padding: '16px 24px',
+                                  fontSize: '12px',
+                                  fontWeight: 700,
+                                  letterSpacing: '0.5px',
+                                  border: 'none',
+                                  borderBottom: '1px solid #e2e8f0',
+                                  backgroundColor: '#f8fafc',
+                                  color: '#475569',
+                                  textTransform: 'uppercase',
+                                }}
+                              >
+                                DETAILS &amp; COMPLIANCE
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody style={{ backgroundColor: '#ffffff' }}>
+                            {product.technicalSpecs.map((spec, sIdx) => {
+                              const isLast = sIdx === product.technicalSpecs!.length - 1;
+                              return (
+                                <tr
+                                  key={spec.id || `ts-${sIdx}`}
+                                  style={{ backgroundColor: '#ffffff' }}
+                                >
+                                  <td
+                                    className="fw-semibold text-dark text-nowrap"
+                                    style={{
+                                      padding: '16px 24px',
+                                      fontSize: '13.5px',
+                                      color: '#0f172a',
+                                      borderTop: 'none',
+                                      borderBottom: isLast ? 'none' : '1px solid #f1f5f9',
+                                      borderRight: '1px solid #f1f5f9',
+                                      backgroundColor: '#ffffff',
+                                    }}
+                                  >
+                                    {spec.label}
+                                  </td>
+                                  <td
+                                    style={{
+                                      padding: '16px 24px',
+                                      fontSize: '13.5px',
+                                      color: '#334155',
+                                      borderTop: 'none',
+                                      borderBottom: isLast ? 'none' : '1px solid #f1f5f9',
+                                      backgroundColor: '#ffffff',
+                                    }}
+                                  >
+                                    {spec.value}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                }
+
                 return (
-                  <div className="row g-3">
-                    {allPoints.map((pt, idx) => {
-                      let boldPart = pt.heading || '';
-                      let descPart = pt.text;
-                      if (!boldPart && pt.text.includes(':')) {
-                        const colonIdx = pt.text.indexOf(':');
-                        boldPart = pt.text.slice(0, colonIdx + 1);
-                        descPart = pt.text.slice(colonIdx + 1).trim();
+                  <div className="d-flex flex-column gap-4">
+                    {product.specifications!.map((sec, sIdx) => {
+                      const isDescription = sec.type === 'description' || (!sec.points && Boolean(sec.description));
+
+                      if (isDescription) {
+                        return (
+                          <div key={sec.id || `spec-sec-${sIdx}`} style={{ marginBottom: '20px' }}>
+                            {sec.heading && (
+                              <h5 className="fw-bold text-dark mb-2" style={{ fontSize: '15px' }}>
+                                {sec.heading}
+                              </h5>
+                            )}
+                            <p className="text-secondary fs-14 mb-0" style={{ lineHeight: '1.75', color: '#475569', whiteSpace: 'pre-line' }}>
+                              {sec.description || ''}
+                            </p>
+                          </div>
+                        );
                       }
 
+                      const points = sec.points || [];
+                      if (points.length === 0) return null;
+
                       return (
-                        <div key={`spec-pt-${idx}`} className="col-12 col-md-6">
+                        <div key={sec.id || `spec-sec-${sIdx}`}>
+                          {sec.heading && (
+                            <h5 className="fw-bold text-dark mb-2.5" style={{ fontSize: '15px' }}>
+                              {sec.heading}
+                            </h5>
+                          )}
                           <div
-                            className="h-100 rounded-3 border d-flex align-items-start gap-3"
+                            className="table-responsive rounded-3"
                             style={{
-                              padding: '16px 20px',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: '10px',
+                              boxShadow: 'none',
+                              overflow: 'hidden',
                               backgroundColor: '#ffffff',
-                              borderColor: '#e2e8f0',
                             }}
                           >
-                            {/* Black solid circle dot matching reference image */}
-                            <div
+                            <table
+                              className="table mb-0 align-middle"
                               style={{
-                                width: '15px',
-                                height: '15px',
-                                borderRadius: '50%',
-                                backgroundColor: '#0f172a',
-                                flexShrink: 0,
-                                marginTop: '4px',
+                                borderColor: '#f1f5f9',
+                                boxShadow: 'none',
+                                backgroundColor: '#ffffff',
                               }}
-                            />
-                            <div style={{ fontSize: '13.5px', lineHeight: '1.6', color: '#334155' }}>
-                              {boldPart && (
-                                <strong style={{ color: '#0f172a', marginRight: '6px' }}>
-                                  {boldPart.endsWith(':') ? boldPart : `${boldPart}:`}
-                                </strong>
-                              )}
-                              <span>{descPart}</span>
-                            </div>
+                            >
+                              <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                                <tr>
+                                  <th
+                                    style={{
+                                      width: '32%',
+                                      minWidth: '200px',
+                                      padding: '16px 24px',
+                                      fontSize: '12px',
+                                      fontWeight: 700,
+                                      letterSpacing: '0.5px',
+                                      border: 'none',
+                                      borderBottom: '1px solid #e2e8f0',
+                                      borderRight: '1px solid #f1f5f9',
+                                      backgroundColor: '#f8fafc',
+                                      color: '#475569',
+                                      textTransform: 'uppercase',
+                                    }}
+                                  >
+                                    SPECIFICATION
+                                  </th>
+                                  <th
+                                    style={{
+                                      width: '68%',
+                                      padding: '16px 24px',
+                                      fontSize: '12px',
+                                      fontWeight: 700,
+                                      letterSpacing: '0.5px',
+                                      border: 'none',
+                                      borderBottom: '1px solid #e2e8f0',
+                                      backgroundColor: '#f8fafc',
+                                      color: '#475569',
+                                      textTransform: 'uppercase',
+                                    }}
+                                  >
+                                    DETAILS
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody style={{ backgroundColor: '#ffffff' }}>
+                                {points.map((pt, pIdx) => {
+                                  let boldPart = pt.heading || '';
+                                  let descPart = pt.text || '';
+                                  if (!boldPart && descPart.includes(':')) {
+                                    const colonIdx = descPart.indexOf(':');
+                                    boldPart = descPart.slice(0, colonIdx).trim();
+                                    descPart = descPart.slice(colonIdx + 1).trim();
+                                  }
+                                  if (!boldPart) boldPart = `Feature #${pIdx + 1}`;
+                                  const isLast = pIdx === points.length - 1;
+
+                                  return (
+                                    <tr key={pt.id || `pt-${sIdx}-${pIdx}`} style={{ backgroundColor: '#ffffff' }}>
+                                      <td
+                                        className="fw-semibold text-dark text-nowrap"
+                                        style={{
+                                          padding: '16px 24px',
+                                          fontSize: '13.5px',
+                                          color: '#0f172a',
+                                          borderTop: 'none',
+                                          borderBottom: isLast ? 'none' : '1px solid #f1f5f9',
+                                          borderRight: '1px solid #f1f5f9',
+                                          backgroundColor: '#ffffff',
+                                        }}
+                                      >
+                                        {boldPart}
+                                      </td>
+                                      <td
+                                        style={{
+                                          padding: '16px 24px',
+                                          fontSize: '13.5px',
+                                          color: '#334155',
+                                          borderTop: 'none',
+                                          borderBottom: isLast ? 'none' : '1px solid #f1f5f9',
+                                          backgroundColor: '#ffffff',
+                                        }}
+                                      >
+                                        {descPart}
+                                      </td>
+                                    </tr>
+                                  );
+                                })}
+                              </tbody>
+                            </table>
                           </div>
                         </div>
                       );
@@ -1799,7 +2007,7 @@ function ProductDetailsContent() {
                 <button
                   type="button"
                   onClick={handlePrevRelated}
-                  disabled={!canScrollPrev}
+                  disabled={relatedProducts.length <= 1}
                   aria-label="Previous products"
                   className="related-nav-btn"
                   title="Previous Products"
@@ -1809,7 +2017,7 @@ function ProductDetailsContent() {
                 <button
                   type="button"
                   onClick={handleNextRelated}
-                  disabled={!canScrollNext}
+                  disabled={relatedProducts.length <= 1}
                   aria-label="Next products"
                   className="related-nav-btn"
                   title="Next Products"
@@ -1821,8 +2029,8 @@ function ProductDetailsContent() {
           </div>
 
           <div className="related-products-slider" ref={relatedSliderRef}>
-            {relatedProducts.map((rel) => (
-              <div key={rel.id} className="related-product-slide">
+            {repeatedRelatedProducts.map((rel) => (
+              <div key={rel.loopKey} className="related-product-slide">
                 <RelatedProductCardItem
                   rel={rel}
                   isInWishlist={isInWishlist}

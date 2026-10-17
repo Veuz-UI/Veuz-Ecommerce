@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
-import { fetchProducts, deleteProduct, PRODUCTS_EVENT } from '@/services/productsService';
+import { fetchProducts, deleteProduct, toggleProductStatus, PRODUCTS_EVENT } from '@/services/productsService';
 import { fetchShopSettings } from '@/services/shopSettingsService';
 import { ProductItem } from '@/data/categoryProductsData';
 import { ShopCategory } from '@/data/defaultShopSettings';
@@ -22,6 +22,30 @@ export default function AllProductsPage() {
   // Delete modal state
   const [deleteTarget, setDeleteTarget] = useState<ProductItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
+
+  const handleToggleStatus = async (item: ProductItem) => {
+    setTogglingId(item.id);
+    try {
+      const res = await toggleProductStatus(item.id);
+      if (res.success && res.data) {
+        setProducts((prev) =>
+          prev.map((p) => (p.id === item.id ? { ...p, isActive: res.data!.isActive } : p))
+        );
+        showToast(
+          'success',
+          `Product "${item.title}" is now ${res.data.isActive ? 'Active (Visible on Storefront)' : 'Inactive (Hidden from Storefront)'}.`,
+          res.data.isActive ? 'Product Activated' : 'Product Deactivated'
+        );
+      } else {
+        showToast('danger', res.message || 'Failed to update product status.');
+      }
+    } catch (err: any) {
+      showToast('danger', 'Error updating product status.');
+    } finally {
+      setTogglingId(null);
+    }
+  };
 
   // Load products & categories
   const loadData = useCallback(async () => {
@@ -83,7 +107,7 @@ export default function AllProductsPage() {
   const filteredProducts = useMemo(() => {
     let list = [...products];
 
-    // Tab filter
+    // Status / Tab filter
     if (activeTab === 'new-arrival') {
       list = list.filter((p) => p.isNewArrival !== false);
     } else if (activeTab === 'most-searched') {
@@ -119,12 +143,16 @@ export default function AllProductsPage() {
     return list;
   }, [products, activeTab, selectedCategory, searchQuery]);
 
-  // Metrics
+  // Metrics (Strictly scoped so inactive/hidden items do not skew active counts)
+  const activeProducts = useMemo(() => products.filter((p) => p.isActive !== false), [products]);
+  const hiddenProducts = useMemo(() => products.filter((p) => p.isActive === false), [products]);
   const totalCount = products.length;
-  const newArrivalCount = products.filter((p) => p.isNewArrival !== false).length;
-  const offerCount = products.filter((p) => (p.isSpecialOffer === true || Boolean(p.discount)) && !p.offerEndDate).length;
-  const limitedOfferCount = products.filter((p) => p.isSpecialOffer === true && Boolean(p.offerEndDate)).length;
-  const totalInteractions = products.reduce((acc, p) => acc + (p.clicks || 0) + (p.views || 0), 0);
+  const activeCount = activeProducts.length;
+  const hiddenCount = hiddenProducts.length;
+  const newArrivalCount = activeProducts.filter((p) => p.isNewArrival !== false).length;
+  const offerCount = activeProducts.filter((p) => (p.isSpecialOffer === true || Boolean(p.discount)) && !p.offerEndDate).length;
+  const limitedOfferCount = activeProducts.filter((p) => p.isSpecialOffer === true && Boolean(p.offerEndDate)).length;
+  const totalInteractions = activeProducts.reduce((acc, p) => acc + (p.clicks || 0) + (p.views || 0), 0);
 
   return (
     <>
@@ -242,14 +270,14 @@ export default function AllProductsPage() {
               </div>
               <div className="d-flex align-items-baseline gap-2">
                 <h3 className="fw-bold mb-0 text-dark" style={{ fontSize: '24px' }}>
-                  {totalCount}
+                  {activeCount}
                 </h3>
-                <span className="badge fs-11 fw-semibold bg-light text-secondary border" style={{ padding: '3px 8px' }}>
-                  Items in Store
+                <span className="badge fs-11 fw-semibold bg-success-subtle text-success border border-success-subtle" style={{ padding: '3px 8px' }}>
+                  Active on Store
                 </span>
               </div>
               <span className="text-muted fs-12 d-block mt-1">
-                {products.filter((p) => p.isActive !== false).length} Active on storefront
+                {totalCount} Total Catalog ({hiddenCount} Hidden)
               </span>
             </div>
           </div>
@@ -630,7 +658,15 @@ export default function AllProductsPage() {
                   const isNew = !isOffer && item.isNewArrival !== false;
 
                   return (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <tr
+                      key={item.id}
+                      style={{
+                        borderBottom: '1px solid #f1f5f9',
+                        opacity: item.isActive === false ? 0.75 : 1,
+                        backgroundColor: item.isActive === false ? '#fafafc' : undefined,
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
                       {/* Index */}
                       <td style={{ padding: '14px 16px', color: '#94a3b8', fontWeight: 500 }}>
                         {idx + 1}
@@ -735,6 +771,14 @@ export default function AllProductsPage() {
                       {/* Collections Flags */}
                       <td style={{ padding: '14px 16px' }}>
                         <div className="d-flex flex-column gap-1">
+                          {item.isActive === false && (
+                            <span
+                              className="badge bg-danger-subtle text-danger border border-danger-subtle fs-11 fw-semibold align-self-start"
+                              style={{ padding: '3px 7px', borderRadius: '4px' }}
+                            >
+                              Inactive (Hidden)
+                            </span>
+                          )}
                           {item.isDraft ? (
                             <span
                               className="badge bg-secondary-subtle text-secondary border border-secondary-subtle fs-11 fw-semibold align-self-start"
@@ -744,6 +788,14 @@ export default function AllProductsPage() {
                             </span>
                           ) : (
                             <>
+                              {item.isActive === false && (
+                                <span
+                                  className="badge bg-danger-subtle text-danger border border-danger-subtle fs-11 fw-semibold align-self-start"
+                                  style={{ padding: '3px 7px', borderRadius: '4px' }}
+                                >
+                                  Hidden
+                                </span>
+                              )}
                               {isNew && (
                                 <span
                                   className="badge bg-success-subtle text-success border border-success-subtle fs-11 fw-semibold align-self-start"
@@ -760,7 +812,7 @@ export default function AllProductsPage() {
                                   {isLimitedOffer ? 'Limited Offer' : 'Special Offer'}
                                 </span>
                               )}
-                              {!isNew && !isOffer && (
+                              {!isNew && !isOffer && item.isActive !== false && (
                                 <span className="text-muted fs-11">Standard Catalog</span>
                               )}
                             </>
@@ -771,6 +823,45 @@ export default function AllProductsPage() {
                       {/* Actions */}
                       <td style={{ padding: '14px 16px', textAlign: 'right' }}>
                         <div className="d-flex align-items-center justify-content-end gap-1.5">
+                          {/* Active / Inactive Status Toggle Button */}
+                          <button
+                            type="button"
+                            onClick={() => handleToggleStatus(item)}
+                            disabled={togglingId === item.id}
+                            className="btn btn-sm btn-icon"
+                            title={
+                              item.isActive === false
+                                ? 'Product is Inactive — Click to Activate (Show on Store)'
+                                : 'Product is Active — Click to Deactivate (Hide from Store)'
+                            }
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '6px',
+                              border: item.isActive === false ? '1px solid #fecaca' : '1px solid #bbf7d0',
+                              backgroundColor: item.isActive === false ? '#fef2f2' : '#f0fdf4',
+                              color: item.isActive === false ? '#ef4444' : '#16a34a',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              padding: 0,
+                              cursor: togglingId === item.id ? 'wait' : 'pointer',
+                              transition: 'all 0.15s ease',
+                            }}
+                          >
+                            {togglingId === item.id ? (
+                              <div
+                                className="spinner-border spinner-border-sm"
+                                style={{ width: '13px', height: '13px' }}
+                                role="status"
+                              ></div>
+                            ) : item.isActive === false ? (
+                              <iconify-icon icon="solar:eye-closed-linear" class="fs-16"></iconify-icon>
+                            ) : (
+                              <iconify-icon icon="solar:eye-bold" class="fs-16"></iconify-icon>
+                            )}
+                          </button>
+
                           <Link
                             href={`/dashboard/all-products/edit?id=${item.id}`}
                             className="btn btn-sm btn-icon"

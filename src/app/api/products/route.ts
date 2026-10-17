@@ -71,7 +71,7 @@ export async function GET(req: Request) {
       if (!item) {
         return NextResponse.json({ success: false, message: 'Product not found' }, { status: 404 });
       }
-      if (item.isDraft && !includeDrafts) {
+      if ((item.isDraft || item.isActive === false) && !includeDrafts) {
         return NextResponse.json({ success: false, message: 'Product not found' }, { status: 404 });
       }
       return NextResponse.json({ success: true, data: item });
@@ -79,9 +79,9 @@ export async function GET(req: Request) {
 
     let result = [...products];
 
-    // Exclude draft products from front store unless explicitly requested (dashboard)
+    // Exclude draft and inactive products from front store unless explicitly requested (dashboard)
     if (!includeDrafts) {
-      result = result.filter((p) => !p.isDraft);
+      result = result.filter((p) => !p.isDraft && p.isActive !== false);
     }
 
     // Sort by createdAt desc by default so newly added items show first
@@ -189,6 +189,7 @@ export async function POST(req: Request) {
           galleryPhotos = colPhotos.slice(1);
         }
       }
+      const isDraftProduct = Boolean(newProductData.isDraft);
 
       const newProduct: ProductItem = {
         id: newId,
@@ -202,8 +203,8 @@ export async function POST(req: Request) {
         rating: newProductData.rating || '5.0',
         reviews: newProductData.reviews || '10',
         image: primaryImage,
-        badge: newProductData.badge || (isSpecialOffer ? 'Special Offer' : 'New Arrival'),
-        badgeClass: isSpecialOffer ? 'sale' : 'new',
+        badge: isDraftProduct ? 'Draft' : (newProductData.badge || (isSpecialOffer ? 'Special Offer' : 'New Arrival')),
+        badgeClass: isDraftProduct ? 'draft' : (isSpecialOffer ? 'sale' : 'new'),
         location: newProductData.location || '',
         standard: newProductData.standard || 'Certified Safety Standard',
         inStock: newProductData.inStock !== false,
@@ -213,13 +214,16 @@ export async function POST(req: Request) {
         isSpecialOffer: isSpecialOffer,
         offerPercent: offerPercent,
         offerEndDate: isSpecialOffer ? newProductData.offerEndDate : undefined,
-        // Crucial requirement: Newly added product is considered "New Arrival" and shows 1st!
-        isNewArrival: isSpecialOffer ? false : true,
+        // Crucial requirement: Draft products are NEVER New Arrival or published to store!
+        isNewArrival: isDraftProduct ? false : (isSpecialOffer ? false : true),
         createdAt: now,
-        views: Number(newProductData.views) || 1,
+        views: Number(newProductData.views) || 0,
         clicks: Number(newProductData.clicks) || 0,
         isActive: newProductData.isActive !== false,
+        isDraft: isDraftProduct,
         specifications: Array.isArray(newProductData.specifications) ? newProductData.specifications : [],
+        technicalSpecs: Array.isArray(newProductData.technicalSpecs) ? newProductData.technicalSpecs : [],
+        specificationsOverview: newProductData.specificationsOverview ? newProductData.specificationsOverview.trim() : undefined,
         sizes: Array.isArray(newProductData.sizes) ? newProductData.sizes : [],
         colors: Array.isArray(newProductData.colors) ? newProductData.colors : [],
         gender: newProductData.gender ? String(newProductData.gender).trim() : 'Unisex',
@@ -287,6 +291,8 @@ export async function POST(req: Request) {
         }
       }
 
+      const isDraftUpdated = updateData.isDraft !== undefined ? Boolean(updateData.isDraft) : Boolean(existing.isDraft);
+
       const updatedProduct: ProductItem = {
         ...existing,
         ...updateData,
@@ -300,9 +306,11 @@ export async function POST(req: Request) {
         currentPrice: currentPrice,
         isSpecialOffer: isSpecialOffer,
         offerEndDate,
-        isNewArrival: isSpecialOffer ? false : (existing.isSpecialOffer ? false : (updateData.isNewArrival !== undefined ? Boolean(updateData.isNewArrival) : existing.isNewArrival)),
+        isDraft: isDraftUpdated,
+        isNewArrival: isDraftUpdated ? false : (isSpecialOffer ? false : (existing.isSpecialOffer ? false : (updateData.isNewArrival !== undefined ? Boolean(updateData.isNewArrival) : existing.isNewArrival))),
         isActive: updateData.isActive !== undefined ? Boolean(updateData.isActive) : existing.isActive,
         specifications: Array.isArray(updateData.specifications) ? updateData.specifications : (existing.specifications || []),
+        technicalSpecs: Array.isArray(updateData.technicalSpecs) ? updateData.technicalSpecs : (existing.technicalSpecs || []),
         sizes: Array.isArray(updateData.sizes) ? updateData.sizes : (existing.sizes || []),
         colors: Array.isArray(updateData.colors) ? updateData.colors : (existing.colors || []),
         colorImages: updateData.colorImages !== undefined ? updateData.colorImages : (existing.colorImages || {}),
@@ -314,14 +322,28 @@ export async function POST(req: Request) {
         images: Array.isArray(updateData.images) ? updateData.images : (existing.images || []),
       };
 
-      if (isSpecialOffer) {
+      if (isDraftUpdated) {
+        updatedProduct.badge = 'Draft';
+        updatedProduct.badgeClass = 'draft';
+      }
+
+      // Handle specificationsOverview clearing explicitly
+      if (updateData.specificationsOverview !== undefined) {
+        if (updateData.specificationsOverview && typeof updateData.specificationsOverview === 'string' && updateData.specificationsOverview.trim()) {
+          updatedProduct.specificationsOverview = updateData.specificationsOverview.trim();
+        } else {
+          delete updatedProduct.specificationsOverview;
+        }
+      }
+
+      if (isSpecialOffer && !isDraftUpdated) {
         updatedProduct.oldPrice = oldPriceText;
         updatedProduct.discount = discountText;
         updatedProduct.offerPercent = offerPercent;
         updatedProduct.offerEndDate = offerEndDate;
         updatedProduct.badge = discountText || 'Special Offer';
         updatedProduct.badgeClass = 'sale';
-      } else {
+      } else if (!isDraftUpdated) {
         // Explicitly remove all offer fields when offer is turned off
         delete updatedProduct.oldPrice;
         delete updatedProduct.discount;
@@ -357,7 +379,8 @@ export async function POST(req: Request) {
       if (targetIndex === -1) {
         return NextResponse.json({ success: false, message: 'Product not found' }, { status: 404 });
       }
-      products[targetIndex].isActive = !products[targetIndex].isActive;
+      const currentActive = products[targetIndex].isActive !== false;
+      products[targetIndex].isActive = !currentActive;
       writeStoredProducts(products);
       return NextResponse.json({ success: true, data: products[targetIndex] });
     }

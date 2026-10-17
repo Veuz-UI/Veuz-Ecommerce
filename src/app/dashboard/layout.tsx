@@ -1097,7 +1097,17 @@ export default function DashboardLayout({
                 </Link>
               </li>
 
-              {/* 7. Our Partners */}
+              {/* 7. Promotion Area */}
+              <li className="nav-item">
+                <Link className={`nav-link ${pathname?.startsWith('/dashboard/promotion-area') ? 'active' : ''}`} href="/dashboard/promotion-area">
+                  <span className="nav-icon">
+                    <iconify-icon icon="solar:ticket-sale-broken"></iconify-icon>
+                  </span>
+                  <span className="nav-text"> Promotion Area </span>
+                </Link>
+              </li>
+
+              {/* 8. Our Partners */}
               <li className="nav-item">
                 <Link className={`nav-link ${pathname?.startsWith('/dashboard/our-partners') ? 'active' : ''}`} href="/dashboard/our-partners">
                   <span className="nav-icon">

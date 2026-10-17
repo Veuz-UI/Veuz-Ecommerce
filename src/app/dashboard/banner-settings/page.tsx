@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { fetchBannerSettings, saveBannerSettings, BANNER_SETTINGS_EVENT } from '@/services/bannerSettingsService';
+import { fetchBannerSettings, saveBannerSettings, swapBannerOrder, normalizeBannerList, BANNER_SETTINGS_EVENT } from '@/services/bannerSettingsService';
 import { MainBannerItem, PromoBannerItem, BannerSettingsData } from '@/data/defaultBannerSettings';
 import { useToast } from '@/context/ToastContext';
 import { ClientPortal } from '@/components/common/ClientPortal';
@@ -34,8 +34,8 @@ export default function BannerSettingsPage() {
     try {
       const data = await fetchBannerSettings();
       setBannerData({
-        mainBanners: data.mainBanners || [],
-        promoBanners: data.promoBanners || [],
+        mainBanners: normalizeBannerList(data.mainBanners || []),
+        promoBanners: normalizeBannerList(data.promoBanners || []),
       });
     } catch (err: any) {
       console.error('Error loading banner settings:', err);
@@ -52,8 +52,8 @@ export default function BannerSettingsPage() {
       const customEvent = e as CustomEvent;
       if (customEvent.detail) {
         setBannerData({
-          mainBanners: customEvent.detail.mainBanners || [],
-          promoBanners: customEvent.detail.promoBanners || [],
+          mainBanners: normalizeBannerList(customEvent.detail.mainBanners || []),
+          promoBanners: normalizeBannerList(customEvent.detail.promoBanners || []),
         });
       }
     };
@@ -61,6 +61,33 @@ export default function BannerSettingsPage() {
     window.addEventListener(BANNER_SETTINGS_EVENT, handleUpdated);
     return () => window.removeEventListener(BANNER_SETTINGS_EVENT, handleUpdated);
   }, [loadData]);
+
+  // Handle direct reordering (Swaps orders automatically)
+  const handleReorder = async (type: 'main' | 'promo', targetId: string, newOrder: number) => {
+    let updatedData: BannerSettingsData;
+    if (type === 'main') {
+      const reordered = swapBannerOrder(bannerData.mainBanners, targetId, newOrder);
+      updatedData = { ...bannerData, mainBanners: reordered };
+    } else {
+      const reordered = swapBannerOrder(bannerData.promoBanners, targetId, newOrder);
+      updatedData = { ...bannerData, promoBanners: reordered };
+    }
+
+    setBannerData(updatedData);
+
+    try {
+      const res = await saveBannerSettings(updatedData);
+      if (res.success) {
+        showToast('success', `Banner moved to position #${newOrder}! Orders auto-swapped cleanly.`);
+      } else {
+        showToast('danger', res.message || 'Failed to update banner order.');
+        loadData();
+      }
+    } catch (err: any) {
+      showToast('danger', err.message || 'Error updating banner order.');
+      loadData();
+    }
+  };
 
   // Toggle Hide / Show (Status)
   const handleToggleStatus = async (type: 'main' | 'promo', item: MainBannerItem | PromoBannerItem) => {
@@ -593,14 +620,61 @@ export default function BannerSettingsPage() {
                           transition: 'background-color 0.15s ease',
                         }}
                       >
-                        {/* Order Index */}
+                        {/* Order Index with Auto-Swap Dropdown & Arrows */}
                         <td className="py-3.5 px-4 text-muted fs-13 fw-semibold">
-                          <span
-                            className="badge bg-light text-dark border fs-12"
-                            style={{ padding: '4px 8px', borderRadius: '4px' }}
-                          >
-                            {item.order || idx + 1}
-                          </span>
+                          <div className="d-flex align-items-center" style={{ gap: '6px' }}>
+                            <select
+                              className="form-select form-select-sm py-0.5 px-2 fs-12 fw-bold text-dark bg-white border"
+                              style={{ width: '54px', height: '28px', borderRadius: '6px', borderColor: '#cbd5e1', cursor: 'pointer' }}
+                              value={item.order || idx + 1}
+                              onChange={(e) => handleReorder('main', item.id, parseInt(e.target.value) || 1)}
+                              title="Display order (auto-swaps with current occupant)"
+                            >
+                              {Array.from({ length: bannerData.mainBanners.length }, (_, i) => i + 1).map((num) => (
+                                <option key={num} value={num}>
+                                  {num}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="d-flex flex-column" style={{ gap: '2px' }}>
+                              <button
+                                type="button"
+                                className="btn btn-sm p-0 d-flex align-items-center justify-content-center text-muted"
+                                style={{
+                                  width: '18px',
+                                  height: '13px',
+                                  border: '1px solid #e2e8f0',
+                                  borderRadius: '3px',
+                                  backgroundColor: '#f8fafc',
+                                  opacity: (item.order || idx + 1) <= 1 ? 0.35 : 1,
+                                  cursor: (item.order || idx + 1) <= 1 ? 'not-allowed' : 'pointer',
+                                }}
+                                disabled={(item.order || idx + 1) <= 1}
+                                onClick={() => handleReorder('main', item.id, (item.order || idx + 1) - 1)}
+                                title="Move Up"
+                              >
+                                <iconify-icon icon="solar:alt-arrow-up-linear" class="fs-10"></iconify-icon>
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm p-0 d-flex align-items-center justify-content-center text-muted"
+                                style={{
+                                  width: '18px',
+                                  height: '13px',
+                                  border: '1px solid #e2e8f0',
+                                  borderRadius: '3px',
+                                  backgroundColor: '#f8fafc',
+                                  opacity: (item.order || idx + 1) >= bannerData.mainBanners.length ? 0.35 : 1,
+                                  cursor: (item.order || idx + 1) >= bannerData.mainBanners.length ? 'not-allowed' : 'pointer',
+                                }}
+                                disabled={(item.order || idx + 1) >= bannerData.mainBanners.length}
+                                onClick={() => handleReorder('main', item.id, (item.order || idx + 1) + 1)}
+                                title="Move Down"
+                              >
+                                <iconify-icon icon="solar:alt-arrow-down-linear" class="fs-10"></iconify-icon>
+                              </button>
+                            </div>
+                          </div>
                         </td>
 
                         {/* Image Thumbnail */}
@@ -823,14 +897,61 @@ export default function BannerSettingsPage() {
                           transition: 'background-color 0.15s ease',
                         }}
                       >
-                        {/* Order Index */}
+                        {/* Order Index with Auto-Swap Dropdown & Arrows */}
                         <td className="py-3.5 px-4 text-muted fs-13 fw-semibold">
-                          <span
-                            className="badge bg-light text-dark border fs-12"
-                            style={{ padding: '4px 8px', borderRadius: '4px' }}
-                          >
-                            {item.order || idx + 1}
-                          </span>
+                          <div className="d-flex align-items-center" style={{ gap: '6px' }}>
+                            <select
+                              className="form-select form-select-sm py-0.5 px-2 fs-12 fw-bold text-dark bg-white border"
+                              style={{ width: '54px', height: '28px', borderRadius: '6px', borderColor: '#cbd5e1', cursor: 'pointer' }}
+                              value={item.order || idx + 1}
+                              onChange={(e) => handleReorder('promo', item.id, parseInt(e.target.value) || 1)}
+                              title="Display order (auto-swaps with current occupant)"
+                            >
+                              {Array.from({ length: bannerData.promoBanners.length }, (_, i) => i + 1).map((num) => (
+                                <option key={num} value={num}>
+                                  {num}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="d-flex flex-column" style={{ gap: '2px' }}>
+                              <button
+                                type="button"
+                                className="btn btn-sm p-0 d-flex align-items-center justify-content-center text-muted"
+                                style={{
+                                  width: '18px',
+                                  height: '13px',
+                                  border: '1px solid #e2e8f0',
+                                  borderRadius: '3px',
+                                  backgroundColor: '#f8fafc',
+                                  opacity: (item.order || idx + 1) <= 1 ? 0.35 : 1,
+                                  cursor: (item.order || idx + 1) <= 1 ? 'not-allowed' : 'pointer',
+                                }}
+                                disabled={(item.order || idx + 1) <= 1}
+                                onClick={() => handleReorder('promo', item.id, (item.order || idx + 1) - 1)}
+                                title="Move Up"
+                              >
+                                <iconify-icon icon="solar:alt-arrow-up-linear" class="fs-10"></iconify-icon>
+                              </button>
+                              <button
+                                type="button"
+                                className="btn btn-sm p-0 d-flex align-items-center justify-content-center text-muted"
+                                style={{
+                                  width: '18px',
+                                  height: '13px',
+                                  border: '1px solid #e2e8f0',
+                                  borderRadius: '3px',
+                                  backgroundColor: '#f8fafc',
+                                  opacity: (item.order || idx + 1) >= bannerData.promoBanners.length ? 0.35 : 1,
+                                  cursor: (item.order || idx + 1) >= bannerData.promoBanners.length ? 'not-allowed' : 'pointer',
+                                }}
+                                disabled={(item.order || idx + 1) >= bannerData.promoBanners.length}
+                                onClick={() => handleReorder('promo', item.id, (item.order || idx + 1) + 1)}
+                                title="Move Down"
+                              >
+                                <iconify-icon icon="solar:alt-arrow-down-linear" class="fs-10"></iconify-icon>
+                              </button>
+                            </div>
+                          </div>
                         </td>
 
                         {/* Image Thumbnail */}
@@ -855,7 +976,7 @@ export default function BannerSettingsPage() {
                                 objectFit: 'cover',
                               }}
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/assets/imgs/banner/clean-side-1.jpg';
+                                (e.target as HTMLImageElement).src = '/assets/imgs/theme/placeholder.svg';
                               }}
                             />
                           </div>

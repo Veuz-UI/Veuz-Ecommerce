@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchProducts, createProduct, updateProduct } from '@/services/productsService';
 import { fetchShopSettings } from '@/services/shopSettingsService';
-import { ProductItem, ProductDetailSection, SYSTEM_COLORS, PRESET_SIZES, SystemColor } from '@/data/categoryProductsData';
+import { ProductItem, ProductDetailSection, TechnicalSpecification, SYSTEM_COLORS, PRESET_SIZES, SystemColor } from '@/data/categoryProductsData';
 import { fetchAttributes } from '@/services/attributesService';
 import { ShopCategory, DeliveryOptionItem, DEFAULT_DELIVERY_OPTIONS } from '@/data/defaultShopSettings';
 import { validateImageFile } from '@/utils/imageSecurity';
@@ -79,6 +79,8 @@ function ProductEditForm() {
 
   // Specifications State
   const [specifications, setSpecifications] = useState<ProductDetailSection[]>([]);
+  const [technicalSpecs, setTechnicalSpecs] = useState<TechnicalSpecification[]>([]);
+  const [specificationsOverview, setSpecificationsOverview] = useState<string>('');
 
   // Sizes & Colors State
   const [allColors, setAllColors] = useState<SystemColor[]>(SYSTEM_COLORS);
@@ -92,6 +94,7 @@ function ProductEditForm() {
   const [existingViews, setExistingViews] = useState<number>(0);
   const [existingClicks, setExistingClicks] = useState<number>(0);
   const [existingCreatedAt, setExistingCreatedAt] = useState<number | undefined>(undefined);
+  const [isDraft, setIsDraft] = useState<boolean>(false);
 
   // Load shop categories and existing product if edit mode
   useEffect(() => {
@@ -170,7 +173,10 @@ function ProductEditForm() {
             setExistingViews(found.views || 0);
             setExistingClicks(found.clicks || 0);
             setExistingCreatedAt(found.createdAt);
+            setIsDraft(Boolean(found.isDraft));
             setSpecifications(found.specifications || []);
+            setTechnicalSpecs(found.technicalSpecs || []);
+            setSpecificationsOverview(found.specificationsOverview || '');
             setSizes(found.sizes || []);
             setColors(found.colors || []);
             setGalleryImages(Array.isArray(found.images) ? found.images : []);
@@ -531,8 +537,11 @@ function ProductEditForm() {
       views: isCreateMode ? 0 : existingViews,
       clicks: isCreateMode ? 0 : existingClicks,
       isActive: true,
+      isDraft: isDraft,
       createdAt: isCreateMode ? Date.now() : existingCreatedAt,
       specifications: specifications,
+      technicalSpecs: technicalSpecs,
+      specificationsOverview: specificationsOverview ? specificationsOverview.trim() : '',
       sizes: sizes,
       colors: colors,
       deliveryOptionId: deliveryOptionId || 'del-standard',
@@ -542,7 +551,53 @@ function ProductEditForm() {
     };
   };
 
-  // Handle Form Submission
+  // Handle Save as Draft
+  const handleSaveDraft = async () => {
+    const draftTitle = title.trim() || 'Untitled Draft';
+    const payload = {
+      ...buildProductPayload(),
+      title: draftTitle,
+      isDraft: true,
+      badge: 'Draft',
+      badgeClass: 'draft' as const,
+      isNewArrival: false,
+    };
+
+    setIsSaving(true);
+    try {
+      if (isCreateMode) {
+        const res = await createProduct(payload);
+        if (res.success) {
+          showToast(
+            'success',
+            `Product "${draftTitle}" saved as draft. It is unpublished and will NOT appear on the storefront.`,
+            'Draft Saved'
+          );
+          router.push('/dashboard/all-products');
+        } else {
+          showToast('danger', res.message || 'Failed to save draft.');
+        }
+      } else {
+        const res = await updateProduct(payload);
+        if (res.success) {
+          showToast(
+            'success',
+            `Product "${draftTitle}" updated as draft. It is unpublished and will NOT appear on the storefront.`,
+            'Draft Saved'
+          );
+          router.push('/dashboard/all-products');
+        } else {
+          showToast('danger', res.message || 'Failed to update draft.');
+        }
+      }
+    } catch (err: any) {
+      showToast('danger', err.message || 'An unexpected error occurred.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Handle Form Submission (Publish)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -600,85 +655,95 @@ function ProductEditForm() {
 
   // Navigate to dedicated Product Specifications & Details builder page
   const handleGoToSpecifications = async () => {
-    if (!ensureDraftCanBeSaved()) {
-      return;
-    }
-
-    const payload = {
-      ...buildProductPayload(),
-      isDraft: true,
-    };
-    const targetId = payload.id || `prod-${Date.now()}`;
-
-    setIsSaving(true);
-    try {
-      if (isCreateMode) {
-        await createProduct(payload);
-      } else {
-        await updateProduct(payload);
+    if (isCreateMode) {
+      if (!ensureDraftCanBeSaved()) {
+        return;
       }
-
-      router.push(`/dashboard/all-products/specifications?id=${targetId}`);
-    } catch (err: any) {
-      showToast('danger', 'Could not open specifications editor.');
-    } finally {
-      setIsSaving(false);
+      const draftTitle = title.trim();
+      const payload = {
+        ...buildProductPayload(),
+        title: draftTitle,
+        isDraft: true,
+        badge: 'Draft',
+        badgeClass: 'draft' as const,
+        isNewArrival: false,
+      };
+      const targetId = payload.id || `prod-${Date.now()}`;
+      setIsSaving(true);
+      try {
+        await createProduct(payload);
+        router.push(`/dashboard/all-products/specifications?id=${targetId}`);
+      } catch (err: any) {
+        showToast('danger', 'Could not open specifications editor.');
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      // Edit mode: product already exists. Do NOT mutate or save draft to the database!
+      const targetId = id || queryId;
+      router.push(`/dashboard/all-products/specifications?id=${encodeURIComponent(targetId)}`);
     }
   };
 
   // Navigate to dedicated Product Sizes manager page
   const handleGoToSizes = async () => {
-    if (!ensureDraftCanBeSaved()) {
-      return;
-    }
-
-    const payload = {
-      ...buildProductPayload(),
-      isDraft: true,
-    };
-    const targetId = payload.id || `prod-${Date.now()}`;
-
-    setIsSaving(true);
-    try {
-      if (isCreateMode) {
-        await createProduct(payload);
-      } else {
-        await updateProduct(payload);
+    if (isCreateMode) {
+      if (!ensureDraftCanBeSaved()) {
+        return;
       }
-
-      router.push(`/dashboard/all-products/sizes?id=${targetId}`);
-    } catch (err: any) {
-      showToast('danger', 'Could not open sizes manager.');
-    } finally {
-      setIsSaving(false);
+      const draftTitle = title.trim();
+      const payload = {
+        ...buildProductPayload(),
+        title: draftTitle,
+        isDraft: true,
+        badge: 'Draft',
+        badgeClass: 'draft' as const,
+        isNewArrival: false,
+      };
+      const targetId = payload.id || `prod-${Date.now()}`;
+      setIsSaving(true);
+      try {
+        await createProduct(payload);
+        router.push(`/dashboard/all-products/sizes?id=${targetId}`);
+      } catch (err: any) {
+        showToast('danger', 'Could not open sizes manager.');
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      const targetId = id || queryId;
+      router.push(`/dashboard/all-products/sizes?id=${encodeURIComponent(targetId)}`);
     }
   };
 
   // Navigate to dedicated Product Colors manager page
   const handleGoToColors = async () => {
-    if (!ensureDraftCanBeSaved()) {
-      return;
-    }
-
-    const payload = {
-      ...buildProductPayload(),
-      isDraft: true,
-    };
-    const targetId = payload.id || `prod-${Date.now()}`;
-
-    setIsSaving(true);
-    try {
-      if (isCreateMode) {
-        await createProduct(payload);
-      } else {
-        await updateProduct(payload);
+    if (isCreateMode) {
+      if (!ensureDraftCanBeSaved()) {
+        return;
       }
-
-      router.push(`/dashboard/all-products/colors?id=${targetId}`);
-    } catch (err: any) {
-      showToast('danger', 'Could not open colors manager.');
-    } finally {
-      setIsSaving(false);
+      const draftTitle = title.trim();
+      const payload = {
+        ...buildProductPayload(),
+        title: draftTitle,
+        isDraft: true,
+        badge: 'Draft',
+        badgeClass: 'draft' as const,
+        isNewArrival: false,
+      };
+      const targetId = payload.id || `prod-${Date.now()}`;
+      setIsSaving(true);
+      try {
+        await createProduct(payload);
+        router.push(`/dashboard/all-products/colors?id=${targetId}`);
+      } catch (err: any) {
+        showToast('danger', 'Could not open colors manager.');
+      } finally {
+        setIsSaving(false);
+      }
+    } else {
+      const targetId = id || queryId;
+      router.push(`/dashboard/all-products/colors?id=${encodeURIComponent(targetId)}`);
     }
   };
 
@@ -755,6 +820,31 @@ function ProductEditForm() {
               >
                 Cancel
               </Link>
+
+              {/* SAVE AS DRAFT BUTTON */}
+              <button
+                type="button"
+                onClick={handleSaveDraft}
+                disabled={isSaving || isUploading}
+                className="btn btn-sm d-flex align-items-center gap-1.5"
+                style={{
+                  borderRadius: '8px',
+                  padding: '9px 18px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  color: '#334155',
+                  fontWeight: 600,
+                  fontSize: '13px',
+                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+                  transition: 'all 0.2s ease',
+                }}
+                title="Save product as draft (hidden from store)"
+              >
+                <iconify-icon icon="solar:document-text-linear" class="fs-16 text-muted"></iconify-icon>
+                <span>Save as Draft</span>
+              </button>
+
+              {/* PUBLISH / UPDATE PRODUCT BUTTON */}
               <button
                 type="button"
                 onClick={handleSubmit}
@@ -932,28 +1022,28 @@ function ProductEditForm() {
                           <span className="fw-bold text-dark fs-14" style={{ letterSpacing: '-0.2px' }}>
                             Product Specifications &amp; Details
                           </span>
-                          {specifications.length > 0 && <span
-                            className={`badge d-inline-flex align-items-center gap-1.5 fw-semibold ${
-                              'bg-dark text-white'
-                            }`}
-                            style={{
-                              padding: '4px 10px',
-                              borderRadius: '6px',
-                              fontSize: '11px',
-                              borderColor: '#cbd5e1',
-                            }}
-                          >
-                            <iconify-icon
-                              icon="solar:check-circle-bold"
-                              class="fs-13 text-success"
-                            ></iconify-icon>
-                            <span>
-                              {`${specifications.length} ${specifications.length === 1 ? 'Section' : 'Sections'} Configured`}
+                          {((technicalSpecs && technicalSpecs.length > 0) || specifications.length > 0) && (
+                            <span
+                              className="badge d-inline-flex align-items-center gap-1.5 fw-semibold bg-dark text-white"
+                              style={{
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                fontSize: '11px',
+                                borderColor: '#cbd5e1',
+                              }}
+                            >
+                              <iconify-icon
+                                icon="solar:check-circle-bold"
+                                class="fs-13 text-success"
+                              ></iconify-icon>
+                              <span>
+                                {`${(technicalSpecs && technicalSpecs.length > 0) ? technicalSpecs.length : specifications.length} Specifications Configured`}
+                              </span>
                             </span>
-                          </span>}
+                          )}
                         </div>
                         <span className="text-muted fs-12 d-block" style={{ lineHeight: '1.45' }}>
-                          Add rich structured headings, detailed paragraph descriptions, and point-by-point technical specifications.
+                          Configure safety standards, equipment weight, sizes, protection ratings, and technical compliance table.
                         </span>
                       </div>
                     </div>
@@ -1184,7 +1274,7 @@ function ProductEditForm() {
                     { label: 'Available Colors', count: `${colors.length} selected`, isWarning: false, icon: 'solar:palette-linear', action: () => setIsColorSetupOpen(true), button: 'Configure Colors' },
                     { label: 'Product Images', count: '4–5 required', isWarning: false, icon: 'solar:gallery-wide-bold', action: () => setIsColorDrawerOpen(true), button: 'Manage Images' },
                     { label: 'Gender Selection', count: gender || 'Required *', isWarning: !gender, icon: 'solar:users-group-rounded-bold', action: () => setIsGenderSetupOpen(true), button: gender ? `Gender: ${gender}` : 'Select Gender *' },
-                    { label: 'Delivery Option', count: deliveryOptionName ? `${deliveryOptionName} (${deliveryCharge === 0 ? 'Free' : `${deliveryCharge} SR`})` : 'Standard Delivery (15 SR)', isWarning: false, icon: 'solar:delivery-bold', action: () => setIsDeliverySetupOpen(true), button: deliveryOptionName ? `Delivery: ${deliveryOptionName}` : 'Select Delivery' },
+                    { label: 'Delivery Option', count: deliveryOptionName ? `${deliveryOptionName} (${deliveryCharge === 0 ? 'Free' : `${deliveryCharge} SR`})` : 'Standard Delivery (15 SR)', isWarning: false, icon: 'solar:delivery-bold', action: () => setIsDeliverySetupOpen(true), button: 'Delivery Settings' },
                   ].map((item, index) => (
                     <div key={item.label} className={`rounded-3 d-flex align-items-center justify-content-between gap-2 ${index ? 'mt-3' : ''}`} style={{ backgroundColor: '#fbfcfe', border: '1px solid #e2e8f0', padding: '12px 14px' }}>
                       <div className="d-flex align-items-center gap-2">

@@ -5,7 +5,13 @@ import { ShopSettingsData, DEFAULT_DELIVERY_OPTIONS, DEFAULT_SHOP_SETTINGS } fro
 const STORAGE_KEY = 'veuz_shop_settings_cache';
 export const SHOP_SETTINGS_EVENT = 'veuz:shop-settings-updated';
 
+// Returns synchronous baseline for SSR and initial hydration pass (guaranteeing 0 mismatch)
 export function getCachedShopSettings(): ShopSettingsData {
+  return DEFAULT_SHOP_SETTINGS;
+}
+
+// Client-only cache reader for useEffect
+export function getClientCachedShopSettings(): ShopSettingsData | null {
   if (typeof window !== 'undefined') {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -24,7 +30,7 @@ export function getCachedShopSettings(): ShopSettingsData {
       // Ignore cache read error
     }
   }
-  return DEFAULT_SHOP_SETTINGS;
+  return null;
 }
 
 export async function fetchShopSettings(): Promise<ShopSettingsData> {
