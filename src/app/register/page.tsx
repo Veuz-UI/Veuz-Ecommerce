@@ -598,7 +598,7 @@ export default function RegisterPage() {
                     type="checkbox"
                     checked={agreeTerms}
                     onChange={(e) => setAgreeTerms(e.target.checked)}
-                    style={{ width: '16px', height: '16px', accentColor: '#2563eb', marginTop: '2px', cursor: 'pointer' }}
+                    style={{ width: '16px', height: '16px', accentColor: '#0f172a', marginTop: '2px', cursor: 'pointer' }}
                   />
                   <span>
                     I agree to the <Link href="#" style={{ color: '#2563eb', textDecoration: 'none' }}>Terms of Service</Link> and <Link href="#" style={{ color: '#2563eb', textDecoration: 'none' }}>Privacy Policy</Link> <span style={{ color: '#ef4444', fontWeight: '700' }}>*</span>

@@ -32,35 +32,26 @@
     "cart": [
       {
         "product": {
-          "id": 1792088421327,
-          "name": "3M Hard Hat SecureFit H-700 Series Cap Style Safety Helmet with Uvicator Sensor, 4-Point Pressure Diffusion Ratchet Suspension",
-          "price": 320,
-          "image": "/uploads/img_1792094049136_45487352b9d15e40f208bc9ff0ade528.png",
-          "category": "Safety Helmet"
+          "id": 1792064578945,
+          "name": "Gorilla Grip A1 Precision Grip, Cut Resistant Work Gloves",
+          "price": 80,
+          "image": "/uploads/img_1792064654826_ffde93b8bf82dbad1ca6b2f03d029888.png",
+          "category": "Cut Gloves"
         },
-        "quantity": 1,
-        "selectedColor": "Green",
-        "selectedSize": "Adjustable"
+        "quantity": 1
       }
     ],
-    "wishlist": [],
-    "updatedAt": "2026-10-16T12:22:29.824Z"
+    "wishlist": [
+      1792088421327,
+      1792065980066
+    ],
+    "updatedAt": "2026-10-18T17:01:18.955Z"
   },
   "5": {
-    "cart": [
-      {
-        "product": {
-          "id": 1792088421327,
-          "name": "3M Hard Hat SecureFit H-700 Series Cap Style Safety Helmet with Uvicator Sensor, 4-Point Pressure Diffusion Ratchet Suspension",
-          "price": 320,
-          "image": "/uploads/img_1792094049136_45487352b9d15e40f208bc9ff0ade528.png",
-          "category": "Safety Helmet"
-        },
-        "quantity": 1,
-        "selectedColor": "Green"
-      }
+    "cart": [],
+    "wishlist": [
+      1792065980066
     ],
-    "wishlist": [],
-    "updatedAt": "2026-10-17T20:34:52.043Z"
+    "updatedAt": "2026-10-18T18:36:55.821Z"
   }
 }

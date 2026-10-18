@@ -13,6 +13,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 import { ProductCardImageSlider } from '@/components/common/ProductCardImageSlider';
 import { getDeliveryBadgeProps } from '@/utils/deliveryBadge';
+import { ProductCardSkeleton, CatalogSkeleton } from '@/components/ui/skeletons';
 
 export type CatalogPageMode = 'category' | 'products' | 'offers' | 'limited-offers' | 'most-searched';
 type CollectionFilter = 'all' | 'new-arrival' | 'most-searched' | 'special-offers' | 'limited-offers';
@@ -131,6 +132,7 @@ interface CatalogProductCardItemProps {
   onToggleWishlist: (id: string) => void;
   onProductClick: (id: string) => void;
   onAddToCart: (prod: ProductItem, e: React.MouseEvent, selectedColor?: string) => void;
+  index?: number;
 }
 
 function CatalogProductCardItem({
@@ -141,6 +143,7 @@ function CatalogProductCardItem({
   onToggleWishlist,
   onProductClick,
   onAddToCart,
+  index = 0,
 }: CatalogProductCardItemProps) {
   const initialColor = Array.isArray(prod.colors) && prod.colors.length > 0 ? prod.colors[0] : '';
   const [selectedColor, setSelectedColor] = useState<string>(initialColor);
@@ -181,8 +184,11 @@ function CatalogProductCardItem({
 
   return (
     <div
-      className={isSidebarOpen ? 'col-12 col-sm-6 col-md-6 col-lg-4 col-xl-4 d-flex' : 'col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3 d-flex'}
-      style={{ transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)' }}
+      className={`${isSidebarOpen ? 'col-12 col-sm-6 col-md-6 col-lg-4 col-xl-4 d-flex' : 'col-12 col-sm-6 col-md-4 col-lg-3 col-xl-3 d-flex'} product-card-animate-wrap`}
+      style={{
+        animationDelay: `${(index % 12) * 0.08}s`,
+        transition: 'all 0.45s cubic-bezier(0.22, 1, 0.36, 1)',
+      }}
     >
       <div className="product-cart-wrap uniform-product-card w-100 d-flex flex-column">
         {/* Image Wrap with Top-Left Badge & Top-Right Circular Eye Button */}
@@ -347,12 +353,20 @@ function CatalogProductCardItem({
             </button>
             <button
               type="button"
-              aria-label="Add To Wishlist"
+              aria-label={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
               className={`btn-wishlist-square ${isWishlisted ? 'active' : ''}`}
               onClick={() => onToggleWishlist(prod.id)}
-              title="Add to Wishlist"
+              title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
             >
-              <i className={`fi-rs-heart ${isWishlisted ? 'fill-heart text-danger' : ''}`}></i>
+              {isWishlisted ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" strokeWidth="1.5">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
@@ -366,7 +380,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
   const searchParams = useSearchParams();
   const { showToast } = useToast();
   const { user } = useAuth();
-  const { addToCart, toggleWishlist: storeToggleWishlist } = useStore();
+  const { addToCart, toggleWishlist: storeToggleWishlist, isInWishlist } = useStore();
 
   const urlCategoryParam = searchParams.get('category') || searchParams.get('selected') || 'all';
   const urlFilterParam = (searchParams.get('filter') || 'all') as CollectionFilter;
@@ -377,8 +391,9 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     const active = cats.filter((c) => c.isActive !== false);
     return active.length > 0 ? active : DEFAULT_SHOP_SETTINGS.categories;
   });
+  const forceSkeleton = searchParams.get('skeleton') === 'true';
   const [products, setProducts] = useState<ProductItem[]>(() => getCachedProducts());
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(forceSkeleton);
 
   // Filters state
   const [activeCollection, setActiveCollection] = useState<CollectionFilter>(urlFilterParam);
@@ -813,12 +828,9 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
       return;
     }
     const numId = Number(productId.replace(/[^\d]/g, '')) || 1;
+    const isW = isInWishlist(numId);
     storeToggleWishlist(numId);
-    setWishlist((prev) => {
-      const next = !prev[productId];
-      showToast(next ? 'success' : 'info', next ? 'Added to your wishlist!' : 'Removed from wishlist.');
-      return { ...prev, [productId]: next };
-    });
+    showToast(isW ? 'info' : 'success', isW ? 'Removed from wishlist.' : 'Added to your wishlist!');
   };
 
   // Add to Cart
@@ -1962,7 +1974,16 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
             </div>
 
             {/* Products Grid */}
-            {filteredAndSortedProducts.length === 0 ? (
+            {forceSkeleton || isLoading ? (
+              <div className="row g-3 g-lg-4">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <ProductCardSkeleton
+                    key={i}
+                    colClass={isSidebarOpen ? 'col-xl-4 col-lg-6 col-sm-6 col-12 mb-3' : 'col-xl-3 col-lg-4 col-sm-6 col-12 mb-3'}
+                  />
+                ))}
+              </div>
+            ) : filteredAndSortedProducts.length === 0 ? (
               <div
                 className="text-center py-5 bg-white rounded-4 border"
                 style={{ borderColor: '#e2e8f0', minHeight: '360px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
@@ -1990,17 +2011,18 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                 </button>
               </div>
             ) : (
-              <div className="row g-3 g-lg-4">
-                {filteredAndSortedProducts.map((prod) => (
+              <div className="row g-3 g-lg-4 skeleton-fade-in">
+                {filteredAndSortedProducts.map((prod, idx) => (
                   <CatalogProductCardItem
                     key={prod.id}
                     prod={prod}
                     isSidebarOpen={isSidebarOpen}
                     pageMode={pageMode}
-                    isWishlisted={Boolean(wishlist[prod.id])}
+                    isWishlisted={isInWishlist(Number(prod.id.replace(/[^\d]/g, '')) || 1)}
                     onToggleWishlist={toggleWishlist}
                     onProductClick={recordProductClick}
                     onAddToCart={handleAddToCart}
+                    index={idx}
                   />
                 ))}
               </div>
@@ -2014,15 +2036,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
 
 export function ProductsCatalogView(props: ProductsCatalogViewProps) {
   return (
-    <Suspense
-      fallback={
-        <div className="py-5 text-center">
-          <div className="spinner-border text-success" role="status">
-            <span className="visually-hidden">Loading Catalog...</span>
-          </div>
-        </div>
-      }
-    >
+    <Suspense fallback={<CatalogSkeleton />}>
       <ProductsCatalogContent {...props} />
     </Suspense>
   );

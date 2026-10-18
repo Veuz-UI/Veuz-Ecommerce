@@ -8,6 +8,8 @@ import { AuthProvider } from '@/context/AuthContext';
 import { ToastProvider } from '@/context/ToastContext';
 import { StoreProvider } from '@/context/StoreContext';
 import { StorefrontStyles } from '@/components/layout/StorefrontStyles';
+import { ScrollRevealInit } from '@/components/common/ScrollRevealInit';
+import { ScrollToTopButton } from '@/components/common/ScrollToTopButton';
 
 interface AppLayoutShellProps {
   children: React.ReactNode;
@@ -76,9 +78,11 @@ export const AppLayoutShell: React.FC<AppLayoutShellProps> = ({ children }) => {
             // Complete Storefront Website Layout
             <>
               <StorefrontStyles />
+              <ScrollRevealInit />
               <Header />
               {children}
               <Footer />
+              <ScrollToTopButton />
             </>
           )}
         </StoreProvider>

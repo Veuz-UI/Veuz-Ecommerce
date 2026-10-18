@@ -19,6 +19,7 @@ import { ProductCardImageSlider } from '@/components/common/ProductCardImageSlid
 import { useStore } from '@/context/StoreContext';
 import { useToast } from '@/context/ToastContext';
 import { getDeliveryBadgeProps } from '@/utils/deliveryBadge';
+import { ProductCardSkeleton, CategorySliderSkeleton } from '@/components/ui/skeletons';
 
 const PRODUCT_CARD_COLORS: Record<string, { hex: string; border?: string }> = {
   black: { hex: '#0f172a' },
@@ -65,12 +66,14 @@ function HomeProductCard({
   isWishlisted,
   onToggleWishlist,
   onProductClick,
+  index = 0,
 }: {
   prod: any;
   colClass: string;
   isWishlisted: boolean;
   onToggleWishlist: (id: string) => void;
   onProductClick: (id: string) => void;
+  index?: number;
 }) {
   const initialColor = Array.isArray(prod.colors) && prod.colors.length > 0 ? prod.colors[0] : '';
   const [selectedColor, setSelectedColor] = useState<string>(initialColor);
@@ -128,7 +131,12 @@ function HomeProductCard({
     : baseLink;
 
   return (
-    <div className={colClass}>
+    <div
+      className={`${colClass} product-card-animate-wrap`}
+      style={{
+        animationDelay: `${(index % 8) * 0.085}s`,
+      }}
+    >
       <div className="product-cart-wrap uniform-product-card w-100 d-flex flex-column">
         {/* Top image wrap with Top-Left Badge & Top-Right Circular View Button */}
         <div className="product-img-action-wrap position-relative">
@@ -300,12 +308,20 @@ function HomeProductCard({
             </button>
             <button
               type="button"
-              aria-label="Add To Wishlist"
+              aria-label={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
               className={`btn-wishlist-square ${isWishlisted ? 'active' : ''}`}
               onClick={() => onToggleWishlist(prod.id)}
-              title="Add to Wishlist"
+              title={isWishlisted ? "Remove from Wishlist" : "Add to Wishlist"}
             >
-              <i className={`fi-rs-heart ${isWishlisted ? 'fill-heart text-danger' : ''}`}></i>
+              {isWishlisted ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="#ef4444" stroke="#ef4444" strokeWidth="1.5">
+                  <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+                </svg>
+              ) : (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              )}
             </button>
           </div>
         </div>
@@ -318,20 +334,22 @@ function HomeProductCard({
 function ProductSectionSliderTrack({
   items,
   scrollRef,
-  wishlist,
+  isInWishlist,
   onToggleWishlist,
   onProductClick,
 }: {
   items: any[];
   scrollRef: React.RefObject<HTMLDivElement | null>;
-  wishlist: { [key: string]: boolean };
+  isInWishlist: (numId: number) => boolean;
   onToggleWishlist: (id: string) => void;
   onProductClick: (id: string) => void;
 }) {
   if (!items || items.length === 0) {
     return (
-      <div className="text-center py-5 text-muted">
-        <p>No products available in this section.</p>
+      <div className="d-flex gap-3 overflow-hidden py-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <ProductCardSkeleton key={i} colClass="desktop-prod-slider-col flex-shrink-0" />
+        ))}
       </div>
     );
   }
@@ -346,21 +364,22 @@ function ProductSectionSliderTrack({
   }, [items]);
 
   return (
-    <div className="w-100">
+    <div className="w-100 skeleton-fade-in">
       <div className="desktop-prod-slider-wrapper position-relative">
         <div
           ref={scrollRef}
           className="desktop-prod-slider-track hide-scrollbar"
           style={{ scrollBehavior: 'smooth' }}
         >
-          {repeatedItems.map((prod) => (
+          {repeatedItems.map((prod, idx) => (
             <div key={prod.loopKey} className="desktop-prod-slider-col">
               <HomeProductCard
                 prod={prod}
                 colClass="w-100"
-                isWishlisted={Boolean(wishlist[prod.id])}
+                isWishlisted={isInWishlist(Number(String(prod.id).replace(/[^\d]/g, '')) || 1)}
                 onToggleWishlist={onToggleWishlist}
                 onProductClick={onProductClick}
+                index={idx}
               />
             </div>
           ))}
@@ -383,7 +402,7 @@ export default function HomePage() {
   const router = useRouter();
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { addToCart, toggleWishlist: storeToggleWishlist } = useStore();
+  const { addToCart, toggleWishlist: storeToggleWishlist, isInWishlist } = useStore();
   const [activeSlide, setActiveSlide] = useState(0);
   const [activeSideSlide, setActiveSideSlide] = useState(0);
   const [activeCatIndex, setActiveCatIndex] = useState(0);
@@ -824,8 +843,6 @@ export default function HomePage() {
     }
   };
 
-  const [wishlist, setWishlist] = useState<{ [key: string]: boolean }>({});
-
   const toggleWishlist = (id: string) => {
     if (!user) {
       showToast('warning', 'Please sign in to save items to your wishlist.', 'Login Required');
@@ -834,7 +851,6 @@ export default function HomePage() {
     }
     const numId = Number(id.replace(/[^\d]/g, '')) || 1;
     storeToggleWishlist(numId);
-    setWishlist((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   // Derive dynamic lists strictly from catalogProducts (synced live with dashboard products)
@@ -1026,7 +1042,7 @@ export default function HomePage() {
       <ProductSectionSliderTrack
         items={items}
         scrollRef={scrollRef}
-        wishlist={wishlist}
+        isInWishlist={isInWishlist}
         onToggleWishlist={toggleWishlist}
         onProductClick={recordProductClick}
       />
@@ -1407,7 +1423,19 @@ export default function HomePage() {
               ref={browseCatScrollRef}
               className="browse-cat-track-container"
             >
-              {repeatedShopCategories.map((cat, idx) => {
+              {repeatedShopCategories.length === 0 ? (
+                <div className="d-flex gap-3 w-100 overflow-hidden py-2">
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <div key={i} className="browse-cat-card-wrapper">
+                      <div className="browse-cat-card">
+                        <div className="skeleton-box skeleton-circle browse-cat-circle" />
+                        <div className="skeleton-box mt-2" style={{ width: '70px', height: '14px', borderRadius: '4px' }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                repeatedShopCategories.map((cat, idx) => {
                 const imgSrc = cat.image && !cat.image.includes('undefined') && cat.image !== '#' ? cat.image : '/assets/imgs/theme/placeholder.svg';
                 const catLink = cat.link && cat.link !== '#' ? cat.link : `/category?category=${encodeURIComponent(cat.name)}`;
                 return (
@@ -1429,7 +1457,7 @@ export default function HomePage() {
                     </Link>
                   </div>
                 );
-              })}
+              }))}
             </div>
           </div>
         </div>

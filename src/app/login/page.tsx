@@ -296,7 +296,7 @@ function LoginForm() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: '#2563eb', cursor: 'pointer' }}
+                  style={{ width: '16px', height: '16px', accentColor: '#0f172a', cursor: 'pointer' }}
                 />
                 Remember me
               </label>

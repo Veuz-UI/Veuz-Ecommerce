@@ -451,13 +451,13 @@ export default function CartPage() {
               <div className="d-flex align-items-center justify-content-center gap-2.5 flex-wrap mb-4">
                 <Link
                   href="/products"
-                  className="btn btn-primary d-inline-flex align-items-center gap-2 px-4 fw-semibold"
+                  className="btn btn-dark d-inline-flex align-items-center gap-2 px-4 fw-semibold text-white shadow-sm"
                   style={{
                     height: '46px',
                     borderRadius: '10px',
-                    backgroundColor: '#2563eb',
-                    borderColor: '#2563eb',
-                    boxShadow: '0 4px 14px rgba(37, 99, 235, 0.25)',
+                    backgroundColor: '#0f172a',
+                    borderColor: '#0f172a',
+                    boxShadow: '0 4px 14px rgba(15, 23, 42, 0.2)',
                     fontSize: '14px',
                   }}
                 >
@@ -607,10 +607,14 @@ export default function CartPage() {
                     return (
                       <div
                         key={`${item.product.id}-${item.selectedColor || ''}-${item.selectedSize || ''}-${idx}`}
-                        className={`cart-item-row ${
+                        className={`cart-item-row product-card-animate-wrap ${
                           idx !== cart.length - 1 ? 'border-bottom' : ''
                         }`}
-                        style={{ borderColor: '#f1f5f9', padding: '22px 0' }}
+                        style={{
+                          borderColor: '#f1f5f9',
+                          padding: '22px 0',
+                          animationDelay: `${Math.min(idx % 10, 9) * 0.05}s`,
+                        }}
                       >
                         {/* ------------------------------------------------------------- */}
                         {/* DESKTOP LAYOUT (>= 768px): Single line aligned with stepper   */}

@@ -23,6 +23,7 @@ interface StoreContextType {
   updateQuantity: (productId: number, quantity: number, selectedColor?: string, selectedSize?: string) => void;
   updateCartItemVariant?: (index: number, newColor?: string, newSize?: string, newImage?: string) => void;
   clearCart: () => void;
+  clearWishlist: () => void;
   toggleWishlist: (productId: number) => void;
   isInWishlist: (productId: number) => boolean;
   openQuickView: (product: Product) => void;
@@ -331,6 +332,24 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
+  const clearWishlist = () => {
+    isUserWishlistActionRef.current = true;
+    setWishlist([]);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(getWishlistKey(userId));
+      } catch (e) {}
+    }
+    if (userId) {
+      fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, wishlist: [] }),
+      }).catch(() => {});
+    }
+    triggerGlobalToast('warning', 'Your wishlist has been cleared.', 'Wishlist Cleared');
+  };
+
   const isInWishlist = (productId: number) => wishlist.includes(productId);
 
   const openQuickView = (product: Product) => setQuickViewProduct(product);
@@ -356,6 +375,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         updateQuantity,
         updateCartItemVariant,
         clearCart,
+        clearWishlist,
         toggleWishlist,
         isInWishlist,
         openQuickView,
@@ -376,7 +396,7 @@ export function useStore() {
   if (!context) {
     return {
       cart: [],
-      wishlist: [],
+      wishlist: [] as number[],
       quickViewProduct: null,
       isCartOpen: false,
       isMobileNavOpen: false,
@@ -385,6 +405,7 @@ export function useStore() {
       updateQuantity: () => {},
       updateCartItemVariant: () => {},
       clearCart: () => {},
+      clearWishlist: () => {},
       toggleWishlist: () => {},
       isInWishlist: () => false,
       openQuickView: () => {},

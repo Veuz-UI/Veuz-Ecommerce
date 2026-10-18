@@ -134,7 +134,9 @@ export function ProductCardImageSlider({
                 height: '100%',
                 objectFit: 'contain',
                 padding: '10px',
-                transition: 'opacity 0.25s ease',
+                transition: 'transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease',
+                transformOrigin: 'center center',
+                willChange: 'transform',
               }}
               onError={(e) => {
                 (e.target as HTMLImageElement).style.opacity = '0';

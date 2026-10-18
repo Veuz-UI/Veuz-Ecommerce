@@ -13,6 +13,7 @@ import {
   validateFullName,
   validateEmailAddress,
 } from '@/utils/securityValidation';
+import { ProfileSkeleton } from '@/components/ui/skeletons';
 
 const COUNTRIES = [
   { name: 'Saudi Arabia', flag: '🇸🇦' },
@@ -93,6 +94,17 @@ export default function ProfilePage() {
 
   // Tab State: basic-info | password-change | address-setup | account-settings | delete-account
   const [activeTab, setActiveTab] = useState<'basic-info' | 'password-change' | 'address-setup' | 'account-settings' | 'delete-account'>('basic-info');
+  const tabListRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll the active tab smoothly into view on mobile
+  useEffect(() => {
+    if (tabListRef.current) {
+      const activeEl = tabListRef.current.querySelector('.profile-tab-btn.active') as HTMLElement | null;
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+      }
+    }
+  }, [activeTab]);
 
   // Sync tab with URL hash (#settings, #password, etc.) or query (?tab=settings)
   useEffect(() => {
@@ -640,33 +652,39 @@ export default function ProfilePage() {
     }
   };
 
-  if (isLoading || !user) {
+  // Redirect to login if user is not authenticated
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace('/login?redirect=/profile%23basic-info');
+    }
+  }, [isLoading, user, router]);
+
+  const isSkeletonPreview = typeof window !== 'undefined' && window.location.search.includes('skeleton=true');
+
+  if (isLoading || isSkeletonPreview) {
+    return <ProfileSkeleton />;
+  }
+
+  if (!user) {
     return (
-      <main className="main" style={{ backgroundColor: '#f8fafc', minHeight: '85vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div
-            style={{
-              width: '42px',
-              height: '42px',
-              border: '3.5px solid #e2e8f0',
-              borderTopColor: '#2563eb',
-              borderRadius: '50%',
-              animation: 'profileSpin 0.7s linear infinite',
-              margin: '0 auto 14px auto',
-            }}
-          />
-          <h6 style={{ fontWeight: '700', fontSize: '15px', color: '#0f172a', margin: '0 0 4px 0' }}>
-            Loading Profile...
-          </h6>
-          <p style={{ color: '#64748b', fontSize: '13px', margin: 0 }}>
-            Fetching account information
+      <main className="main" style={{ backgroundColor: '#f8fafc', minHeight: '85vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
+        <div style={{ maxWidth: '440px', width: '100%', background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '36px 24px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
+          <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#f1f5f9', color: '#0f172a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', marginBottom: '16px' }}>
+            <i className="fi fi-rs-user"></i>
+          </div>
+          <h4 style={{ fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>Sign in Required</h4>
+          <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '24px', lineHeight: '1.6' }}>
+            Please sign in to access and manage your profile details, password, and addresses.
           </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <Link href="/login?redirect=/profile%23basic-info" className="profile-btn-primary" style={{ justifyContent: 'center', width: '100%', textDecoration: 'none', height: '46px' }}>
+              Sign In to Profile
+            </Link>
+            <Link href="/register" className="profile-btn-cancel" style={{ justifyContent: 'center', width: '100%', textDecoration: 'none', height: '46px' }}>
+              Create an Account
+            </Link>
+          </div>
         </div>
-        <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes profileSpin {
-            to { transform: rotate(360deg); }
-          }
-        `}} />
       </main>
     );
   }
@@ -682,15 +700,15 @@ export default function ProfilePage() {
           to { opacity: 1; }
         }
       `}} />
-      <div className="container py-4">
+      <div className="container py-3 py-md-4">
 
         {/* Page Top Header with Title and Admin Back Button */}
-        <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4 mt-2">
+        <div className="d-flex align-items-sm-center justify-content-between flex-column flex-sm-row gap-3 mb-3 mb-md-4 mt-1">
           <div>
-            <h1 className="mb-1" style={{ fontSize: '28px', fontWeight: '800', color: '#0f172a' }}>
+            <h1 className="mb-1" style={{ fontSize: 'clamp(22px, 3.5vw, 28px)', fontWeight: '800', color: '#0f172a' }}>
               My Profile
             </h1>
-            <p className="mb-0" style={{ color: '#64748b', fontSize: '14px' }}>
+            <p className="mb-0" style={{ color: '#64748b', fontSize: 'clamp(12.5px, 2vw, 14px)' }}>
               Manage your personal information, security preferences, and addresses.
             </p>
           </div>
@@ -699,7 +717,7 @@ export default function ProfilePage() {
           {(isAdminRole || isSuperAdminRole) && (
             <a
               href="/dashboard"
-              className="btn btn-outline-primary d-inline-flex align-items-center"
+              className="btn btn-outline-dark d-inline-flex align-items-center justify-content-center"
               style={{
                 borderRadius: '9px',
                 padding: '9px 18px',
@@ -707,8 +725,9 @@ export default function ProfilePage() {
                 fontWeight: '700',
                 gap: '8px',
                 backgroundColor: '#ffffff',
-                border: '1.5px solid #2563eb',
-                color: '#2563eb',
+                border: '1.5px solid #0f172a',
+                color: '#0f172a',
+                whiteSpace: 'nowrap',
               }}
             >
               <i className="fi fi-rs-apps"></i> Back to Dashboard
@@ -720,18 +739,24 @@ export default function ProfilePage() {
         <div className="profile-page-card">
 
           {/* Top Clean Tabs Navigation Bar */}
-          <div className="profile-tabs-header">
+          <div ref={tabListRef} className="profile-tabs-header">
             <button
               type="button"
               className={`profile-tab-btn ${activeTab === 'basic-info' ? 'active' : ''}`}
-              onClick={() => setActiveTab('basic-info')}
+              onClick={(e) => {
+                setActiveTab('basic-info');
+                e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+              }}
             >
               <i className="fi fi-rs-user"></i> Basic Info
             </button>
             <button
               type="button"
               className={`profile-tab-btn ${activeTab === 'password-change' ? 'active' : ''}`}
-              onClick={() => setActiveTab('password-change')}
+              onClick={(e) => {
+                setActiveTab('password-change');
+                e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+              }}
             >
               <i className="fi fi-rs-lock"></i> Password Change
             </button>
@@ -740,7 +765,10 @@ export default function ProfilePage() {
               <button
                 type="button"
                 className={`profile-tab-btn ${activeTab === 'address-setup' ? 'active' : ''}`}
-                onClick={() => setActiveTab('address-setup')}
+                onClick={(e) => {
+                  setActiveTab('address-setup');
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                }}
               >
                 <i className="fi fi-rs-marker"></i> Address Setup
               </button>
@@ -748,7 +776,10 @@ export default function ProfilePage() {
             <button
               type="button"
               className={`profile-tab-btn ${activeTab === 'account-settings' ? 'active' : ''}`}
-              onClick={() => setActiveTab('account-settings')}
+              onClick={(e) => {
+                setActiveTab('account-settings');
+                e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+              }}
             >
               <i className="fi fi-rs-settings-sliders"></i> Account Settings
             </button>
@@ -757,8 +788,11 @@ export default function ProfilePage() {
               <button
                 type="button"
                 className={`profile-tab-btn ${activeTab === 'delete-account' ? 'active' : ''}`}
-                style={{ color: activeTab === 'delete-account' ? '#ef4444' : undefined }}
-                onClick={() => setActiveTab('delete-account')}
+                style={activeTab === 'delete-account' ? { color: '#ef4444', borderBottomColor: '#ef4444', backgroundColor: '#fef2f2' } : undefined}
+                onClick={(e) => {
+                  setActiveTab('delete-account');
+                  e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+                }}
               >
                 <i className="fi fi-rs-trash"></i> Delete Account
               </button>
@@ -787,7 +821,7 @@ export default function ProfilePage() {
                   <p style={{ margin: '0 0 12px 0', color: '#94a3b8', fontSize: '13px' }}>
                     PNG or JPG no bigger than 1000px wide and tall.
                   </p>
-                  <div className="d-flex align-items-center gap-2 flex-wrap">
+                  <div className="d-flex align-items-center gap-2 flex-wrap profile-avatar-btns">
                     <input
                       type="file"
                       ref={fileInputRef}
@@ -815,7 +849,7 @@ export default function ProfilePage() {
 
               {/* 2-Column Responsive Form */}
               <form onSubmit={handleSaveBasicInfo}>
-                <div className="row g-4">
+                <div className="row g-3 g-md-4">
                   {/* First Name */}
                   <div className="col-md-6">
                     <label className="profile-input-label">First Name</label>
@@ -843,7 +877,7 @@ export default function ProfilePage() {
 
                   {/* Email Address with Verification Badge & Action */}
                   <div className="col-md-6">
-                    <div className="d-flex align-items-center justify-content-between mb-1">
+                    <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
                       <label className="profile-input-label mb-0">Email Address</label>
                       
                       {/* Email Verification Status */}
@@ -889,7 +923,7 @@ export default function ProfilePage() {
                               fontSize: '11px',
                               fontWeight: '700',
                               padding: '2px 8px',
-                              backgroundColor: '#2563eb',
+                              backgroundColor: '#0f172a',
                               color: '#ffffff',
                               borderRadius: '5px',
                               border: 'none',
@@ -989,7 +1023,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Bottom Actions (Exact Image 1 Style) */}
-                <div className="d-flex align-items-center gap-3 mt-4 pt-2">
+                <div className="profile-form-actions mt-4 pt-2">
                   <button
                     type="submit"
                     className="profile-btn-primary"
@@ -1020,7 +1054,7 @@ export default function ProfilePage() {
               </div>
 
               <form onSubmit={handleUpdatePassword}>
-                <div className="row g-4">
+                <div className="row g-3 g-md-4">
                   {/* Current Password */}
                   <div className="col-md-6">
                     <label className="profile-input-label">
@@ -1161,7 +1195,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Bottom Actions */}
-                <div className="d-flex align-items-center gap-3 mt-4 pt-2">
+                <div className="profile-form-actions mt-4 pt-2">
                   <button
                     type="submit"
                     className="profile-btn-primary"
@@ -1204,9 +1238,9 @@ export default function ProfilePage() {
                       gap: '8px',
                       padding: '9px 16px',
                       borderRadius: '9px',
-                      border: '1.5px solid #2563eb',
-                      backgroundColor: isGeolocating ? '#eff6ff' : '#ffffff',
-                      color: '#2563eb',
+                      border: '1.5px solid #0f172a',
+                      backgroundColor: isGeolocating ? '#f1f5f9' : '#ffffff',
+                      color: '#0f172a',
                       fontSize: '13px',
                       fontWeight: '600',
                       cursor: isGeolocating ? 'not-allowed' : 'pointer',
@@ -1222,8 +1256,8 @@ export default function ProfilePage() {
                             display: 'inline-block',
                             width: '14px',
                             height: '14px',
-                            border: '2px solid #bfdbfe',
-                            borderTopColor: '#2563eb',
+                            border: '2px solid #e2e8f0',
+                            borderTopColor: '#0f172a',
                             borderRadius: '50%',
                             animation: 'profileSpin 0.7s linear infinite',
                           }}
@@ -1269,7 +1303,7 @@ export default function ProfilePage() {
               </div>
 
               <form onSubmit={handleSaveAddress}>
-                <div className="row g-4">
+                <div className="row g-3 g-md-4">
                   {/* Country */}
                   <div className="col-md-6" ref={countryDropdownRef} style={{ position: 'relative' }}>
                     <label className="profile-input-label">Country / Region</label>
@@ -1323,7 +1357,7 @@ export default function ProfilePage() {
                                 <span>{c.name}</span>
                               </span>
                               {isSelected && (
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                   <polyline points="20 6 9 17 4 12" />
                                 </svg>
                               )}
@@ -1409,7 +1443,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Bottom Actions */}
-                <div className="d-flex align-items-center gap-3 mt-4 pt-2">
+                <div className="profile-form-actions mt-4 pt-2">
                   <button
                     type="submit"
                     className="profile-btn-primary"
@@ -1440,7 +1474,7 @@ export default function ProfilePage() {
               </div>
 
               <form onSubmit={handleSaveSettings}>
-                <div className="row g-4">
+                <div className="row g-3 g-md-4">
                   {/* Language Selection */}
                   <div className="col-md-6">
                     <label className="profile-input-label">Select Language</label>
@@ -1518,7 +1552,7 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Bottom Actions */}
-                <div className="d-flex align-items-center gap-3 mt-4 pt-2">
+                <div className="profile-form-actions mt-4 pt-2">
                   <button
                     type="submit"
                     className="profile-btn-primary"
@@ -1655,8 +1689,8 @@ export default function ProfilePage() {
                   width: '56px',
                   height: '56px',
                   borderRadius: '50%',
-                  backgroundColor: '#dbeafe',
-                  color: '#2563eb',
+                  backgroundColor: '#f1f5f9',
+                  color: '#0f172a',
                   display: 'inline-flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -1724,7 +1758,7 @@ export default function ProfilePage() {
                 className="btn btn-link text-decoration-none"
                 onClick={handleSendVerificationCode}
                 disabled={verifySending}
-                style={{ fontSize: '13px', color: '#2563eb', fontWeight: '600' }}
+                style={{ fontSize: '13px', color: '#0f172a', fontWeight: '600' }}
               >
                 {verifySending ? 'Resending Code...' : 'Resend Code'}
               </button>

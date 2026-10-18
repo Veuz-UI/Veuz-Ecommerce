@@ -5189,19 +5189,19 @@ hr::before {
 }
 
 .ref-card-top-view:hover {
-  background: #f8fafc !important;
-  border-color: #cbd5e1 !important;
-  color: #0284c7 !important;
-  transform: scale(1.08) !important;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.12) !important;
+  background: #ffffff !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+  transform: scale(1.12) translateZ(0) !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.14) !important;
 }
 
 .ref-card-top-view:hover svg {
-  stroke: #0284c7 !important;
+  stroke: #0f172a !important;
 }
 
 .ref-card-top-view:hover svg circle {
-  fill: #0284c7 !important;
+  fill: #0f172a !important;
 }
 
 .ref-card-top-wishlist:hover {
@@ -5492,11 +5492,23 @@ hr::before {
   padding: 0 !important;
 }
 
-.btn-wishlist-square:hover,
+.btn-wishlist-square:hover {
+  background: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
 .btn-wishlist-square.active {
-  background: #fee2e2 !important;
+  background: #fef2f2 !important;
   border-color: #fca5a5 !important;
   color: #ef4444 !important;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.20) !important;
+}
+
+.btn-wishlist-square.active:hover {
+  background: #fee2e2 !important;
+  border-color: #f87171 !important;
+  color: #dc2626 !important;
 }
 
 
@@ -5970,21 +5982,27 @@ div:has(> .ref-lang-dropdown) .ref-lang-dropdown,
   border-radius: 16px !important;
   padding: 32px !important;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03) !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 @media (max-width: 768px) {
   .profile-page-card {
-    padding: 20px 16px !important;
+    padding: 20px 14px !important;
+    border-radius: 14px !important;
   }
 }
 
 .profile-tabs-header {
   display: flex !important;
   border-bottom: 1px solid #e2e8f0 !important;
-  gap: 24px !important;
-  margin-bottom: 30px !important;
+  gap: 16px !important;
+  margin-bottom: 24px !important;
   overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
   scrollbar-width: none !important;
+  padding-bottom: 2px !important;
+  scroll-behavior: smooth !important;
 }
 
 .profile-tabs-header::-webkit-scrollbar {
@@ -5994,8 +6012,8 @@ div:has(> .ref-lang-dropdown) .ref-lang-dropdown,
 .profile-tab-btn {
   background: none !important;
   border: none !important;
-  padding: 12px 4px 14px 4px !important;
-  font-size: 15px !important;
+  padding: 10px 14px 12px 14px !important;
+  font-size: 14px !important;
   font-weight: 600 !important;
   color: #64748b !important;
   cursor: pointer !important;
@@ -6005,16 +6023,36 @@ div:has(> .ref-lang-dropdown) .ref-lang-dropdown,
   display: inline-flex !important;
   align-items: center !important;
   gap: 8px !important;
+  border-radius: 8px 8px 0 0 !important;
+  flex-shrink: 0 !important;
+  min-height: 42px !important;
 }
 
 .profile-tab-btn:hover {
-  color: #1e293b !important;
+  color: #0f172a !important;
+  background-color: #f8fafc !important;
 }
 
 .profile-tab-btn.active {
-  color: #2563eb !important;
-  border-bottom: 2px solid #2563eb !important;
+  color: #0f172a !important;
+  border-bottom: 2.5px solid #0f172a !important;
   margin-bottom: -1px !important;
+  background-color: #f1f5f9 !important;
+  font-weight: 700 !important;
+}
+
+@media (max-width: 576px) {
+  .profile-tabs-header {
+    gap: 8px !important;
+    margin-bottom: 20px !important;
+    padding-bottom: 4px !important;
+  }
+  .profile-tab-btn {
+    padding: 9px 14px 11px 14px !important;
+    font-size: 13.5px !important;
+    gap: 7px !important;
+    min-height: 44px !important;
+  }
 }
 
 .profile-avatar-box {
@@ -6022,7 +6060,58 @@ div:has(> .ref-lang-dropdown) .ref-lang-dropdown,
   align-items: center !important;
   gap: 20px !important;
   margin-bottom: 28px !important;
-  flex-wrap: wrap !important;
+}
+
+@media (max-width: 576px) {
+  .profile-avatar-box {
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 16px !important;
+    background: #f8fafc !important;
+    padding: 18px 14px !important;
+    border-radius: 12px !important;
+    border: 1px solid #f1f5f9 !important;
+  }
+  .profile-avatar-box .profile-avatar-btns {
+    justify-content: center !important;
+    width: 100% !important;
+  }
+  .profile-avatar-box .profile-avatar-btns button {
+    flex: 1 1 auto !important;
+    min-width: 130px !important;
+    justify-content: center !important;
+  }
+}
+
+.profile-form-actions {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+}
+
+@media (max-width: 576px) {
+  .profile-form-actions {
+    display: flex !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+  .profile-form-actions button,
+  .profile-form-actions a {
+    flex: 1 !important;
+    justify-content: center !important;
+    height: 46px !important;
+  }
+}
+
+@media (max-width: 380px) {
+  .profile-form-actions {
+    flex-direction: column-reverse !important;
+  }
+  .profile-form-actions button,
+  .profile-form-actions a {
+    width: 100% !important;
+  }
 }
 
 .profile-avatar-img {
@@ -6056,8 +6145,8 @@ div:has(> .ref-lang-dropdown) .ref-lang-dropdown,
 }
 
 .profile-input-field:focus {
-  border-color: #2563eb !important;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+  border-color: #0f172a !important;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1) !important;
 }
 
 .profile-input-field:disabled {
@@ -6086,9 +6175,9 @@ div:has(> .ref-lang-dropdown) .ref-lang-dropdown,
 }
 
 .profile-btn-primary {
-  background-color: #2563eb !important;
+  background-color: #0f172a !important;
   color: #ffffff !important;
-  border: none !important;
+  border: 1px solid #0f172a !important;
   border-radius: 9px !important;
   padding: 10px 22px !important;
   font-size: 14px !important;
@@ -6098,11 +6187,14 @@ div:has(> .ref-lang-dropdown) .ref-lang-dropdown,
   gap: 8px !important;
   cursor: pointer !important;
   transition: all 0.2s ease !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.15) !important;
 }
 
 .profile-btn-primary:hover {
-  background-color: #1d4ed8 !important;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
+  background-color: #1e293b !important;
+  border-color: #1e293b !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25) !important;
 }
 
 .profile-btn-cancel {
@@ -6206,11 +6298,11 @@ div:has(> .ref-lang-dropdown) .ref-lang-dropdown,
 
 .profile-country-trigger:hover,
 .profile-country-trigger.is-open {
-  border-color: #2563eb !important;
+  border-color: #0f172a !important;
 }
 
 .profile-country-trigger.is-open {
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12) !important;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.1) !important;
 }
 
 .profile-country-menu {
@@ -6265,9 +6357,45 @@ div:has(> .ref-lang-dropdown) .ref-lang-dropdown,
 }
 
 .profile-country-item.is-selected {
-  background-color: #eff6ff !important;
-  color: #2563eb !important;
-  font-weight: 600 !important;
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  font-weight: 700 !important;
+}
+
+/* ==========================================================================
+   CHECKBOX & SWITCH FORM CONTROLS (Sleek Dark / Black Accent - No Blue)
+   ========================================================================== */
+.form-check-input {
+  cursor: pointer !important;
+  accent-color: #0f172a !important;
+  transition: background-color 0.15s ease-in-out, border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+}
+
+.form-check-input:focus {
+  border-color: #0f172a !important;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.15) !important;
+  outline: none !important;
+}
+
+.form-check-input:checked {
+  background-color: #0f172a !important;
+  border-color: #0f172a !important;
+}
+
+.form-check.form-switch .form-check-input {
+  cursor: pointer !important;
+}
+
+.form-check.form-switch .form-check-input:checked,
+.form-switch .form-check-input:checked {
+  background-color: #0f172a !important;
+  border-color: #0f172a !important;
+}
+
+.form-check.form-switch .form-check-input:focus,
+.form-switch .form-check-input:focus {
+  border-color: #0f172a !important;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.15) !important;
 }
 
 /* ==========================================================================
@@ -7901,5 +8029,438 @@ body.drawer-scroll-locked .product-drawer-body {
     width: 36px !important;
     height: 36px !important;
     min-width: 36px !important;
+  }
+}
+
+/* ==========================================================================
+   INDUSTRY-STANDARD E-COMMERCE SKELETON SYSTEM (Clean Neutral Gray)
+   ========================================================================== */
+.skeleton-shimmer,
+.skeleton-box {
+  position: relative !important;
+  overflow: hidden !important;
+  background-color: #e5e7eb !important;
+  border-radius: 6px;
+  display: block;
+}
+
+/* Fluid moving light wave sheen */
+.skeleton-shimmer::after,
+.skeleton-box::after {
+  content: "" !important;
+  position: absolute !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.25) 30%,
+    rgba(255, 255, 255, 0.65) 50%,
+    rgba(255, 255, 255, 0.25) 70%,
+    rgba(255, 255, 255, 0) 100%
+  ) !important;
+  animation: skeletonFluidWave 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite !important;
+  pointer-events: none !important;
+}
+
+@keyframes skeletonFluidWave {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* Smooth Crossfade Transition when real data loads in */
+.skeleton-fade-in {
+  animation: skeletonFadeIn 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards !important;
+}
+
+@keyframes skeletonFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.skeleton-circle {
+  border-radius: 50% !important;
+}
+
+.skeleton-text {
+  height: 12px;
+  border-radius: 4px !important;
+  margin-bottom: 6px;
+}
+
+.skeleton-product-card {
+  background: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 10px !important;
+  padding: 16px !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 410px !important;
+  box-sizing: border-box !important;
+}
+
+.skeleton-product-img {
+  width: 100% !important;
+  height: 210px !important;
+  border-radius: 8px !important;
+  margin-bottom: 14px !important;
+  background-color: #e5e7eb !important;
+}
+
+.skeleton-pill-card {
+  min-width: 205px;
+  height: 66px;
+  border-radius: 10px !important;
+  padding: 10px 16px !important;
+  background-color: #ffffff !important;
+  border: 1px solid #e5e7eb !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  flex-shrink: 0 !important;
+}
+
+@media (max-width: 768px) {
+  .skeleton-pill-card {
+    min-width: 175px !important;
+    height: 58px !important;
+    padding: 8px 12px !important;
+    gap: 10px !important;
+  }
+}
+
+/* ==========================================================================
+   STANDARD E-COMMERCE SCROLL REVEAL & STAGGER CASCADE ANIMATIONS
+   ========================================================================== */
+
+/* 1. Fluid Wave Cascade for Products (One by One) */
+.product-card-animate-wrap {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0) scale(0.97);
+  animation: productCardWaveFlow 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes productCardWaveFlow {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 28px, 0) scale(0.97);
+  }
+  65% {
+    opacity: 1;
+    transform: translate3d(0, -3px, 0) scale(1.008);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* 2. Scroll-Down Fade-Up Reveal for Sections, Banners & Category Cards */
+.reveal-on-scroll,
+[data-reveal] {
+  opacity: 0;
+  transform: translate3d(0, 30px, 0);
+  transition: opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+              transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.reveal-on-scroll.is-revealed,
+[data-reveal].is-revealed {
+  opacity: 1 !important;
+  transform: translate3d(0, 0, 0) !important;
+}
+
+/* 3. Smooth, Repeatable Mouse-Triggered Animations (Standard E-Commerce Feel) */
+.uniform-product-card,
+.product-cart-wrap.uniform-product-card {
+  position: relative;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+              box-shadow 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+              border-color 0.3s ease !important;
+  will-change: transform, box-shadow;
+  transform: translate3d(0, 0, 0);
+  border: 1px solid #e5e7eb !important;
+}
+
+.uniform-product-card:hover,
+.product-cart-wrap.uniform-product-card:hover {
+  transform: translate3d(0, -7px, 0) !important;
+  box-shadow: 0 20px 36px -6px rgba(15, 23, 42, 0.12),
+              0 8px 16px -2px rgba(15, 23, 42, 0.05) !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Repeatable Product Image Zoom on Mouse Trigger */
+.uniform-product-card .default-img,
+.product-cart-wrap .default-img,
+.uniform-product-card .product-img-action-wrap .default-img,
+.product-img-zoom img {
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease !important;
+  transform-origin: center center;
+  will-change: transform;
+  transform: scale(1) translateZ(0);
+}
+
+.uniform-product-card:hover .default-img,
+.product-cart-wrap:hover .default-img,
+.uniform-product-card:hover .product-img-action-wrap .default-img,
+.uniform-product-card:hover .product-img-zoom img {
+  transform: scale(1.06) translateZ(0) !important;
+}
+
+/* Slider Navigation Controls: Slide-in and smooth interactive scale */
+.card-slider-arrow {
+  opacity: 0 !important;
+  pointer-events: none;
+  transition: opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.2s ease,
+              border-color 0.2s ease,
+              color 0.2s ease,
+              box-shadow 0.2s ease !important;
+  will-change: transform, opacity;
+}
+
+.card-slider-prev {
+  transform: translateY(-50%) translateX(-6px) !important;
+}
+
+.card-slider-next {
+  transform: translateY(-50%) translateX(6px) !important;
+}
+
+.product-cart-wrap:hover .card-slider-arrow,
+.uniform-product-card:hover .card-slider-arrow {
+  opacity: 1 !important;
+  pointer-events: auto;
+}
+
+.product-cart-wrap:hover .card-slider-prev,
+.uniform-product-card:hover .card-slider-prev {
+  transform: translateY(-50%) translateX(0) !important;
+}
+
+.product-cart-wrap:hover .card-slider-next,
+.uniform-product-card:hover .card-slider-next {
+  transform: translateY(-50%) translateX(0) !important;
+}
+
+.card-slider-arrow:hover {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  border-color: #0f172a !important;
+  transform: translateY(-50%) scale(1.15) !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.22) !important;
+}
+
+/* Quick View Circular Eye Button */
+.ref-card-top-view {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.2s ease,
+              border-color 0.2s ease,
+              box-shadow 0.25s ease,
+              color 0.2s ease !important;
+  will-change: transform;
+}
+
+.ref-card-top-view:hover {
+  background: #ffffff !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+  transform: scale(1.12) translateZ(0) !important;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.14) !important;
+}
+
+.ref-card-top-view:hover svg {
+  stroke: #0f172a !important;
+}
+
+.ref-card-top-view:hover svg circle {
+  fill: #0f172a !important;
+}
+
+.ref-card-top-view:active {
+  transform: scale(0.96) translateZ(0) !important;
+}
+
+/* Wishlist Button: Repeatable smooth scale pop & tactile feedback */
+.btn-wishlist-square {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.2s ease,
+              border-color 0.2s ease,
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              color 0.2s ease !important;
+  will-change: transform;
+}
+
+.btn-wishlist-square:hover {
+  background-color: #f8fafc !important;
+  border-color: #94a3b8 !important;
+  color: #0f172a !important;
+  transform: scale(1.08) translateZ(0) !important;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.1) !important;
+}
+
+.btn-wishlist-square:active {
+  transform: scale(0.94) translateZ(0) !important;
+}
+
+.btn-wishlist-square.active:hover {
+  background-color: #fee2e2 !important;
+  border-color: #f87171 !important;
+  color: #dc2626 !important;
+  transform: scale(1.08) translateZ(0) !important;
+}
+
+/* Add to Cart Wide Button: Repeatable smooth lift & tactile click */
+.btn-add-cart-wide {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              background-color 0.2s ease,
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease !important;
+  will-change: transform, box-shadow;
+}
+
+.btn-add-cart-wide:hover {
+  background-color: #1e293b !important;
+  transform: translateY(-2px) translateZ(0) !important;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.24) !important;
+}
+
+.btn-add-cart-wide:active {
+  transform: translateY(0) scale(0.98) translateZ(0) !important;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.16) !important;
+}
+
+/* Category Cards: Repeatable smooth lift & image zoom on mouse hover */
+.browse-cat-card {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: transform;
+}
+
+.browse-cat-card:hover {
+  transform: translateY(-5px) translateZ(0) !important;
+}
+
+.browse-cat-circle {
+  transition: background-color 0.3s ease,
+              border-color 0.3s ease,
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.browse-cat-card:hover .browse-cat-circle {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 10px 24px -4px rgba(15, 23, 42, 0.12) !important;
+}
+
+.browse-cat-photo {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  will-change: transform;
+}
+
+.browse-cat-card:hover .browse-cat-photo {
+  transform: scale(1.1) translateZ(0) !important;
+}
+
+/* Category Pill Cards & Feature Cards */
+.category-pill-card {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s ease,
+              border-color 0.25s ease !important;
+  will-change: transform;
+}
+
+.category-pill-card:hover {
+  transform: translateY(-3px) translateZ(0) !important;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08) !important;
+  border-color: #cbd5e1 !important;
+}
+
+.promo-feature-card {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.3s ease !important;
+  will-change: transform, box-shadow;
+}
+
+.promo-feature-card:hover {
+  transform: translateY(-4px) translateZ(0) !important;
+  box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.1) !important;
+}
+
+/* =========================================================
+   SLEEK MODERN STORE SCROLLBAR & SMOOTH SCROLLING
+   ========================================================= */
+html {
+  scroll-behavior: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+/* Custom Sleek Minimalist Webkit Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.25s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #0f172a;
+}
+
+/* Floating Scroll-to-Top Interactive Hover */
+.scroll-to-top-btn:hover {
+  transform: translateY(-4px) scale(1.06) !important;
+  background-color: #1e293b !important;
+  box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.35), 0 4px 10px rgba(15, 23, 42, 0.15) !important;
+}
+
+.scroll-to-top-btn:active {
+  transform: translateY(0) scale(0.96) !important;
+}
+
+/* 4. Safe Fallback if user prefers reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto !important;
+  }
+  .product-card-animate-wrap,
+  .reveal-on-scroll,
+  [data-reveal],
+  .scroll-to-top-btn {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+    transition: none !important;
   }
 }

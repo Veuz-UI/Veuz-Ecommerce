@@ -114,7 +114,7 @@ const getNavIcon = (name: string, badge?: string) => {
 export const Header: React.FC = () => {
   const router = useRouter();
   const { user, logout, isAdmin } = useAuth();
-  const { totalCartItems } = useStore();
+  const { totalCartItems, wishlist } = useStore();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchCatOpen, setSearchCatOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
@@ -318,7 +318,7 @@ export const Header: React.FC = () => {
         {/* ========================================================
             MAIN HEADER (Logo Left Corner, Search Bar, Location & Language, Action Icons)
            ======================================================== */}
-        <div className="header-middle header-middle-ptb-1" style={{ padding: '16px 0', backgroundColor: '#ffffff' }}>
+        <div className="header-middle header-middle-ptb-1" style={{ padding: '16px 0', backgroundColor: '#ffffff', position: 'relative', zIndex: 1060 }}>
           <div className="container">
             <div className="header-wrap d-flex align-items-center justify-content-between gap-3">
               
@@ -613,7 +613,7 @@ export const Header: React.FC = () => {
                         boxShadow: '0 10px 25px rgba(0, 0, 0, 0.12)',
                         border: '1px solid #e2e8f0',
                         padding: '6px',
-                        zIndex: 1000,
+                        zIndex: 99999,
                         minWidth: '140px',
                       }}
                     >
@@ -631,13 +631,23 @@ export const Header: React.FC = () => {
                           padding: '8px 12px',
                           border: 'none',
                           borderRadius: '6px',
-                          backgroundColor: selectedLang === 'English' ? '#f1f5f9' : 'transparent',
+                          backgroundColor: selectedLang === 'English' ? '#0f172a' : 'transparent',
+                          color: selectedLang === 'English' ? '#ffffff' : '#0f172a',
                           cursor: 'pointer',
                           fontSize: '13px',
                           fontWeight: 600,
-                          color: '#0f172a',
                           textAlign: 'left',
-                          transition: 'background-color 0.15s ease',
+                          transition: 'background-color 0.15s ease, color 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (selectedLang !== 'English') {
+                            e.currentTarget.style.backgroundColor = '#f1f5f9';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (selectedLang !== 'English') {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }
                         }}
                       >
                         <span
@@ -670,14 +680,24 @@ export const Header: React.FC = () => {
                           padding: '8px 12px',
                           border: 'none',
                           borderRadius: '6px',
-                          backgroundColor: selectedLang === 'Arabic' ? '#f1f5f9' : 'transparent',
+                          backgroundColor: selectedLang === 'Arabic' ? '#0f172a' : 'transparent',
+                          color: selectedLang === 'Arabic' ? '#ffffff' : '#0f172a',
                           cursor: 'pointer',
                           fontSize: '13px',
                           fontWeight: 600,
-                          color: '#0f172a',
                           textAlign: 'left',
                           marginTop: '3px',
-                          transition: 'background-color 0.15s ease',
+                          transition: 'background-color 0.15s ease, color 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (selectedLang !== 'Arabic') {
+                            e.currentTarget.style.backgroundColor = '#f1f5f9';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (selectedLang !== 'Arabic') {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }
                         }}
                       >
                         <span
@@ -721,72 +741,130 @@ export const Header: React.FC = () => {
                     }}
                     onClick={() => setLocationOpen(!locationOpen)}
                   >
-                    <i className="fi-rs-marker" style={{ color: '#3BB77E' }}></i>
+                    <i className="fi-rs-marker" style={{ color: '#0f172a' }}></i>
                     <span>{selectedLocation}</span>
-                    <i className="fi-rs-angle-small-down"></i>
+                    <i className="fi-rs-angle-small-down" style={{ fontSize: '11px', color: '#64748b' }}></i>
                   </div>
 
                   {locationOpen && (
                     <ul
                       style={{
                         position: 'absolute',
-                        top: '100%',
+                        top: 'calc(100% + 6px)',
                         right: 0,
-                        marginTop: '6px',
-                        background: '#fff',
+                        margin: 0,
+                        background: '#ffffff',
                         boxShadow: '0 10px 25px rgba(0,0,0,0.12)',
                         borderRadius: '10px',
-                        padding: '6px 0',
-                        zIndex: 1000,
-                        minWidth: '180px',
+                        padding: '6px',
+                        zIndex: 99999,
+                        minWidth: '200px',
                         maxHeight: '260px',
                         overflowY: 'auto',
                         listStyle: 'none',
-                        border: '1px solid #e2e8f0'
+                        border: '1px solid #e2e8f0',
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: '#cbd5e1 transparent',
                       }}
                     >
-                      {locations.map((loc, idx) => (
-                        <li
-                          key={idx}
-                          style={{
-                            padding: '8px 16px',
-                            fontSize: '13px',
-                            cursor: 'pointer',
-                            color: selectedLocation === loc ? '#3BB77E' : '#4f5d77',
-                            fontWeight: selectedLocation === loc ? '700' : '500',
-                            background: selectedLocation === loc ? '#f0fdf4' : 'transparent'
-                          }}
-                          onClick={() => {
-                            setSelectedLocation(loc);
-                            setLocationOpen(false);
-                          }}
-                        >
-                          {loc}
-                        </li>
-                      ))}
+                      {locations.map((loc, idx) => {
+                        const isSelected = selectedLocation === loc;
+                        return (
+                          <li
+                            key={idx}
+                            style={{
+                              padding: '8px 14px',
+                              fontSize: '13px',
+                              cursor: 'pointer',
+                              color: isSelected ? '#ffffff' : '#0f172a',
+                              fontWeight: isSelected ? '600' : '500',
+                              background: isSelected ? '#0f172a' : 'transparent',
+                              borderRadius: '6px',
+                              marginBottom: idx === locations.length - 1 ? 0 : '2px',
+                              transition: 'background-color 0.15s ease, color 0.15s ease',
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!isSelected) {
+                                e.currentTarget.style.backgroundColor = '#f1f5f9';
+                                e.currentTarget.style.color = '#0f172a';
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!isSelected) {
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                                e.currentTarget.style.color = '#0f172a';
+                              }
+                            }}
+                            onClick={() => {
+                              setSelectedLocation(loc);
+                              setLocationOpen(false);
+                            }}
+                          >
+                            {loc}
+                          </li>
+                        );
+                      })}
                     </ul>
                   )}
                 </div>
 
-                {/* Mobile/Tablet Action Icons: Cart, Profile & Hamburger */}
-                <div className="header-action-2 d-flex d-xl-none align-items-center" style={{ gap: '8px' }}>
+                {/* Mobile/Tablet Action Icons: Wishlist, Cart, Profile & Hamburger */}
+                <div className="header-action-2 d-flex d-xl-none align-items-center" style={{ gap: '14px' }}>
                   
+                  {/* Wishlist Heart Icon + Red Dot */}
+                  <div className="header-action-icon-2 d-inline-flex align-items-center">
+                    <Link
+                      href={user ? "/wishlist" : "/login?redirect=/wishlist"}
+                      title="Wishlist"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#1e293b',
+                        textDecoration: 'none',
+                        padding: '4px',
+                      }}
+                    >
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                        {wishlist && wishlist.length > 0 && (
+                          <span
+                            className="wishlist-active-dot"
+                            style={{
+                              position: 'absolute',
+                              bottom: '-7px',
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              width: '5px',
+                              height: '5px',
+                              backgroundColor: '#dc2626',
+                              borderRadius: '50%',
+                              display: 'block'
+                            }}
+                          />
+                        )}
+                      </div>
+                    </Link>
+                  </div>
+
                   {/* Cart Icon + Inline Count + Red Dot */}
-                  <div className="header-action-icon-2">
+                  <div className="header-action-icon-2 d-inline-flex align-items-center">
                     <Link
                       href="/cart"
                       title="View Cart"
                       style={{
-                        display: 'flex',
+                        display: 'inline-flex',
                         alignItems: 'center',
-                        gap: '4px',
+                        gap: '5px',
                         color: '#1e293b',
                         textDecoration: 'none',
-                        fontSize: '25px'
+                        padding: '4px',
                       }}
                     >
                       <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                           <rect x="4" y="8" width="16" height="13" rx="3" />
                           <path d="M8 8V6a4 4 0 0 1 8 0v2" />
                         </svg>
@@ -814,7 +892,7 @@ export const Header: React.FC = () => {
                   </div>
 
                   {/* 4. Vertical Divider */}
-                  <div style={{ width: '1px', height: '20px', backgroundColor: '#e2e8f0', margin: 0 }} />
+                  <div style={{ width: '1px', height: '22px', backgroundColor: '#e2e8f0', margin: '0 3px', flexShrink: 0 }} />
 
                   {/* 5. Profile Dropdown */}
                   <div
@@ -867,7 +945,10 @@ export const Header: React.FC = () => {
                           </svg>
                         </div>
                       ) : (
-                        <img className="svgInject" alt="Account" src="/assets/imgs/theme/icons/icon-user.svg" />
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                          <circle cx="12" cy="7" r="4" />
+                        </svg>
                       )}
                     </a>
 
@@ -980,17 +1061,52 @@ export const Header: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Hamburger Menu placed directly on Right Side near Profile */}
-                  <div
-                    className="burger-icon burger-icon-white ms-1"
+                  {/* Hamburger Menu: Round Black Background with Tiered White Rounded Bars */}
+                  <button
+                    type="button"
+                    className="mobile-hamburger-btn"
                     onClick={() => setMobileMenuOpen(true)}
-                    style={{ cursor: 'pointer', display: 'block', padding: '6px' }}
+                    aria-label="Open Navigation Menu"
                     title="Open Menu"
+                    style={{
+                      width: '38px',
+                      height: '38px',
+                      minWidth: '38px',
+                      borderRadius: '50%',
+                      backgroundColor: '#0f172a',
+                      border: 'none',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      padding: 0,
+                      marginLeft: '4px',
+                      flexShrink: 0,
+                      boxShadow: '0 2px 6px rgba(15, 23, 42, 0.22)',
+                      transition: 'transform 0.15s ease, background-color 0.15s ease',
+                      outline: 'none',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#1e293b';
+                      e.currentTarget.style.transform = 'scale(1.05)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#0f172a';
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
                   >
-                    <span className="burger-icon-top"></span>
-                    <span className="burger-icon-mid"></span>
-                    <span className="burger-icon-bottom"></span>
-                  </div>
+                    <svg
+                      width="18"
+                      height="13"
+                      viewBox="0 0 18 13"
+                      fill="none"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <rect x="0" y="0" width="18" height="2.2" rx="1.1" fill="#ffffff" />
+                      <rect x="0" y="5.4" width="12" height="2.2" rx="1.1" fill="#ffffff" />
+                      <rect x="0" y="10.8" width="6.5" height="2.2" rx="1.1" fill="#ffffff" />
+                    </svg>
+                  </button>
 
                 </div>
 
@@ -1421,16 +1537,34 @@ export const Header: React.FC = () => {
                     </Link>
                   </div>
 
-                  {/* 2. Wishlist Heart */}
+                  {/* 2. Wishlist Heart + Red Dot when has items */}
                   <div className="header-action-icon-2">
                     <Link
                       href={user ? "/wishlist" : "/login?redirect=/wishlist"}
                       title="Wishlist"
                       style={{ display: 'flex', alignItems: 'center', color: '#1e293b', fontSize: '25px', transition: 'color 0.2s' }}
                     >
-                      <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                      </svg>
+                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                        <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                        {wishlist && wishlist.length > 0 && (
+                          <span
+                            className="wishlist-active-dot"
+                            style={{
+                              position: 'absolute',
+                              bottom: '-7px',
+                              left: '50%',
+                              transform: 'translateX(-50%)',
+                              width: '5px',
+                              height: '5px',
+                              backgroundColor: '#dc2626',
+                              borderRadius: '50%',
+                              display: 'block'
+                            }}
+                          />
+                        )}
+                      </div>
                     </Link>
                   </div>
 
@@ -2071,8 +2205,34 @@ export const Header: React.FC = () => {
               </ul>
             </nav>
 
-            {/* Quick Access: Wishlist & Notifications inside Mobile Drawer */}
+            {/* Quick Access: Profile, Wishlist & Notifications inside Mobile Drawer */}
             <div style={{ marginTop: '16px', paddingTop: '14px', borderTop: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <Link
+                href={user ? "/profile#basic-info" : "/login?redirect=/profile%23basic-info"}
+                onClick={() => setMobileMenuOpen(false)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '10px 14px',
+                  borderRadius: '10px',
+                  textDecoration: 'none',
+                  color: '#1e293b',
+                  fontSize: '14.5px',
+                  fontWeight: '600',
+                  backgroundColor: '#f8fafc',
+                  transition: 'all 0.15s ease',
+                }}
+              >
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#f1f5f9', color: '#0f172a', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                </div>
+                <span>{user ? `My Profile (${user.name})` : "My Profile / Sign In"}</span>
+              </Link>
+
               <Link
                 href={user ? "/wishlist" : "/login?redirect=/wishlist"}
                 onClick={() => setMobileMenuOpen(false)}
