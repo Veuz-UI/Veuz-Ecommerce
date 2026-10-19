@@ -12,6 +12,8 @@ import {
   updateProfile,
   changePassword,
   deleteAccount,
+  pingCustomerPresence,
+  logoutCustomerPresence,
 } from '../controllers/authController.js';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
@@ -32,6 +34,8 @@ router.put('/profile', authenticateToken, updateProfile);
 router.post('/change-password', authenticateToken, changePassword);
 router.delete('/account', authenticateToken, deleteAccount);
 router.post('/send-verification', authenticateToken, sendVerificationEmail);
+router.post('/ping', authenticateToken, pingCustomerPresence);
+router.post('/logout-session', authenticateToken, logoutCustomerPresence);
 
 // Admin-Only routes (Protected with requireAdmin)
 router.post('/invite-admin', authenticateToken, requireAdmin, inviteAdmin);

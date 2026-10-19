@@ -119,16 +119,32 @@ export async function POST(req: Request) {
 
     const { action } = body;
 
-    // 2. Track click / view
+    // 2. Track click / view (Strictly Logged-in Customer traffic - excludes Admin, SuperAdmin, and non-logged-in visitors)
     if (action === 'click') {
-      const { id } = body;
+      const { id, userRole, customerId } = body;
+
+      // Only authenticated customers are counted (guests, admins, superadmins are excluded)
+      if (userRole !== 'CUSTOMER' || !customerId) {
+        return NextResponse.json({ success: true, ignored: true });
+      }
+
       const targetIndex = products.findIndex((p) => p.id === id);
       if (targetIndex !== -1) {
-        products[targetIndex].clicks = (products[targetIndex].clicks || 0) + 1;
-        products[targetIndex].views = (products[targetIndex].views || 0) + 1;
+        const prod = products[targetIndex];
+        const clickedCustomerIds = Array.isArray(prod.clickedCustomerIds) ? prod.clickedCustomerIds : [];
+
+        // Same product opened multiple times by same customer -> ONLY count 1 time!
+        if (clickedCustomerIds.includes(customerId)) {
+          return NextResponse.json({ success: true, alreadyCounted: true });
+        }
+
+        clickedCustomerIds.push(customerId);
+        prod.clickedCustomerIds = clickedCustomerIds;
+        prod.clicks = clickedCustomerIds.length;
+        prod.views = Math.max(prod.views || 0, prod.clicks);
         writeStoredProducts(products);
       }
-      return NextResponse.json({ success: true });
+      return NextResponse.json({ success: true, counted: true });
     }
 
     // 3. Create new product

@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { z } from 'zod';
 import { prisma } from '../config/prisma.js';
 import { AuthenticatedRequest } from '../middleware/auth.js';
+import { recordCustomerPresence, removeCustomerPresence } from './adminUserController.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'veuz_super_secure_jwt_secret_key_2026';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
@@ -217,6 +218,10 @@ export const login = async (req: Request, res: Response): Promise<void> => {
       name: user.name,
     });
 
+    if (user.role === 'CUSTOMER') {
+      recordCustomerPresence(user.id, 'CUSTOMER');
+    }
+
     res.status(200).json({
       success: true,
       message: 'Logged in successfully.',
@@ -275,6 +280,10 @@ export const getMe = async (req: AuthenticatedRequest, res: Response): Promise<v
     if (!user) {
       res.status(404).json({ success: false, message: 'User not found.' });
       return;
+    }
+
+    if (user.role === 'CUSTOMER') {
+      recordCustomerPresence(user.id, 'CUSTOMER');
     }
 
     res.status(200).json({
@@ -832,5 +841,25 @@ export const deleteAccount = async (req: AuthenticatedRequest, res: Response): P
     console.error('Delete Account Error:', error);
     res.status(500).json({ success: false, message: 'Internal server error.' });
   }
+};
+
+// ========================================================
+// 11. LIVE CUSTOMER PRESENCE PING & LOGOUT (Role === 'CUSTOMER' Only)
+// ========================================================
+export const pingCustomerPresence = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  if (req.user && req.user.role === 'CUSTOMER') {
+    recordCustomerPresence(req.user.userId, 'CUSTOMER');
+    res.status(200).json({ success: true, isCustomer: true, online: true });
+    return;
+  }
+  // Admins and SuperAdmins are intentionally ignored
+  res.status(200).json({ success: true, isCustomer: false, online: false });
+};
+
+export const logoutCustomerPresence = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  if (req.user && req.user.role === 'CUSTOMER') {
+    removeCustomerPresence(req.user.userId);
+  }
+  res.status(200).json({ success: true });
 };
 

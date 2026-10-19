@@ -34,14 +34,74 @@ function writeStoredPromotions(data: PromotionAreaData): boolean {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url);
+  const type = searchParams.get('type');
   const data = readStoredPromotions();
-  return NextResponse.json({ success: true, data });
+
+  const today = new Date().toISOString().slice(0, 10);
+  const todayClicks = (data.dailyClicks && typeof data.dailyClicks[today] === 'number')
+    ? data.dailyClicks[today]
+    : 0;
+
+  const activeBanners = Array.isArray(data.promotions)
+    ? data.promotions.filter((p) => p.image && !p.image.includes('promo-card-')).length
+    : 0;
+
+  if (type === 'stats') {
+    return NextResponse.json({
+      success: true,
+      today,
+      todayClicks,
+      activeBanners,
+      dailyClicks: data.dailyClicks || {},
+    });
+  }
+
+  return NextResponse.json({ success: true, data, todayClicks, activeBanners });
 }
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
+
+    // 1. Record logged-in customer click on promotion area (Daily tracking)
+    if (body && body.action === 'record_click') {
+      const { promoId, customerId, userRole } = body;
+
+      // Only count logged-in customers (role === 'CUSTOMER'). Exclude admin, superadmin, and guests.
+      if (userRole !== 'CUSTOMER' || !customerId) {
+        return NextResponse.json({ success: true, ignored: true });
+      }
+
+      const data = readStoredPromotions();
+      if (!data.dailyClicks) data.dailyClicks = {};
+      if (!data.clickHistory) data.clickHistory = [];
+
+      const today = new Date().toISOString().slice(0, 10);
+      data.dailyClicks[today] = (data.dailyClicks[today] || 0) + 1;
+
+      data.clickHistory.push({
+        date: today,
+        customerId,
+        promoId: promoId || 'promo-card',
+        timestamp: Date.now(),
+      });
+
+      // Keep recent 1000 events
+      if (data.clickHistory.length > 1000) {
+        data.clickHistory = data.clickHistory.slice(-1000);
+      }
+
+      writeStoredPromotions(data);
+      return NextResponse.json({
+        success: true,
+        today,
+        todayClicks: data.dailyClicks[today],
+      });
+    }
+
+    // 2. Normal Admin Promotion Card Save
     if (!body || !Array.isArray(body.promotions) || body.promotions.length !== 3) {
       return NextResponse.json(
         { success: false, message: 'Invalid promotion payload. Exactly 3 promotions are required.' },
@@ -61,7 +121,14 @@ export async function POST(req: Request) {
       );
     }
 
-    const saved = writeStoredPromotions(body);
+    const existing = readStoredPromotions();
+    const toSave: PromotionAreaData = {
+      promotions: body.promotions,
+      dailyClicks: existing.dailyClicks || {},
+      clickHistory: existing.clickHistory || [],
+    };
+
+    const saved = writeStoredPromotions(toSave);
     if (!saved) {
       return NextResponse.json(
         { success: false, message: 'Failed to write promotion area store.' },
@@ -69,7 +136,7 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({ success: true, data: body });
+    return NextResponse.json({ success: true, data: toSave });
   } catch (error: any) {
     console.error('Error in POST /api/promotions:', error);
     return NextResponse.json(

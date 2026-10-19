@@ -65,15 +65,9 @@ export const AppLayoutShell: React.FC<AppLayoutShellProps> = ({ children }) => {
     <AuthProvider>
       <ToastProvider>
         <StoreProvider>
-          {isDashboardRoute ? (
-            // Clean isolated render for Dashboard - zero storefront headers, footers, or styles
+          {isDashboardRoute || isAuthRoute ? (
+            // Clean isolated render for Dashboard & Auth pages - zero storefront headers, footers, or leaky styles
             <>{children}</>
-          ) : isAuthRoute ? (
-            // Auth pages (login, register, forgot-password) with storefront styles but without full header/footer
-            <>
-              <StorefrontStyles />
-              {children}
-            </>
           ) : (
             // Complete Storefront Website Layout
             <>

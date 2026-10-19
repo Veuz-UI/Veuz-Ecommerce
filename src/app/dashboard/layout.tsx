@@ -1116,6 +1116,16 @@ export default function DashboardLayout({
                   <span className="nav-text"> Our Partners </span>
                 </Link>
               </li>
+
+              {/* 9. Login Setup */}
+              <li className="nav-item">
+                <Link className={`nav-link ${pathname?.startsWith('/dashboard/login-setup') ? 'active' : ''}`} href="/dashboard/login-setup">
+                  <span className="nav-icon">
+                    <iconify-icon icon="solar:login-2-broken"></iconify-icon>
+                  </span>
+                  <span className="nav-text"> Login Setup </span>
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -1274,7 +1284,7 @@ export default function DashboardLayout({
             4. PAGE CONTENT (Right side container)
            ======================================================== */}
         <div className="page-content" style={{ backgroundColor: '#f8fafc', minHeight: 'calc(100vh - 70px)' }}>
-          <div className="container-fluid py-3">
+          <div key={pathname} className="container-fluid py-3 dash-page-transition">
             {children}
           </div>
         </div>

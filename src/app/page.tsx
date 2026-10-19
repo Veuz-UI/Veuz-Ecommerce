@@ -13,7 +13,7 @@ import { fetchProducts, getCachedProducts, getClientCachedProducts, recordProduc
 import { ProductItem } from '@/data/categoryProductsData';
 import { fetchPartners, PARTNERS_EVENT } from '@/services/partnersService';
 import { DEFAULT_PARTNERS_DATA, PartnersData } from '@/data/defaultPartners';
-import { fetchPromotionArea, getCachedPromotionArea, getClientCachedPromotionArea, PROMOTION_AREA_EVENT } from '@/services/promotionAreaService';
+import { fetchPromotionArea, getCachedPromotionArea, getClientCachedPromotionArea, recordPromotionClick, PROMOTION_AREA_EVENT } from '@/services/promotionAreaService';
 import { DEFAULT_PROMOTION_AREA, PromotionCardItem } from '@/data/defaultPromotionArea';
 import { ProductCardImageSlider } from '@/components/common/ProductCardImageSlider';
 import { useStore } from '@/context/StoreContext';
@@ -1527,7 +1527,11 @@ export default function HomePage() {
                 {activePromos.map((promo, idx) => (
                   <div key={promo.id || `promo-card-${idx}`} className={colClass}>
                     <div className="promo-feature-card overflow-hidden">
-                      <Link href={promo.link || '/products'} className="d-block position-relative overflow-hidden w-100 h-100">
+                      <Link
+                        href={promo.link || '/products'}
+                        onClick={() => recordPromotionClick(promo.id || `promo-card-${idx + 1}`)}
+                        className="d-block position-relative overflow-hidden w-100 h-100"
+                      >
                         <img
                           src={promo.image}
                           alt={promo.title || `Promotional Banner ${idx + 1}`}

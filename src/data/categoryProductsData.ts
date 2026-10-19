@@ -72,6 +72,7 @@ export interface ProductItem {
   currentPrice?: number;
   views?: number;
   clicks?: number;
+  clickedCustomerIds?: (number | string)[];
   createdAt?: number;
   isActive?: boolean;
   isDraft?: boolean;

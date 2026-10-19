@@ -212,10 +212,43 @@ export async function toggleProductStatus(id: string): Promise<{ success: boolea
 
 export async function recordProductClick(id: string): Promise<void> {
   try {
+    if (typeof window === 'undefined') return;
+
+    // 1. Without any logged-in user click -> do not count
+    const savedUserStr = localStorage.getItem('veuz_user');
+    if (!savedUserStr) {
+      return;
+    }
+
+    let user: any = null;
+    try {
+      user = JSON.parse(savedUserStr);
+    } catch (e) {
+      return;
+    }
+
+    // 2. Only customer role counts. Admins & SuperAdmins are strictly excluded.
+    if (!user || user.role !== 'CUSTOMER' || !user.id) {
+      return;
+    }
+
+    const customerId = user.id;
+
+    // 3. Same product multiple times opened by same customer -> only 1 time counted
+    const trackingKey = `veuz_customer_opened_prods_${customerId}`;
+    try {
+      const openedProds: string[] = JSON.parse(localStorage.getItem(trackingKey) || '[]');
+      if (openedProds.includes(id)) {
+        return; // Already opened by this customer
+      }
+      openedProds.push(id);
+      localStorage.setItem(trackingKey, JSON.stringify(openedProds));
+    } catch (e) {}
+
     fetch('/api/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'click', id }),
+      body: JSON.stringify({ action: 'click', id, userRole: 'CUSTOMER', customerId }),
     }).catch(() => {});
   } catch (e) {
     // Silent

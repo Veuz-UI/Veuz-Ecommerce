@@ -7,8 +7,17 @@ export interface PromotionCardItem {
   link?: string;
 }
 
+export interface PromotionClickEvent {
+  date: string;
+  customerId: number;
+  promoId: string;
+  timestamp: number;
+}
+
 export interface PromotionAreaData {
   promotions: PromotionCardItem[];
+  dailyClicks?: Record<string, number>; // dateString (YYYY-MM-DD) -> customer click count
+  clickHistory?: PromotionClickEvent[];
 }
 
 export const DEFAULT_PROMOTION_AREA: PromotionAreaData = {

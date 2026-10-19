@@ -8464,3 +8464,894 @@ html {
     transition: none !important;
   }
 }
+
+/* =========================================================
+   STABILIZED AUTHENTICATION STYLES (Login, Register, Forgot Password)
+   Pre-loaded in globals.css so initial paint is 100% stable with ZERO FOUC / layout shift on refresh
+   ========================================================= */
+
+/* --- Login Page (Split Card) --- */
+.auth-split-wrapper {
+  min-height: 100vh;
+  background-color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  box-sizing: border-box;
+}
+
+.auth-split-wrapper *,
+.auth-split-wrapper *::before,
+.auth-split-wrapper *::after {
+  box-sizing: border-box;
+}
+
+.auth-split-card {
+  width: 100%;
+  max-width: 980px;
+  min-height: 620px;
+  background-color: #ffffff;
+  border-radius: 28px;
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.12), 0 0 0 1px rgba(15, 23, 42, 0.04);
+  display: flex;
+  overflow: hidden;
+  padding: 14px;
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.auth-visual-panel {
+  flex: 1.05;
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  background-color: #0f172a;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 590px;
+}
+
+/* Stacked Slide Layers for Ultra-Smooth Cross-Fade */
+.auth-slides-container {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.auth-slide-layer {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  visibility: hidden;
+  transform: scale(1.035);
+  transition: opacity 0.85s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 1.3s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.85s step-end;
+  will-change: opacity, transform;
+}
+
+.auth-slide-layer.is-active {
+  opacity: 1;
+  visibility: visible;
+  transform: scale(1);
+  z-index: 2;
+  transition: opacity 0.85s cubic-bezier(0.4, 0, 0.2, 1),
+              transform 1.3s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0s linear;
+}
+
+.auth-hero-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.auth-story-bars {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  gap: 8px;
+  padding: 18px 20px 0 20px;
+}
+
+.auth-story-bar-btn {
+  flex: 1;
+  height: 4px;
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(4px);
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: background-color 0.2s ease;
+}
+
+.auth-story-bar-btn:hover {
+  background-color: rgba(255, 255, 255, 0.55);
+}
+
+.auth-story-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background-color: #ffffff;
+  border-radius: 999px;
+  transition: width 0.05s linear;
+}
+
+.auth-visual-overlay {
+  position: relative;
+  z-index: 4;
+  padding: 60px 24px 28px 24px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.45) 45%, rgba(0, 0, 0, 0.92) 100%);
+}
+
+/* Captions cross-fade smoothly with subtle upward float */
+.auth-captions-wrapper {
+  position: relative;
+  height: 4.5em; /* Fixed 3-line max box so layout never shifts */
+  width: 100%;
+}
+
+.auth-visual-caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: #ffffff;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 4.5em; /* Exactly 3 lines max */
+  opacity: 0;
+  transform: translateY(8px);
+  pointer-events: none;
+  transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.65s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
+}
+
+.auth-visual-caption.is-active {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.auth-form-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 24px 36px 28px 36px;
+  box-sizing: border-box;
+  justify-content: space-between;
+}
+
+.auth-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.auth-brand-logo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.auth-company-logo {
+  height: 42px;
+  width: auto;
+  max-width: 160px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+.auth-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid #e2e8f0;
+  background: transparent;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.auth-close-btn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  transform: scale(1.05);
+}
+
+.auth-form-body {
+  margin-top: 20px;
+  margin-bottom: auto;
+}
+
+.auth-heading {
+  font-size: 34px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  margin: 0 0 8px 0;
+  line-height: 1.15;
+}
+
+.auth-subheading {
+  font-size: 13.5px;
+  color: #64748b;
+  margin: 0 0 28px 0;
+  line-height: 1.45;
+}
+
+.auth-field-group {
+  margin-bottom: 20px;
+}
+
+.auth-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+  margin-bottom: 7px;
+  letter-spacing: -0.01em;
+}
+
+.auth-password-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+
+.auth-forgot-link {
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.auth-forgot-link:hover {
+  color: #0f172a;
+  text-decoration: underline;
+}
+
+.auth-input-wrap {
+  position: relative;
+  width: 100%;
+}
+
+.auth-input {
+  width: 100%;
+  height: 48px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background-color: #ffffff;
+  padding: 0 16px;
+  font-size: 14.5px;
+  color: #0f172a;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.auth-input:focus {
+  border-color: #0f172a;
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+}
+
+.auth-input.has-error {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.auth-input.with-eye {
+  padding-right: 48px;
+}
+
+.auth-eye-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.auth-eye-btn:hover {
+  color: #0f172a;
+  background-color: #f1f5f9;
+}
+
+.auth-error-text {
+  font-size: 12px;
+  color: #ef4444;
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.auth-remember-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.auth-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  cursor: pointer;
+  font-size: 13.5px;
+  color: #475569;
+  user-select: none;
+}
+
+.auth-checkbox {
+  width: 17px;
+  height: 17px;
+  accent-color: #0f172a;
+  cursor: pointer;
+  margin: 0;
+}
+
+.auth-submit-btn {
+  width: 100%;
+  height: 50px;
+  border-radius: 999px;
+  background-color: #0f172a;
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+.auth-submit-btn:hover:not(:disabled) {
+  background-color: #1e293b;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.25);
+}
+
+.auth-submit-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.auth-submit-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.auth-btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: authSpin 0.7s linear infinite;
+}
+
+@keyframes authSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.auth-footer-prompt {
+  text-align: center;
+  font-size: 13.5px;
+  color: #64748b;
+  margin-top: 24px;
+}
+
+.auth-footer-link {
+  color: #0f172a;
+  font-weight: 700;
+  text-decoration: none;
+  margin-left: 4px;
+}
+
+.auth-footer-link:hover {
+  text-decoration: underline;
+}
+
+@media (max-width: 860px) {
+  .auth-split-card {
+    flex-direction: column;
+    max-width: 480px;
+    padding: 10px;
+  }
+
+  .auth-visual-panel {
+    min-height: 230px;
+    height: 230px;
+    flex: none;
+  }
+
+  .auth-form-panel {
+    padding: 24px 20px;
+  }
+
+  .auth-heading {
+    font-size: 28px;
+  }
+}
+
+/* --- Register Page (Card & Responsive Grid) --- */
+.register-page-wrapper {
+  min-height: 100vh;
+  background-color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 36px 16px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-sizing: border-box;
+}
+
+.register-card-container {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.register-card-container *,
+.register-card-container *::before,
+.register-card-container *::after {
+  box-sizing: border-box;
+}
+
+.register-card-body {
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  padding: 40px 44px;
+  box-sizing: border-box;
+}
+
+.register-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 22px;
+  row-gap: 18px;
+}
+
+.register-col-span-2 {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 767px) {
+  .register-card-container {
+    max-width: 100%;
+  }
+
+  .register-card-body {
+    padding: 26px 18px;
+  }
+
+  .register-form-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+/* --- Forgot Password Page --- */
+.forgot-page-wrapper {
+  min-height: 100vh;
+  background-color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  box-sizing: border-box;
+}
+
+.forgot-card-container {
+  width: 100%;
+  max-width: 440px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+.forgot-card-container *,
+.forgot-card-container *::before,
+.forgot-card-container *::after {
+  box-sizing: border-box;
+}
+
+.forgot-card-body {
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
+  padding: 36px 32px;
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   MODERN DASHBOARD ANALYTICS & INTERACTIVE UI SYSTEM
+   ========================================================= */
+
+@keyframes dashPageFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dash-page-transition {
+  animation: dashPageFadeIn 0.38s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes dashFadeUp {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dash-fade-up {
+  animation: dashFadeUp 0.45s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes dashPulseLive {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 0.85;
+  }
+}
+
+.dash-live-pulse {
+  animation: dashPulseLive 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Dashboard Base Cards with Ultra Smooth Elevation */
+.dash-analytics-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 1px 2px -1px rgba(15, 23, 42, 0.02);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease;
+  will-change: transform, box-shadow;
+}
+
+.dash-analytics-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 12px 28px -6px rgba(15, 23, 42, 0.09), 0 8px 12px -6px rgba(15, 23, 42, 0.05);
+}
+
+/* 2x2 Stat Cards with Lift Effect */
+.dash-stat-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease;
+  will-change: transform, box-shadow;
+}
+
+.dash-stat-card:hover {
+  transform: translateY(-3px);
+  border-color: #cbd5e1;
+  box-shadow: 0 14px 28px -4px rgba(15, 23, 42, 0.1);
+}
+
+.dash-stat-icon-wrap {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dash-stat-card:hover .dash-stat-icon-wrap {
+  transform: scale(1.08);
+}
+
+/* Interactive SVG Bar Chart Columns */
+.dash-chart-bar-rect {
+  transition: height 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              y 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.2s ease,
+              fill 0.25s ease;
+  cursor: pointer;
+}
+
+.dash-chart-bar-group:hover .dash-chart-bar-rect {
+  opacity: 0.95;
+  filter: drop-shadow(0 4px 12px rgba(244, 63, 94, 0.35));
+}
+
+/* Donut Chart Segments with Smooth Transitions */
+.dash-donut-segment {
+  transition: stroke-dasharray 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              stroke-dashoffset 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              stroke-width 0.25s ease,
+              filter 0.25s ease;
+  cursor: pointer;
+}
+
+.dash-donut-segment:hover {
+  stroke-width: 22 !important;
+  filter: drop-shadow(0 0 8px rgba(0, 0, 0, 0.16));
+}
+
+/* Smooth Table Row Animations & Transitions */
+.dash-table-wrap table tbody tr {
+  transition: background-color 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dash-table-wrap table tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Smooth Input & Select Transitions */
+.dash-search-input,
+.dash-select,
+.dash-btn,
+.btn {
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Equalizer mini bars */
+.dash-equalizer-bar {
+  width: 4px;
+  border-radius: 999px;
+  transition: height 0.3s ease;
+}
+
+/* Dashboard Responsive Table */
+.dash-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dash-table-wrap::-webkit-scrollbar {
+  height: 6px;
+}
+
+.dash-table-wrap::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 999px;
+}
+
+.dash-table-row {
+  transition: background-color 0.15s ease;
+}
+
+.dash-table-row:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Top Action Search & Buttons */
+.dash-search-input {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 3px !important;
+  padding: 0 12px 0 32px;
+  font-size: 13px;
+  height: 34px;
+  color: #0f172a;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.dash-search-input:focus {
+  border-color: #0f172a;
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.08);
+}
+
+.dash-select {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 3px !important;
+  padding: 0 26px 0 10px;
+  height: 34px;
+  font-size: 13px;
+  color: #334155;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.dash-select:focus {
+  border-color: #0f172a;
+}
+
+.dash-export-btn {
+  background-color: #ef4444;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  padding: 8px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+}
+
+.dash-export-btn:hover {
+  background-color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35);
+}
+
+.dash-export-btn:active {
+  transform: translateY(0);
+}
+
+/* Mobile & Tablet Responsiveness */
+@media (max-width: 991px) {
+  .dash-stat-grid {
+    grid-template-columns: 1fr 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .dash-stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .dash-stat-card {
+    padding: 14px 16px;
+  }
+}
+
+/* ========================================================
+   GLOBAL DASHBOARD SMOOTH ANIMATIONS & MICRO-INTERACTIONS
+   ======================================================== */
+.page-content {
+  animation: dashFadeUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Smooth Card Hover Elevation across all dashboard pages */
+.page-content .card {
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.2s ease !important;
+}
+
+.page-content .card:hover {
+  box-shadow: 0 8px 20px -4px rgba(15, 23, 42, 0.06), 0 4px 6px -2px rgba(15, 23, 42, 0.03) !important;
+}
+
+/* Smooth Interactive Buttons */
+.page-content .btn {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.page-content .btn:hover:not(:disabled) {
+  transform: translateY(-1px) !important;
+}
+
+.page-content .btn:active:not(:disabled) {
+  transform: translateY(0) !important;
+}
+
+/* Smooth Table Row Hovers across all dashboard tables */
+.page-content .table tbody tr {
+  transition: background-color 0.15s ease !important;
+}
+
+.page-content .table tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+/* Touch-friendly Horizontal Table Scroll */
+.page-content .table-responsive {
+  -webkit-overflow-scrolling: touch;
+}
+
+.page-content .table-responsive::-webkit-scrollbar {
+  height: 6px;
+}
+
+.page-content .table-responsive::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 999px;
+}
+
+/* Mobile Friendly Adjustments (< 768px) */
+@media (max-width: 767.98px) {
+  .page-content {
+    min-height: calc(100vh - 60px) !important;
+  }
+
+  .page-content .container-fluid {
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+    padding-top: 12px !important;
+  }
+
+  .page-content .card-body {
+    padding: 16px !important;
+  }
+
+  /* Make header action rows stack cleanly on mobile */
+  .page-content .d-flex.align-items-start.justify-content-between,
+  .page-content .d-flex.align-items-center.justify-content-between {
+    gap: 12px;
+  }
+}

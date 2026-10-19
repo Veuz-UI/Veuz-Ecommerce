@@ -324,6 +324,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       } catch (e) {}
 
+      if (token && user?.role === 'CUSTOMER') {
+        fetch('/api/auth/logout-session', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        }).catch(() => {});
+      }
+
       localStorage.removeItem('veuz_token');
       localStorage.removeItem('veuz_user');
       localStorage.removeItem('veuz_cart_guest');
@@ -339,6 +349,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
   };
+
+  // Live Customer Presence Heartbeat (strictly for CUSTOMER role, excludes Admins & SuperAdmins)
+  useEffect(() => {
+    if (!user || user.role !== 'CUSTOMER' || !token) return;
+
+    const pingServer = () => {
+      fetch('/api/auth/ping', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      }).catch(() => {});
+    };
+
+    pingServer();
+    const interval = setInterval(pingServer, 25000); // Heartbeat every 25s
+    return () => clearInterval(interval);
+  }, [user?.role, token]);
 
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
 

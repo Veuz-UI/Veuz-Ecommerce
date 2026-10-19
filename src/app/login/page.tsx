@@ -5,6 +5,13 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
+import {
+  fetchLoginSetup,
+  getCachedLoginSetup,
+  LOGIN_SETUP_EVENT,
+  LoginSetupData,
+  DEFAULT_LOGIN_SETUP,
+} from '@/services/loginSetupService';
 
 function LoginForm() {
   const router = useRouter();
@@ -22,6 +29,68 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Dynamic Login Slider Setup state
+  const [setupData, setSetupData] = useState<LoginSetupData>(DEFAULT_LOGIN_SETUP);
+  const [activeSlideIdx, setActiveSlideIdx] = useState(0);
+  const [slideProgress, setSlideProgress] = useState(0);
+
+  // Load Setup from Local Cache & API
+  useEffect(() => {
+    const cached = getCachedLoginSetup();
+    if (cached && Array.isArray(cached.slides) && cached.slides.length > 0) {
+      setSetupData(cached);
+    }
+
+    fetchLoginSetup().then((data) => {
+      if (data && Array.isArray(data.slides) && data.slides.length > 0) {
+        setSetupData(data);
+      }
+    });
+
+    const handleUpdated = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail && Array.isArray(customEvent.detail.slides)) {
+        setSetupData(customEvent.detail);
+      }
+    };
+
+    window.addEventListener(LOGIN_SETUP_EVENT, handleUpdated);
+    return () => window.removeEventListener(LOGIN_SETUP_EVENT, handleUpdated);
+  }, []);
+
+  // Maximum 4 slides enforced
+  const activeSlides = (setupData.slides && setupData.slides.length > 0 ? setupData.slides : DEFAULT_LOGIN_SETUP.slides).slice(0, 4);
+  const safeSlideIdx = activeSlideIdx < activeSlides.length ? activeSlideIdx : 0;
+  const currentSlide = activeSlides[safeSlideIdx] || activeSlides[0];
+  const slideDuration = setupData.autoSlideInterval || 5000;
+
+  // Auto-slide ticker with smooth progress fill
+  useEffect(() => {
+    if (activeSlides.length <= 1) return;
+
+    let start = Date.now();
+    const interval = 50; // 50ms tick for smooth progress bar fill
+
+    const timer = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const pct = Math.min(100, (elapsed / slideDuration) * 100);
+      setSlideProgress(pct);
+
+      if (elapsed >= slideDuration) {
+        start = Date.now();
+        setSlideProgress(0);
+        setActiveSlideIdx((prev) => (prev + 1) % activeSlides.length);
+      }
+    }, interval);
+
+    return () => clearInterval(timer);
+  }, [activeSlides.length, slideDuration, safeSlideIdx]);
+
+  const handleSelectSlide = (idx: number) => {
+    setActiveSlideIdx(idx);
+    setSlideProgress(0);
+  };
 
   // If user is already authenticated (or authenticates in another window), redirect immediately
   useEffect(() => {
@@ -124,229 +193,228 @@ function LoginForm() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#f1f5f9',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px 16px',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    }}>
-      <div style={{ width: '100%', maxWidth: '440px' }}>
-        
-        {/* Auth Card */}
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
-          border: '1px solid #e2e8f0',
-          padding: '36px 32px'
-        }}>
-          
-          {/* Brand Logo */}
-          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-            <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+    <div className="auth-split-wrapper">
+      <div className="auth-split-card">
+        {/* Left Side: Dynamic Auto Slide Carousel (Max 4 Slides) with Smooth Cross-Fade */}
+        <div className="auth-visual-panel">
+          {/* Stacked Slide Layers for Ultra-Smooth Dissolve / Cross-Fade */}
+          <div className="auth-slides-container">
+            {activeSlides.map((slide, idx) => {
+              const isActive = idx === safeSlideIdx;
+              return (
+                <div
+                  key={slide.id || idx}
+                  className={`auth-slide-layer ${isActive ? 'is-active' : ''}`}
+                  aria-hidden={!isActive}
+                >
+                  <img
+                    src={slide.image}
+                    alt={slide.caption ? slide.caption.slice(0, 30) : 'Veuz Store'}
+                    className="auth-hero-img"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = '/assets/imgs/theme/placeholder.svg';
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Top Story Indicator Bars (Max 4 Bars) with Live Progress */}
+          <div className="auth-story-bars">
+            {activeSlides.map((slide, i) => {
+              let fillWidth = '0%';
+              if (i < safeSlideIdx) fillWidth = '100%';
+              else if (i === safeSlideIdx) fillWidth = `${slideProgress}%`;
+
+              return (
+                <button
+                  key={slide.id || i}
+                  type="button"
+                  onClick={() => handleSelectSlide(i)}
+                  className="auth-story-bar-btn"
+                  aria-label={`Jump to slide ${i + 1}`}
+                  title={`View slide ${i + 1}`}
+                >
+                  <span
+                    className="auth-story-bar-fill"
+                    style={{ width: fillWidth }}
+                  />
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Bottom Gradient Overlay & Smooth Cross-Fading 3-Line Maximum Caption Text */}
+          <div className="auth-visual-overlay">
+            <div className="auth-captions-wrapper">
+              {activeSlides.map((slide, idx) => {
+                const isActive = idx === safeSlideIdx;
+                return (
+                  <p
+                    key={slide.id || idx}
+                    className={`auth-visual-caption ${isActive ? 'is-active' : ''}`}
+                  >
+                    {slide.caption || 'Veuz is an online fashion store that provides a variety of clothes, shoes, bags, and accessories for men and women.'}
+                  </p>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side: Account Sign In Form with Company Logo */}
+        <div className="auth-form-panel">
+          {/* Top Header Row with Company Logo and Close Button */}
+          <div className="auth-header-row">
+            <Link href="/" className="auth-brand-logo-link" title="Return to Store">
               <img
                 src="/assets/imgs/theme/logo.jpg"
-                alt="Veuz Safety Logo"
-                style={{ height: '42px', width: 'auto', objectFit: 'contain' }}
+                alt="Logo"
+                width={140}
+                height={42}
+                className="auth-company-logo"
               />
+            </Link>
+
+            <Link href="/" className="auth-close-btn" aria-label="Close and return to store" title="Close">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
             </Link>
           </div>
 
-          <h2 style={{
-            fontSize: '22px',
-            fontWeight: '700',
-            textAlign: 'center',
-            color: '#0f172a',
-            margin: '0 0 8px 0'
-          }}>
-            Welcome Back
-          </h2>
-          <p style={{
-            fontSize: '13px',
-            color: '#64748b',
-            textAlign: 'center',
-            margin: '0 0 24px 0'
-          }}>
-            Enter your credentials to access your account
-          </p>
+          {/* Form Body */}
+          <div className="auth-form-body">
+            <h1 className="auth-heading">Welcome Back!</h1>
+            <p className="auth-subheading">Enter your account credentials to access your store profile</p>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} noValidate>
-            <div style={{ marginBottom: '18px' }}>
-              <label htmlFor="email" style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#334155', marginBottom: '6px' }}>
-                Email Address
-              </label>
-              <input
-                type="email"
-                id="email"
-                required
-                autoCapitalize="none"
-                autoCorrect="off"
-                spellCheck="false"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (emailTouched) {
-                    validateEmail(e.target.value);
-                  }
-                }}
-                onBlur={(e) => {
-                  setEmailTouched(true);
-                  validateEmail(e.target.value);
-                }}
-                placeholder="name@example.com"
-                style={{
-                  width: '100%',
-                  height: '44px',
-                  padding: '0 14px',
-                  fontSize: '14px',
-                  borderRadius: '8px',
-                  border: emailError && emailTouched ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                  color: '#0f172a',
-                  backgroundColor: emailError && emailTouched ? '#fef2f2' : '#ffffff',
-                  transition: 'border-color 0.15s ease, background-color 0.15s ease'
-                }}
-              />
-              {emailError && emailTouched && (
-                <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span>⚠️</span> {emailError}
-                </div>
-              )}
-            </div>
-
-            <div style={{ marginBottom: '18px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <label htmlFor="password" style={{ fontSize: '13px', fontWeight: '600', color: '#334155', margin: 0 }}>
-                  Password
+            <form onSubmit={handleSubmit} noValidate>
+              {/* Email Input */}
+              <div className="auth-field-group">
+                <label htmlFor="email" className="auth-label">
+                  Email
                 </label>
-                <Link href="/forgot-password" style={{ fontSize: '12px', color: '#2563eb', textDecoration: 'none', fontWeight: '500' }}>
-                  Reset password?
-                </Link>
+                <div className="auth-input-wrap">
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    required
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      if (emailTouched) validateEmail(e.target.value);
+                    }}
+                    onBlur={() => {
+                      setEmailTouched(true);
+                      validateEmail(email);
+                    }}
+                    placeholder="name@example.com"
+                    className={`auth-input ${emailError && emailTouched ? 'has-error' : ''}`}
+                  />
+                </div>
+                {emailError && emailTouched && (
+                  <div className="auth-error-text">
+                    <span>⚠️</span> {emailError}
+                  </div>
+                )}
               </div>
-              <div style={{ position: 'relative' }}>
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="password"
-                  required
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck="false"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  style={{
-                    width: '100%',
-                    height: '44px',
-                    padding: '0 42px 0 14px',
-                    fontSize: '14px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    color: '#0f172a',
-                    transition: 'border-color 0.15s ease'
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  title={showPassword ? 'Hide password' : 'Show password'}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  style={{
-                    position: 'absolute',
-                    right: '12px',
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    background: 'none',
-                    border: 'none',
-                    padding: '4px',
-                    cursor: 'pointer',
-                    color: showPassword ? '#2563eb' : '#94a3b8',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'color 0.15s ease'
-                  }}
-                >
-                  {showPassword ? (
-                    /* Eye-off Icon */
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                      <line x1="1" y1="1" x2="23" y2="23"></line>
-                    </svg>
-                  ) : (
-                    /* Eye Icon */
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                      <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                  )}
-                </button>
+
+              {/* Password Input */}
+              <div className="auth-field-group">
+                <div className="auth-password-header">
+                  <label htmlFor="password" className="auth-label" style={{ margin: 0 }}>
+                    Password
+                  </label>
+                  <Link href="/forgot-password" className="auth-forgot-link">
+                    Forgot password?
+                  </Link>
+                </div>
+                <div className="auth-input-wrap">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    id="password"
+                    name="password"
+                    required
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="auth-input with-eye"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="auth-eye-btn"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      /* Eye-off Icon matching reference */
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                        <line x1="1" y1="1" x2="23" y2="23"></line>
+                      </svg>
+                    ) : (
+                      /* Eye Icon matching reference */
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                        <circle cx="12" cy="12" r="3"></circle>
+                      </svg>
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '22px' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#475569' }}>
-                <input
-                  type="checkbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  style={{ width: '16px', height: '16px', accentColor: '#0f172a', cursor: 'pointer' }}
-                />
-                Remember me
-              </label>
-            </div>
+              {/* Remember Me Checkbox */}
+              <div className="auth-remember-row">
+                <label className="auth-checkbox-label">
+                  <input
+                    type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    className="auth-checkbox"
+                  />
+                  <span>Remember me</span>
+                </label>
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%',
-                height: '44px',
-                backgroundColor: '#2563eb',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: '600',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1,
-                transition: 'background-color 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="auth-submit-btn"
+              >
+                {loading ? (
+                  <>
+                    <span className="auth-btn-spinner" />
+                    <span>Signing in...</span>
+                  </>
+                ) : (
+                  <span>Sign in</span>
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* Footer Prompt */}
+          <div className="auth-footer-prompt">
+            Don't have an account?{' '}
+            <Link
+              href={redirectParam ? `/register?redirect=${encodeURIComponent(redirectParam)}` : '/register'}
+              className="auth-footer-link"
             >
-              {loading ? (
-                <>
-                  <span style={{ display: 'inline-block', width: '16px', height: '16px', border: '2px solid #ffffff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></span>
-                  Signing in...
-                </>
-              ) : (
-                'Sign In'
-              )}
-            </button>
-          </form>
-
+              Register
+            </Link>
+          </div>
         </div>
-
-        {/* Footer Link */}
-        <p style={{ textAlign: 'center', fontSize: '13px', color: '#64748b', marginTop: '20px' }}>
-          New here?{' '}
-          <Link
-            href={redirectParam ? `/register?redirect=${encodeURIComponent(redirectParam)}` : "/register"}
-            style={{ color: '#2563eb', fontWeight: '700', textDecoration: 'none' }}
-          >
-            Create Customer Account
-          </Link>
-        </p>
-
       </div>
     </div>
   );

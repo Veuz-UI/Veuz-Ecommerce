@@ -33,30 +33,18 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#f1f5f9',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px 16px',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    }}>
-      <div style={{ width: '100%', maxWidth: '440px' }}>
+    <div className="forgot-page-wrapper">
+      <div className="forgot-card-container">
         
-        <div style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)',
-          border: '1px solid #e2e8f0',
-          padding: '36px 32px'
-        }}>
+        <div className="forgot-card-body">
           
           <div style={{ textAlign: 'center', marginBottom: '24px' }}>
             <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
               <img
                 src="/assets/imgs/theme/logo.jpg"
                 alt="Veuz Safety Logo"
+                width={140}
+                height={42}
                 style={{ height: '42px', width: 'auto', objectFit: 'contain' }}
               />
             </Link>
@@ -93,13 +81,15 @@ export default function ForgotPasswordPage() {
                 href="/login"
                 style={{
                   display: 'inline-block',
-                  padding: '10px 24px',
-                  backgroundColor: '#2563eb',
+                  padding: '12px 28px',
+                  backgroundColor: '#0f172a',
                   color: '#ffffff',
-                  borderRadius: '8px',
+                  borderRadius: '10px',
                   textDecoration: 'none',
                   fontSize: '14px',
-                  fontWeight: '600'
+                  fontWeight: '600',
+                  boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
+                  transition: 'background-color 0.2s ease'
                 }}
               >
                 Back to Sign In
@@ -120,11 +110,11 @@ export default function ForgotPasswordPage() {
                   placeholder="name@example.com"
                   style={{
                     width: '100%',
-                    height: '44px',
-                    padding: '0 14px',
+                    height: '46px',
+                    padding: '0 16px',
                     fontSize: '14px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
+                    borderRadius: '10px',
+                    border: '1.5px solid #e2e8f0',
                     outline: 'none',
                     boxSizing: 'border-box',
                     color: '#0f172a'
@@ -137,15 +127,17 @@ export default function ForgotPasswordPage() {
                 disabled={loading}
                 style={{
                   width: '100%',
-                  height: '44px',
-                  backgroundColor: '#2563eb',
+                  height: '48px',
+                  backgroundColor: '#0f172a',
                   color: '#ffffff',
                   border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '14px',
+                  borderRadius: '10px',
+                  fontSize: '15px',
                   fontWeight: '600',
                   cursor: loading ? 'not-allowed' : 'pointer',
-                  opacity: loading ? 0.7 : 1
+                  opacity: loading ? 0.7 : 1,
+                  boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)',
+                  transition: 'background-color 0.2s ease'
                 }}
               >
                 {loading ? 'Sending...' : 'Send Reset Link'}
@@ -155,9 +147,9 @@ export default function ForgotPasswordPage() {
 
         </div>
 
-        <p style={{ textAlign: 'center', fontSize: '13px', color: '#64748b', marginTop: '20px' }}>
+        <p style={{ textAlign: 'center', fontSize: '13.5px', color: '#64748b', marginTop: '22px' }}>
           Remember your password?{' '}
-          <Link href="/login" style={{ color: '#2563eb', fontWeight: '700', textDecoration: 'none' }}>
+          <Link href="/login" style={{ color: '#0f172a', fontWeight: '700', textDecoration: 'none' }}>
             Back to Sign In
           </Link>
         </p>

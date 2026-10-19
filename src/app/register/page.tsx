@@ -167,131 +167,62 @@ export default function RegisterPage() {
   };
 
   return (
-    <>
-      <style dangerouslySetInnerHTML={{ __html: `
-        /* Responsive Card Container */
-        .register-card-container {
-          width: 100%;
-          max-width: 480px;
-          margin: 0 auto;
-          transition: max-width 0.25s ease;
-        }
-
-        .register-card-body {
-          background-color: #ffffff;
-          border-radius: 16px;
-          box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-          border: 1px solid #e2e8f0;
-          padding: 32px 24px;
-          transition: padding 0.25s ease;
-        }
-
-        .register-form-grid {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-        }
-
-        /* Desktop, Laptop, and Tablet screens (>= 768px):
-           Use spacious width and 2-input row grid */
-        @media (min-width: 768px) {
-          .register-card-container {
-            max-width: 760px !important;
-          }
-
-          .register-card-body {
-            padding: 40px 44px !important;
-          }
-
-          .register-form-grid {
-            display: grid !important;
-            grid-template-columns: 1fr 1fr !important;
-            column-gap: 22px !important;
-            row-gap: 18px !important;
-          }
-
-          .register-col-span-2 {
-            grid-column: 1 / -1 !important;
-          }
-        }
-
-        /* Mobile screens (< 768px): Keep strictly 1 column stacked layout */
-        @media (max-width: 767px) {
-          .register-card-container {
-            max-width: 100% !important;
-          }
-
-          .register-card-body {
-            padding: 26px 18px !important;
-          }
-
-          .register-form-grid {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 16px !important;
-          }
-        }
-      `}} />
-
-      <div style={{
-        minHeight: '100vh',
-        backgroundColor: '#f1f5f9',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '36px 16px',
-        fontFamily: 'system-ui, -apple-system, sans-serif'
-      }}>
-        <div className="register-card-container">
+    <div className="register-page-wrapper">
+      <div className="register-card-container">
+        
+        {/* Auth Card */}
+        <div className="register-card-body">
           
-          {/* Auth Card */}
-          <div className="register-card-body">
-            
-            {/* Brand Logo */}
-            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-              <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
-                <img
-                  src="/assets/imgs/theme/logo.jpg"
-                  alt="Veuz Safety Logo"
-                  style={{ height: '44px', width: 'auto', objectFit: 'contain' }}
-                />
-              </Link>
-            </div>
+          {/* Brand Logo */}
+          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+            <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', textDecoration: 'none' }}>
+              <img
+                src="/assets/imgs/theme/logo.jpg"
+                alt="Veuz Safety Logo"
+                width={140}
+                height={44}
+                style={{ height: '44px', width: 'auto', objectFit: 'contain' }}
+              />
+            </Link>
+          </div>
 
-            <h2 style={{
-              fontSize: '24px',
-              fontWeight: '700',
-              textAlign: 'center',
-              color: '#0f172a',
-              margin: '0 0 8px 0'
-            }}>
-              Create Customer Account
-            </h2>
-            <p style={{
-              fontSize: '13px',
-              color: '#64748b',
-              textAlign: 'center',
-              margin: '0 0 24px 0'
-            }}>
-              Join Veuz to shop certified safety &amp; PPE industrial equipment
-            </p>
+          <h2 style={{
+            fontSize: '24px',
+            fontWeight: '700',
+            textAlign: 'center',
+            color: '#0f172a',
+            margin: '0 0 8px 0'
+          }}>
+            Create Customer Account
+          </h2>
+          <p style={{
+            fontSize: '13px',
+            color: '#64748b',
+            textAlign: 'center',
+            margin: '0 0 24px 0'
+          }}>
+            Join Veuz to shop certified safety &amp; PPE industrial equipment
+          </p>
 
-            {/* Security Notice */}
-            <div style={{
-              backgroundColor: '#f0fdf4',
-              border: '1px solid #bbf7d0',
-              color: '#166534',
-              fontSize: '12px',
-              padding: '9px 14px',
-              borderRadius: '8px',
-              marginBottom: '20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}>
-              <i className="fi fi-rs-shield-check" style={{ fontSize: '15px' }}></i>
-              <span>Customer Portal. Admin accounts are invite-only by Super Admin.</span>
-            </div>
+          {/* Security Notice */}
+          <div style={{
+            backgroundColor: '#f0fdf4',
+            border: '1px solid #bbf7d0',
+            color: '#166534',
+            fontSize: '12px',
+            padding: '9px 14px',
+            borderRadius: '8px',
+            marginBottom: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <path d="m9 12 2 2 4-4"></path>
+            </svg>
+            <span>Customer Portal. Admin accounts are invite-only by Super Admin.</span>
+          </div>
 
             {/* Form with responsive 2-column desktop/tablet grid */}
             <form onSubmit={handleSubmit} noValidate className="register-form-grid">
@@ -467,7 +398,7 @@ export default function RegisterPage() {
                       border: 'none',
                       padding: '4px',
                       cursor: 'pointer',
-                      color: showPassword ? '#2563eb' : '#94a3b8',
+                      color: showPassword ? '#0f172a' : '#94a3b8',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -564,7 +495,7 @@ export default function RegisterPage() {
                       border: 'none',
                       padding: '4px',
                       cursor: 'pointer',
-                      color: showConfirmPassword ? '#2563eb' : '#94a3b8',
+                      color: showConfirmPassword ? '#0f172a' : '#94a3b8',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -592,41 +523,59 @@ export default function RegisterPage() {
               </div>
 
               {/* Terms and Privacy Policy (Span 2) */}
-              <div className="register-col-span-2" style={{ marginTop: '4px' }}>
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#475569' }}>
+              <div className="register-col-span-2" style={{ marginTop: '6px' }}>
+                <label style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  cursor: 'pointer',
+                  fontSize: '13.5px',
+                  color: '#334155',
+                  userSelect: 'none',
+                  lineHeight: '1.4'
+                }}>
                   <input
                     type="checkbox"
                     checked={agreeTerms}
                     onChange={(e) => setAgreeTerms(e.target.checked)}
-                    style={{ width: '16px', height: '16px', accentColor: '#0f172a', marginTop: '2px', cursor: 'pointer' }}
+                    style={{
+                      width: '18px',
+                      height: '18px',
+                      accentColor: '#0f172a',
+                      cursor: 'pointer',
+                      margin: 0,
+                      flexShrink: 0
+                    }}
                   />
                   <span>
-                    I agree to the <Link href="#" style={{ color: '#2563eb', textDecoration: 'none' }}>Terms of Service</Link> and <Link href="#" style={{ color: '#2563eb', textDecoration: 'none' }}>Privacy Policy</Link> <span style={{ color: '#ef4444', fontWeight: '700' }}>*</span>
+                    I agree to the <Link href="#" style={{ color: '#0f172a', fontWeight: '600', textDecoration: 'underline' }}>Terms of Service</Link> and <Link href="#" style={{ color: '#0f172a', fontWeight: '600', textDecoration: 'underline' }}>Privacy Policy</Link> <span style={{ color: '#ef4444', fontWeight: '700' }}>*</span>
                   </span>
                 </label>
               </div>
 
               {/* Submit Button (Span 2) */}
-              <div className="register-col-span-2" style={{ marginTop: '6px' }}>
+              <div className="register-col-span-2" style={{ marginTop: '10px' }}>
                 <button
                   type="submit"
                   disabled={loading}
                   style={{
                     width: '100%',
-                    height: '46px',
-                    backgroundColor: '#2563eb',
+                    height: '48px',
+                    backgroundColor: '#0f172a',
                     color: '#ffffff',
                     border: 'none',
-                    borderRadius: '8px',
+                    borderRadius: '10px',
                     fontSize: '15px',
                     fontWeight: '600',
+                    letterSpacing: '-0.01em',
                     cursor: loading ? 'not-allowed' : 'pointer',
                     opacity: loading ? 0.7 : 1,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '8px',
-                    transition: 'background-color 0.15s ease'
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 4px 12px rgba(15, 23, 42, 0.15)'
                   }}
                 >
                   {loading ? (
@@ -634,8 +583,8 @@ export default function RegisterPage() {
                       <div style={{
                         width: '16px',
                         height: '16px',
-                        border: '2px solid #ffffff',
-                        borderTopColor: 'transparent',
+                        border: '2px solid rgba(255, 255, 255, 0.3)',
+                        borderTopColor: '#ffffff',
                         borderRadius: '50%',
                         animation: 'spin 0.8s linear infinite'
                       }}></div>
@@ -652,15 +601,14 @@ export default function RegisterPage() {
           </div>
 
           {/* Footer Link */}
-          <p style={{ textAlign: 'center', fontSize: '13px', color: '#64748b', marginTop: '20px' }}>
+          <p style={{ textAlign: 'center', fontSize: '13.5px', color: '#64748b', marginTop: '22px' }}>
             Already have an account?{' '}
-            <Link href="/login" style={{ color: '#2563eb', fontWeight: '700', textDecoration: 'none' }}>
+            <Link href="/login" style={{ color: '#0f172a', fontWeight: '700', textDecoration: 'none' }}>
               Sign In
             </Link>
           </p>
 
-        </div>
       </div>
-    </>
+    </div>
   );
 }

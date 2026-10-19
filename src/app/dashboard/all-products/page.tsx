@@ -621,12 +621,37 @@ export default function AllProductsPage() {
             </thead>
             <tbody>
               {isLoading ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-5">
-                    <div className="spinner-border text-dark spinner-border-sm me-2" role="status"></div>
-                    <span className="text-muted">Loading products...</span>
-                  </td>
-                </tr>
+                Array.from({ length: 6 }).map((_, idx) => (
+                  <tr key={idx} className="skeleton-fade-in">
+                    <td style={{ width: '40px' }} className="ps-3">
+                      <div className="skeleton-box" style={{ width: '16px', height: '16px', borderRadius: '4px' }} />
+                    </td>
+                    <td>
+                      <div className="d-flex align-items-center gap-2">
+                        <div className="skeleton-box flex-shrink-0" style={{ width: '40px', height: '40px', borderRadius: '6px' }} />
+                        <div className="d-flex flex-column gap-1.5 flex-grow-1">
+                          <div className="skeleton-box" style={{ width: '75%', height: '14px', borderRadius: '4px' }} />
+                          <div className="skeleton-box" style={{ width: '40%', height: '11px', borderRadius: '4px' }} />
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="skeleton-box" style={{ width: '70px', height: '14px', borderRadius: '4px' }} />
+                    </td>
+                    <td>
+                      <div className="skeleton-box" style={{ width: '60px', height: '16px', borderRadius: '4px' }} />
+                    </td>
+                    <td>
+                      <div className="skeleton-box" style={{ width: '65px', height: '22px', borderRadius: '5px' }} />
+                    </td>
+                    <td className="text-end pe-3">
+                      <div className="d-inline-flex gap-1">
+                        <div className="skeleton-box" style={{ width: '28px', height: '28px', borderRadius: '6px' }} />
+                        <div className="skeleton-box" style={{ width: '28px', height: '28px', borderRadius: '6px' }} />
+                      </div>
+                    </td>
+                  </tr>
+                ))
               ) : filteredProducts.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-5">

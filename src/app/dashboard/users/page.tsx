@@ -14,6 +14,7 @@ import {
   validatePasswordStrength,
 } from '@/utils/securityValidation';
 import { ClientPortal } from '@/components/common/ClientPortal';
+import { DashboardTableSkeleton } from '@/components/ui/skeletons';
 
 interface UserItem {
   id: number;
@@ -841,10 +842,7 @@ export default function UserManagementPage() {
           {/* 5. Table View: Matching Shop Settings Table Container */}
           <div className="table-responsive rounded-3 border" style={{ borderColor: '#e2e8f0' }}>
             {isLoading ? (
-              <div className="dashboard-loading-stable text-center py-5">
-                <div className="spinner-border text-dark" role="status"></div>
-                <p className="mt-2 fs-14 text-muted">Loading user database...</p>
-              </div>
+              <DashboardTableSkeleton rows={7} cols={6} />
             ) : activeTab === 'admins' ? (
               /* ========================================================
                  TAB 1: ADMINISTRATORS TABLE (SUPER ADMIN & ADMIN ONLY)

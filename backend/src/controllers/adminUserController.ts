@@ -49,6 +49,29 @@ const resetPasswordSchema = z.object({
     ),
 });
 
+// In-memory active customer tracker (strictly role === 'CUSTOMER', NEVER admins or superadmins)
+export const activeCustomerPresence = new Map<number, number>();
+
+export const recordCustomerPresence = (userId: number, role: string) => {
+  if (role === 'CUSTOMER') {
+    activeCustomerPresence.set(userId, Date.now());
+  }
+};
+
+export const removeCustomerPresence = (userId: number) => {
+  activeCustomerPresence.delete(userId);
+};
+
+export const getActiveCustomerCount = (): number => {
+  const now = Date.now();
+  for (const [id, timestamp] of activeCustomerPresence.entries()) {
+    if (now - timestamp > 60000) {
+      activeCustomerPresence.delete(id);
+    }
+  }
+  return activeCustomerPresence.size;
+};
+
 // ========================================================
 // 1. GET ALL USERS (with filtering by role, status, search)
 // ========================================================
@@ -118,6 +141,8 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response): Promis
       (prisma.user as any).count({ where: { isBlocked: true } }),
     ]);
 
+    const onlineCustomerCount = getActiveCustomerCount();
+
     res.status(200).json({
       success: true,
       users,
@@ -128,6 +153,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response): Promis
         customers: customerCount,
         blocked: blockedCount,
         active: totalCount - blockedCount,
+        onlineCustomers: onlineCustomerCount,
       },
     });
   } catch (error: any) {

@@ -7,6 +7,7 @@ import { PromotionCardItem, DEFAULT_PROMOTION_AREA } from '@/data/defaultPromoti
 import { fetchShopSettings } from '@/services/shopSettingsService';
 import { ShopCategory } from '@/data/defaultShopSettings';
 import { useToast } from '@/context/ToastContext';
+import { DashboardTableSkeleton } from '@/components/ui/skeletons';
 
 const STORE_PAGES = [
   { label: 'All Products (/products)', value: '/products' },
@@ -53,8 +54,8 @@ function DestinationDropdown({ value, onChange, categories }: DestinationDropdow
         type="button"
         className="form-control form-control-sm d-flex align-items-center justify-content-between text-dark fw-medium bg-white text-start shadow-none"
         style={{
-          height: '38px',
-          borderRadius: '8px',
+          height: '34px',
+          borderRadius: '3px',
           borderColor: isOpen ? '#0f172a' : '#d1d5db',
           boxShadow: isOpen ? '0 0 0 2px rgba(15, 23, 42, 0.1)' : 'none',
           padding: '0 12px',
@@ -79,9 +80,10 @@ function DestinationDropdown({ value, onChange, categories }: DestinationDropdow
       {/* Floating Dropdown List - 5 items shown, then balance scrolls */}
       {isOpen && (
         <div
-          className="position-absolute start-0 w-100 bg-white border rounded-3 shadow-lg"
+          className="position-absolute start-0 w-100 bg-white border shadow-lg"
           style={{
-            bottom: '42px', // opens upwards to stay within view
+            top: '38px',
+            borderRadius: '3px',
             zIndex: 1050,
             maxHeight: '190px', // Shows 5 items, remainder scrolls
             overflowY: 'auto',
@@ -447,180 +449,157 @@ export default function PromotionAreaPage() {
             </span>
           </div>
 
-          {/* 3. 3 Promotion Cards Grid */}
+          {/* 3. Promotion Cards Vertical Table Style */}
           {isLoading ? (
-            <div className="text-center py-5">
-              <div className="spinner-border text-primary" role="status" style={{ width: '2.5rem', height: '2.5rem' }}>
-                <span className="visually-hidden">Loading...</span>
-              </div>
-              <p className="text-muted mt-3 fs-14">Loading promotion images...</p>
-            </div>
+            <DashboardTableSkeleton rows={3} cols={5} />
           ) : (
-            <div className="row g-4">
-              {promotions.map((card, idx) => {
-                const label = slotLabels[idx] || {
-                  title: `Promotion Card ${idx + 1}`,
-                  desc: 'Promotional banner card on storefront',
-                };
-                const isUploadingThis = uploadingSlot === idx;
+            <div className="table-responsive rounded-3 border bg-white mb-3" style={{ borderColor: '#e2e8f0' }}>
+              <table className="table align-middle mb-0" style={{ fontSize: '13px' }}>
+                <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                  <tr className="font-12 text-muted">
+                    <th style={{ width: '60px' }} className="ps-3 py-2.5">Slot</th>
+                    <th style={{ width: '220px' }} className="py-2.5">Card Position</th>
+                    <th style={{ width: '260px' }} className="py-2.5">Image &amp; Upload</th>
+                    <th className="py-2.5">Destination Link</th>
+                    <th style={{ width: '100px' }} className="py-2.5 text-end pe-3">Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {promotions.map((card, idx) => {
+                    const label = slotLabels[idx] || {
+                      title: `Promotion Card ${idx + 1}`,
+                      desc: 'Promotional banner card on storefront',
+                    };
+                    const isUploadingThis = uploadingSlot === idx;
 
-                return (
-                  <div key={card.id || `promo-card-${idx}`} className="col-12 col-lg-4">
-                    <div
-                      className="card h-100 border"
-                      style={{
-                        borderRadius: '16px',
-                        borderColor: '#e2e8f0',
-                        backgroundColor: '#ffffff',
-                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.03)',
-                        overflow: 'visible', // allows floating dropdown to display smoothly
-                        transition: 'all 0.2s ease',
-                      }}
-                    >
-                      {/* Card Header */}
-                      <div
-                        className="px-4 py-3 d-flex align-items-center justify-content-between border-bottom"
-                        style={{
-                          backgroundColor: '#f8fafc',
-                          borderColor: '#e2e8f0',
-                          borderTopLeftRadius: '16px',
-                          borderTopRightRadius: '16px',
-                        }}
-                      >
-                        <div className="d-flex align-items-center gap-2">
+                    return (
+                      <tr key={card.id || `promo-card-${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        {/* Slot number */}
+                        <td className="ps-3">
                           <span
                             className="d-flex align-items-center justify-content-center fw-bold fs-12 text-white"
                             style={{
-                              width: '24px',
-                              height: '24px',
-                              borderRadius: '50%',
+                              width: '26px',
+                              height: '26px',
+                              borderRadius: '3px',
                               backgroundColor: '#0f172a',
                             }}
                           >
                             {idx + 1}
                           </span>
-                          <span className="fw-bold text-dark fs-14">{label.title}</span>
-                        </div>
+                        </td>
 
-                        <button
-                          type="button"
-                          className="btn btn-sm btn-link text-danger p-0 fs-12 text-decoration-none d-flex align-items-center gap-1"
-                          onClick={() => handleClearSlot(idx)}
-                          title="Clear image"
-                        >
-                          <iconify-icon icon="solar:trash-bin-minimalistic-linear" class="fs-13"></iconify-icon>
-                          Clear
-                        </button>
-                      </div>
-
-                      {/* Card Body */}
-                      <div className="card-body p-4 d-flex flex-column">
-                        <p className="text-muted fs-12 mb-3">
-                          {label.desc}
-                        </p>
-
-                        {/* Dimension info tag */}
-                        <div className="d-flex align-items-center justify-content-between mb-2.5">
+                        {/* Card Position & description */}
+                        <td>
+                          <div className="fw-bold text-dark font-14 mb-0.5">{label.title}</div>
+                          <div className="text-muted font-11 mb-1.5">{label.desc}</div>
                           <span
-                            className="badge bg-primary-subtle text-primary border border-primary-subtle fs-11 fw-semibold d-inline-flex align-items-center gap-1"
-                            style={{ padding: '4px 8px' }}
+                            className="badge bg-primary-subtle text-primary border border-primary-subtle font-11 fw-semibold d-inline-flex align-items-center gap-1"
+                            style={{ borderRadius: '3px', padding: '2px 6px' }}
                           >
-                            <iconify-icon icon="solar:ruler-bold" class="fs-12"></iconify-icon>
-                            <span>Target: ~500 &times; 400 px</span>
+                            <iconify-icon icon="solar:ruler-bold" class="fs-11"></iconify-icon>
+                            <span>~500 &times; 400 px</span>
                           </span>
-                          <span className="text-muted fs-11 fw-medium">Height: 400px</span>
-                        </div>
+                        </td>
 
-                        {/* 1. File Upload Button - Positioned on TOP of the image */}
-                        <div className="mb-3">
-                          <label
-                            className="btn btn-outline-dark w-100 d-flex align-items-center justify-content-center gap-2 fw-semibold fs-13 mb-0"
-                            style={{ borderRadius: '8px', padding: '9px 16px', cursor: 'pointer' }}
-                          >
-                            <iconify-icon icon="solar:upload-minimalistic-bold" class="fs-18"></iconify-icon>
-                            <span>Upload Image</span>
-                            <input
-                              type="file"
-                              accept="image/jpeg,image/png,image/webp,image/gif"
-                              className="d-none"
-                              disabled={isUploadingThis || isSaving}
-                              onChange={(e) => {
-                                const file = e.target.files?.[0];
-                                if (file) {
-                                  handleFileUpload(idx, file);
-                                }
-                                e.target.value = '';
+                        {/* Image Preview & Upload Button */}
+                        <td>
+                          <div className="d-flex align-items-center gap-3">
+                            <div
+                              className="position-relative overflow-hidden border d-flex align-items-center justify-content-center flex-shrink-0"
+                              style={{
+                                width: '92px',
+                                height: '72px',
+                                borderRadius: '3px',
+                                backgroundColor: '#f8fafc',
+                                borderColor: '#e2e8f0',
                               }}
-                            />
-                          </label>
-                        </div>
+                            >
+                              {card.image ? (
+                                <img
+                                  src={card.image}
+                                  alt={label.title}
+                                  style={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    borderRadius: '3px',
+                                  }}
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.onerror = null;
+                                    target.src = '/assets/imgs/theme/placeholder.svg';
+                                  }}
+                                />
+                              ) : (
+                                <div className="text-center p-1 text-muted">
+                                  <iconify-icon icon="solar:gallery-wide-bold" class="fs-20 text-secondary mb-0.5"></iconify-icon>
+                                  <div className="fs-10 fw-medium">No Image</div>
+                                </div>
+                              )}
 
-                        {/* 2. Very Small Image Preview Box - Centered below Upload button */}
-                        <div className="d-flex flex-column align-items-center mb-4">
-                          <div
-                            className="position-relative overflow-hidden border d-flex align-items-center justify-content-center"
-                            style={{
-                              width: '145px',
-                              height: '116px',
-                              borderRadius: '12px',
-                              backgroundColor: '#f8fafc',
-                              borderColor: '#e2e8f0',
-                              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-                            }}
-                          >
-                            {card.image ? (
-                              <img
-                                src={card.image}
-                                alt={label.title}
-                                style={{
-                                  width: '100%',
-                                  height: '100%',
-                                  objectFit: 'fill',
-                                  borderRadius: '12px',
-                                }}
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.onerror = null;
-                                  target.src = '/assets/imgs/theme/placeholder.svg';
+                              {isUploadingThis && (
+                                <div
+                                  className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center"
+                                  style={{ backgroundColor: 'rgba(15, 23, 42, 0.78)', zIndex: 10, borderRadius: '3px' }}
+                                >
+                                  <div className="spinner-border text-light spinner-border-sm" role="status"></div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Upload Button */}
+                            <label
+                              className="btn btn-sm btn-outline-dark d-inline-flex align-items-center gap-1.5 font-12 fw-semibold mb-0"
+                              style={{ borderRadius: '3px', padding: '6px 14px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                            >
+                              <iconify-icon icon="solar:upload-minimalistic-bold" class="fs-15"></iconify-icon>
+                              <span>{card.image ? 'Change' : 'Upload'}</span>
+                              <input
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp,image/gif"
+                                className="d-none"
+                                disabled={isUploadingThis || isSaving}
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    handleFileUpload(idx, file);
+                                  }
+                                  e.target.value = '';
                                 }}
                               />
-                            ) : (
-                              <div className="text-center p-2 text-muted">
-                                <iconify-icon icon="solar:gallery-wide-bold" class="fs-28 text-secondary mb-1"></iconify-icon>
-                                <div className="fs-11 fw-medium">No Image</div>
-                              </div>
-                            )}
-
-                            {/* Uploading Overlay */}
-                            {isUploadingThis && (
-                              <div
-                                className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center"
-                                style={{ backgroundColor: 'rgba(15, 23, 42, 0.78)', zIndex: 10, borderRadius: '12px' }}
-                              >
-                                <div className="spinner-border text-light spinner-border-sm mb-1" role="status"></div>
-                                <span className="text-white fs-11 fw-semibold">Uploading...</span>
-                              </div>
-                            )}
+                            </label>
                           </div>
-                          <span className="text-muted fs-11 mt-1">Preview (Fits 400px Box)</span>
-                        </div>
+                        </td>
 
-                        {/* 3. Destination Link Dropdown - Shows 5 items, remainder scrollable */}
-                        <div className="mt-auto position-relative">
-                          <label className="form-label fs-12 fw-semibold text-secondary mb-1.5">
-                            Destination Link:
-                          </label>
+                        {/* Destination Link */}
+                        <td style={{ minWidth: '220px' }}>
                           <DestinationDropdown
                             value={card.link || '/products'}
                             onChange={(newVal) => handleLinkChange(idx, newVal)}
                             categories={categories}
                           />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+                        </td>
+
+                        {/* Clear Button */}
+                        <td className="text-end pe-3">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-light border text-danger d-inline-flex align-items-center gap-1 font-12"
+                            style={{ borderRadius: '3px', padding: '5px 12px' }}
+                            onClick={() => handleClearSlot(idx)}
+                            title="Clear image"
+                            disabled={!card.image}
+                          >
+                            <iconify-icon icon="solar:trash-bin-minimalistic-linear" class="fs-13"></iconify-icon>
+                            <span>Clear</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
 
@@ -630,8 +609,8 @@ export default function PromotionAreaPage() {
               type="button"
               className="btn btn-sm d-flex align-items-center gap-2 fs-13 fw-semibold text-white"
               style={{
-                borderRadius: '8px',
-                padding: '11px 28px',
+                borderRadius: '3px',
+                padding: '10px 26px',
                 backgroundColor: '#0f172a',
                 border: '1px solid #0f172a',
                 boxShadow: '0 2px 4px rgba(15, 23, 42, 0.25)',

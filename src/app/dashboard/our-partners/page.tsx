@@ -6,6 +6,7 @@ import { fetchPartners, savePartners, PARTNERS_EVENT } from '@/services/partners
 import { PartnerItem, PartnersData, DEFAULT_PARTNERS_DATA } from '@/data/defaultPartners';
 import { useToast } from '@/context/ToastContext';
 import { ClientPortal } from '@/components/common/ClientPortal';
+import { DashboardTableSkeleton } from '@/components/ui/skeletons';
 
 export default function OurPartnersDashboardPage() {
   const [partnersData, setPartnersData] = useState<PartnersData>(DEFAULT_PARTNERS_DATA);
@@ -678,12 +679,9 @@ export default function OurPartnersDashboardPage() {
             </div>
           </div>
 
-          {/* 5. Partners Grid List */}
+          {/* 5. Partners Table List (Vertical Table Style) */}
           {isLoading ? (
-            <div className="text-center py-5">
-              <div className="spinner-border text-dark" role="status"></div>
-              <p className="text-muted mt-3 fs-14">Loading partner logos...</p>
-            </div>
+            <DashboardTableSkeleton rows={8} cols={5} />
           ) : filteredPartners.length === 0 ? (
             <div
               className="text-center py-5 px-3 rounded-3"
@@ -697,84 +695,55 @@ export default function OurPartnersDashboardPage() {
               <button
                 type="button"
                 className="btn btn-sm text-white"
-                style={{ borderRadius: '8px', padding: '10px 22px', backgroundColor: '#0f172a' }}
+                style={{ borderRadius: '3px', padding: '10px 22px', backgroundColor: '#0f172a' }}
                 onClick={handleOpenAddModal}
               >
                 + Add Partner Logo
               </button>
             </div>
           ) : (
-            <div className="row g-3">
-              {filteredPartners.map((item) => (
-                <div key={item.id} className="col-12 col-md-6 col-lg-4 col-xl-3">
-                  <div
-                    className="card h-100 border position-relative"
-                    style={{
-                      borderRadius: '10px',
-                      backgroundColor: item.isActive ? '#ffffff' : '#f8fafc',
-                      borderColor: '#e2e8f0',
-                      transition: 'all 0.2s ease',
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
-                    }}
-                  >
-                    {/* Top Order Badge & Active Switch */}
-                    <div className="d-flex align-items-center justify-content-between p-3 pb-0">
-                      <span
-                        className="badge"
-                        style={{
-                          backgroundColor: '#f1f5f9',
-                          color: '#475569',
-                          fontWeight: 700,
-                          fontSize: '11px',
-                          borderRadius: '6px',
-                          padding: '4px 8px',
-                          border: '1px solid #e2e8f0',
-                        }}
-                      >
-                        Order #{item.order}
-                      </span>
-
-                      {/* Active Status Switch Directly on Card */}
-                      <div className="form-check form-switch m-0" style={{ minHeight: 'unset' }}>
-                        <input
-                          className="form-check-input cursor-pointer"
-                          type="checkbox"
-                          role="switch"
-                          checked={item.isActive}
-                          onChange={() => handleToggleStatus(item)}
-                          title={item.isActive ? 'Visible - click to hide' : 'Hidden - click to show'}
+            <div className="table-responsive rounded-3 border" style={{ borderColor: '#e2e8f0' }}>
+              <table className="table table-hover align-middle mb-0" style={{ fontSize: '13px' }}>
+                <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                  <tr className="font-12 text-muted">
+                    <th style={{ width: '80px' }} className="ps-3 py-2.5">Order</th>
+                    <th style={{ width: '130px' }} className="py-2.5">Logo</th>
+                    <th className="py-2.5">Partner / Brand Name</th>
+                    <th style={{ width: '180px' }} className="py-2.5">Status</th>
+                    <th style={{ width: '150px' }} className="py-2.5 text-end pe-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPartners.map((item) => (
+                    <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      {/* Order */}
+                      <td className="ps-3">
+                        <span
+                          className="badge"
                           style={{
-                            cursor: 'pointer',
-                            backgroundColor: item.isActive ? '#0f172a' : undefined,
-                            borderColor: item.isActive ? '#0f172a' : undefined,
+                            backgroundColor: '#f1f5f9',
+                            color: '#475569',
+                            fontWeight: 700,
+                            fontSize: '11.5px',
+                            borderRadius: '3px',
+                            padding: '4px 8px',
+                            border: '1px solid #e2e8f0',
                           }}
-                        />
-                      </div>
-                    </div>
+                        >
+                          #{item.order}
+                        </span>
+                      </td>
 
-                    {/* Logo Box Preview (White Card Box) */}
-                    <div className="px-3 pt-2 pb-2">
-                      <div
-                        style={{
-                          backgroundColor: '#ffffff',
-                          borderRadius: '8px',
-                          height: '110px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          padding: '12px',
-                          border: '1px solid #f1f5f9',
-                          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.02)',
-                          overflow: 'hidden',
-                        }}
-                      >
+                      {/* Logo Preview */}
+                      <td>
                         <div
-                          className="partner-logo-frame"
                           style={{
-                            width: '100%',
-                            height: '100%',
-                            maxWidth: '140px',
-                            maxHeight: '75px',
+                            width: '100px',
+                            height: '52px',
+                            backgroundColor: '#ffffff',
+                            borderRadius: '3px',
+                            border: '1px solid #e2e8f0',
+                            padding: '4px 8px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -783,7 +752,6 @@ export default function OurPartnersDashboardPage() {
                           <img
                             src={item.logo}
                             alt={item.name}
-                            className="partner-logo-img"
                             style={{
                               maxWidth: '100%',
                               maxHeight: '100%',
@@ -798,54 +766,73 @@ export default function OurPartnersDashboardPage() {
                             }}
                           />
                         </div>
-                      </div>
-                    </div>
+                      </td>
 
-                    {/* Partner Name & Status Badge */}
-                    <div className="px-3 py-2">
-                      <div className="d-flex align-items-center justify-content-between">
-                        <h6 className="fw-bold text-dark m-0 text-truncate" title={item.name} style={{ fontSize: '14px', color: '#0f172a' }}>
-                          {item.name}
-                        </h6>
-                        <span
-                          className={`badge ${
-                            item.isActive ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-light text-muted border'
-                          }`}
-                          style={{ fontSize: '11px', borderRadius: '4px', padding: '3px 7px' }}
-                        >
-                          {item.isActive ? 'Active' : 'Hidden'}
-                        </span>
-                      </div>
-                    </div>
+                      {/* Name */}
+                      <td>
+                        <div className="fw-bold text-dark font-14">{item.name}</div>
+                      </td>
 
-                    {/* Bottom Action Buttons */}
-                    <div
-                      className="d-flex align-items-center justify-content-between px-3 py-2 mt-auto border-top"
-                      style={{ borderColor: '#f1f5f9' }}
-                    >
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-link text-decoration-none p-0 d-flex align-items-center gap-1"
-                        style={{ fontSize: '13px', color: '#0f172a' }}
-                        onClick={() => handleOpenEditModal(item)}
-                      >
-                        <iconify-icon icon="solar:pen-linear" class="fs-14 text-primary"></iconify-icon>
-                        <span className="fw-semibold">Edit</span>
-                      </button>
+                      {/* Active Status Switch Directly in Table Row */}
+                      <td>
+                        <div className="d-flex align-items-center gap-2">
+                          <div className="form-check form-switch m-0" style={{ minHeight: 'unset' }}>
+                            <input
+                              className="form-check-input cursor-pointer"
+                              type="checkbox"
+                              role="switch"
+                              checked={item.isActive}
+                              onChange={() => handleToggleStatus(item)}
+                              title={item.isActive ? 'Visible - click to hide' : 'Hidden - click to show'}
+                              style={{
+                                cursor: 'pointer',
+                                backgroundColor: item.isActive ? '#0f172a' : undefined,
+                                borderColor: item.isActive ? '#0f172a' : undefined,
+                              }}
+                            />
+                          </div>
+                          <span
+                            className={`badge ${
+                              item.isActive
+                                ? 'bg-success-subtle text-success border border-success-subtle'
+                                : 'bg-light text-muted border'
+                            }`}
+                            style={{ fontSize: '11px', borderRadius: '3px', padding: '3px 8px' }}
+                          >
+                            {item.isActive ? 'Active on Store' : 'Hidden'}
+                          </span>
+                        </div>
+                      </td>
 
-                      <button
-                        type="button"
-                        className="btn btn-sm btn-link text-decoration-none text-danger p-0 d-flex align-items-center gap-1"
-                        style={{ fontSize: '13px' }}
-                        onClick={() => setDeleteTarget(item)}
-                      >
-                        <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-14"></iconify-icon>
-                        <span>Delete</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                      {/* Action Buttons: Edit & Delete */}
+                      <td className="text-end pe-3">
+                        <div className="d-flex align-items-center justify-content-end gap-1.5">
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-light border d-inline-flex align-items-center gap-1 font-12"
+                            style={{ borderRadius: '3px', padding: '5px 12px', color: '#0f172a' }}
+                            onClick={() => handleOpenEditModal(item)}
+                            title="Edit partner"
+                          >
+                            <iconify-icon icon="solar:pen-linear" class="fs-13 text-primary"></iconify-icon>
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-light border text-danger d-inline-flex align-items-center gap-1 font-12"
+                            style={{ borderRadius: '3px', padding: '5px 12px' }}
+                            onClick={() => setDeleteTarget(item)}
+                            title="Delete partner"
+                          >
+                            <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-13"></iconify-icon>
+                            <span>Delete</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

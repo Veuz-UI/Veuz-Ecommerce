@@ -121,3 +121,60 @@ export async function savePromotionArea(data: PromotionAreaData): Promise<{ succ
     return { success: false, message: error.message || 'Network error saving promotion area.' };
   }
 }
+
+// Record Customer Click on Promotion Area Card (Strictly CUSTOMER role, excludes Admin, SuperAdmin, and Guests)
+export async function recordPromotionClick(promoId: string): Promise<void> {
+  try {
+    if (typeof window === 'undefined') return;
+
+    // 1. Without login user don't count
+    const savedUserStr = localStorage.getItem('veuz_user');
+    if (!savedUserStr) return;
+
+    let user: any = null;
+    try {
+      user = JSON.parse(savedUserStr);
+    } catch (e) {
+      return;
+    }
+
+    // 2. Only count logged-in customers (role === 'CUSTOMER'). Exclude admin & superadmin.
+    if (!user || user.role !== 'CUSTOMER' || !user.id) {
+      return;
+    }
+
+    const customerId = user.id;
+
+    fetch('/api/promotions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'record_click',
+        promoId,
+        customerId,
+        userRole: 'CUSTOMER',
+      }),
+    }).catch(() => {});
+  } catch (e) {
+    // Silent
+  }
+}
+
+// Fetch Daily Customer Click Count for Dashboard Stat Card
+export async function fetchPromotionDailyClicks(): Promise<{ todayClicks: number; activeBanners: number }> {
+  try {
+    const res = await fetch('/api/promotions?type=stats', { cache: 'no-store' });
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success) {
+        return {
+          todayClicks: typeof json.todayClicks === 'number' ? json.todayClicks : 0,
+          activeBanners: typeof json.activeBanners === 'number' ? json.activeBanners : 3,
+        };
+      }
+    }
+  } catch (e) {
+    // Silent
+  }
+  return { todayClicks: 0, activeBanners: 3 };
+}
