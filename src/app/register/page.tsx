@@ -88,6 +88,8 @@ export default function RegisterPage() {
   // Password Strength Checkers
   const passwordChecks = validatePasswordStrength(password).checks;
   const isPasswordSecure = validatePasswordStrength(password).valid;
+  const isPasswordsMatch = Boolean(confirmPassword.length > 0 && password.length > 0 && confirmPassword === password);
+  const isPasswordsMismatch = Boolean(confirmPassword.length > 0 && password.length > 0 && confirmPassword !== password);
 
   // Password Validation
   const validatePassword = (val: string): boolean => {
@@ -148,7 +150,7 @@ export default function RegisterPage() {
     setLoading(false);
 
     if (res.success) {
-      showToast('success', 'Account created successfully! Welcome to Veuz Safety.', 'Successfully Message');
+      showToast('success', res.message || 'Account created successfully! Please verify your email in your profile.', 'Account Created');
       if (typeof window !== 'undefined') {
         try {
           if ('scrollRestoration' in window.history) {
@@ -241,7 +243,7 @@ export default function RegisterPage() {
                     setName(e.target.value);
                     if (nameError) setNameError(null);
                   }}
-                  placeholder="Nabeel Khan"
+                  placeholder="Enter name"
                   style={{
                     width: '100%',
                     height: '42px',
@@ -423,30 +425,6 @@ export default function RegisterPage() {
                     <span>⚠️</span> {passwordError}
                   </div>
                 )}
-
-                {/* Real-time Password Security Checklist */}
-                {password.length > 0 && (
-                  <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', padding: '10px 14px', marginTop: '8px', fontSize: '12px' }}>
-                    <div style={{ fontWeight: '600', color: '#475569', marginBottom: '4px' }}>Password Requirements:</div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '2px' }}>
-                      <span style={{ color: passwordChecks.minLength ? '#16a34a' : '#94a3b8' }}>
-                        {passwordChecks.minLength ? '✓' : '•'} Between 8 and 16 characters
-                      </span>
-                      <span style={{ color: passwordChecks.hasUpper ? '#16a34a' : '#94a3b8' }}>
-                        {passwordChecks.hasUpper ? '✓' : '•'} At least one uppercase letter (A-Z)
-                      </span>
-                      <span style={{ color: passwordChecks.hasLower ? '#16a34a' : '#94a3b8' }}>
-                        {passwordChecks.hasLower ? '✓' : '•'} At least one lowercase letter (a-z)
-                      </span>
-                      <span style={{ color: passwordChecks.hasNumber ? '#16a34a' : '#94a3b8' }}>
-                        {passwordChecks.hasNumber ? '✓' : '•'} At least one numeric digit (0-9)
-                      </span>
-                      <span style={{ color: passwordChecks.hasSpecial ? '#16a34a' : '#94a3b8' }}>
-                        {passwordChecks.hasSpecial ? '✓' : '•'} At least one special symbol (!@#$%^&*...)
-                      </span>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* Row 3 / Col 2: Confirm Password */}
@@ -464,7 +442,9 @@ export default function RegisterPage() {
                     value={confirmPassword}
                     onChange={(e) => {
                       setConfirmPassword(e.target.value);
-                      if (confirmPasswordError) validateConfirmPassword(e.target.value, password);
+                      if (confirmPasswordError || isPasswordsMismatch) {
+                        validateConfirmPassword(e.target.value, password);
+                      }
                     }}
                     placeholder="••••••••"
                     style={{
@@ -473,8 +453,16 @@ export default function RegisterPage() {
                       padding: '0 42px 0 14px',
                       fontSize: '14px',
                       borderRadius: '8px',
-                      border: confirmPasswordError ? '1.5px solid #ef4444' : '1px solid #cbd5e1',
-                      backgroundColor: confirmPasswordError ? '#fef2f2' : '#ffffff',
+                      border: isPasswordsMismatch || confirmPasswordError
+                        ? '1.5px solid #ef4444'
+                        : isPasswordsMatch
+                        ? '1.5px solid #16a34a'
+                        : '1px solid #cbd5e1',
+                      backgroundColor: isPasswordsMismatch || confirmPasswordError
+                        ? '#fef2f2'
+                        : isPasswordsMatch
+                        ? '#f0fdf4'
+                        : '#ffffff',
                       outline: 'none',
                       boxSizing: 'border-box',
                       color: '#0f172a',
@@ -515,12 +503,69 @@ export default function RegisterPage() {
                     )}
                   </button>
                 </div>
-                {confirmPasswordError && (
+                {isPasswordsMatch && (
+                  <div style={{ color: '#16a34a', fontSize: '12px', marginTop: '5px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
+                    <span>✓</span> Passwords match
+                  </div>
+                )}
+                {(isPasswordsMismatch || (confirmPasswordError && !isPasswordsMatch)) && (
                   <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '5px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span>⚠️</span> {confirmPasswordError}
+                    <span>⚠️</span> {confirmPasswordError || "Passwords don't match."}
                   </div>
                 )}
               </div>
+
+              {/* Real-time Password Security Checklist (Full Width Span 2 Across Form) */}
+              {password.length > 0 && (
+                <div
+                  className="register-col-span-2"
+                  style={{
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    marginTop: '2px',
+                    marginBottom: '2px',
+                    fontSize: '12.5px',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: '600', color: '#334155', fontSize: '13px' }}>Password Requirements:</span>
+                    <span style={{ fontSize: '11.5px', color: '#64748b' }}>
+                      {Object.values(passwordChecks).filter(Boolean).length} of 5 completed
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+                      gap: '6px 16px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordChecks.minLength ? '#16a34a' : '#64748b' }}>
+                      <span style={{ fontWeight: '700', fontSize: '13px' }}>{passwordChecks.minLength ? '✓' : '•'}</span>
+                      <span>Between 8 and 16 characters</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordChecks.hasUpper ? '#16a34a' : '#64748b' }}>
+                      <span style={{ fontWeight: '700', fontSize: '13px' }}>{passwordChecks.hasUpper ? '✓' : '•'}</span>
+                      <span>At least one uppercase letter (A-Z)</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordChecks.hasLower ? '#16a34a' : '#64748b' }}>
+                      <span style={{ fontWeight: '700', fontSize: '13px' }}>{passwordChecks.hasLower ? '✓' : '•'}</span>
+                      <span>At least one lowercase letter (a-z)</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordChecks.hasNumber ? '#16a34a' : '#64748b' }}>
+                      <span style={{ fontWeight: '700', fontSize: '13px' }}>{passwordChecks.hasNumber ? '✓' : '•'}</span>
+                      <span>At least one numeric digit (0-9)</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: passwordChecks.hasSpecial ? '#16a34a' : '#64748b' }}>
+                      <span style={{ fontWeight: '700', fontSize: '13px' }}>{passwordChecks.hasSpecial ? '✓' : '•'}</span>
+                      <span>At least one special symbol (!@#$%^&*...)</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Terms and Privacy Policy (Span 2) */}
               <div className="register-col-span-2" style={{ marginTop: '6px' }}>

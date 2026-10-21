@@ -113,25 +113,56 @@ function LoginForm() {
         window.scrollTo(0, 0);
       } catch (e) {}
 
+      // Clean invalid or corrupted default email from previous sessions
       const isRemembered = localStorage.getItem('veuz_remember_me') === 'true';
       const savedEmail = localStorage.getItem('veuz_remembered_email');
-      if (isRemembered && savedEmail) {
-        setEmail(savedEmail);
-        setRememberMe(true);
+      
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (isRemembered && savedEmail && (emailRegex.test(savedEmail.trim()) || savedEmail.trim().length >= 3)) {
+        // If it's a known non-email or stale string like 'atcadmin', purge it completely
+        if (savedEmail.trim().toLowerCase() === 'atcadmin') {
+          localStorage.removeItem('veuz_remembered_email');
+          localStorage.removeItem('veuz_remember_me');
+          setEmail('');
+          setRememberMe(false);
+        } else {
+          setEmail(savedEmail.trim());
+          setRememberMe(true);
+        }
+      } else {
+        localStorage.removeItem('veuz_remembered_email');
+        localStorage.removeItem('veuz_remember_me');
+        setEmail('');
+        setRememberMe(false);
       }
+      setEmailError(null);
+      setEmailTouched(false);
     }
   }, []);
 
-  // Standard RFC-compliant email regex validation
-  const validateEmail = (val: string): boolean => {
+  // Display verification success message if redirected from email link
+  useEffect(() => {
+    if (searchParams.get('verified') === 'true') {
+      showToast('Email verified successfully! You can now log in to your account.', 'success');
+    }
+  }, [searchParams, showToast]);
+
+  // Validates email or username identifier without premature error flashing
+  const validateIdentifier = (val: string): boolean => {
     const trimmed = val.trim();
     if (!trimmed) {
-      setEmailError('Email address is required.');
+      setEmailError('Email or username is required.');
       return false;
     }
-    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
-    if (!emailRegex.test(trimmed)) {
-      setEmailError('Please enter a valid email address (e.g. name@example.com).');
+    // If user entered something with @, validate email format
+    if (trimmed.includes('@')) {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      if (!emailRegex.test(trimmed)) {
+        setEmailError('Please enter a valid email address (e.g. name@example.com).');
+        return false;
+      }
+    } else if (trimmed.length < 2) {
+      setEmailError('Username must be at least 2 characters.');
       return false;
     }
     setEmailError(null);
@@ -142,9 +173,9 @@ function LoginForm() {
     e.preventDefault();
     setEmailTouched(true);
 
-    const isEmailValid = validateEmail(email);
-    if (!isEmailValid) {
-      showToast('warning', 'Please enter a valid email address.', 'Alert Message');
+    const isInputValid = validateIdentifier(email);
+    if (!isInputValid) {
+      showToast('warning', emailError || 'Please enter a valid email or username.', 'Alert Message');
       return;
     }
 
@@ -291,16 +322,17 @@ function LoginForm() {
             <p className="auth-subheading">Enter your account credentials to access your store profile</p>
 
             <form onSubmit={handleSubmit} noValidate>
-              {/* Email Input */}
+              {/* Email or Username Input */}
               <div className="auth-field-group">
                 <label htmlFor="email" className="auth-label">
-                  Email
+                  Email or Username
                 </label>
                 <div className="auth-input-wrap">
                   <input
-                    type="email"
+                    type="text"
                     id="email"
                     name="email"
+                    autoComplete="username"
                     required
                     autoCapitalize="none"
                     autoCorrect="off"
@@ -308,15 +340,35 @@ function LoginForm() {
                     value={email}
                     onChange={(e) => {
                       setEmail(e.target.value);
-                      if (emailTouched) validateEmail(e.target.value);
+                      if (emailError) setEmailError(null);
                     }}
                     onBlur={() => {
-                      setEmailTouched(true);
-                      validateEmail(email);
+                      if (emailTouched && email.trim()) {
+                        validateIdentifier(email);
+                      }
                     }}
-                    placeholder="name@example.com"
-                    className={`auth-input ${emailError && emailTouched ? 'has-error' : ''}`}
+                    placeholder="name@example.com or username"
+                    className={`auth-input ${email ? 'with-clear' : ''} ${emailError && emailTouched ? 'has-error' : ''}`}
                   />
+                  {email && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEmail('');
+                        setEmailError(null);
+                        setEmailTouched(false);
+                        if (typeof window !== 'undefined') {
+                          localStorage.removeItem('veuz_remembered_email');
+                          localStorage.removeItem('veuz_remember_me');
+                        }
+                      }}
+                      className="auth-input-clear-btn"
+                      aria-label="Clear input"
+                      title="Clear field"
+                    >
+                      ✕
+                    </button>
+                  )}
                 </div>
                 {emailError && emailTouched && (
                   <div className="auth-error-text">

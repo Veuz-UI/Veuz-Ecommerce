@@ -1079,25 +1079,27 @@ export default function UserManagementPage() {
                                 ></iconify-icon>
                               </button>
 
-                              {/* Delete Admin */}
-                              <button
-                                type="button"
-                                className="btn btn-sm d-flex align-items-center justify-content-center"
-                                style={{
-                                  borderRadius: '8px',
-                                  width: '36px',
-                                  height: '36px',
-                                  backgroundColor: '#fee2e2',
-                                  border: '1px solid #fecaca',
-                                  color: '#dc2626',
-                                  boxShadow: '0 1px 2px rgba(220, 38, 38, 0.1)',
-                                  transition: 'all 0.15s ease',
-                                }}
-                                title="Delete Account"
-                                onClick={() => setDeleteModalUser(item)}
-                              >
-                                <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-17"></iconify-icon>
-                              </button>
+                              {/* Delete Admin (Super Admin Only, cannot delete own account) */}
+                              {isSuperAdmin && currentUser?.id !== item.id && (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm d-flex align-items-center justify-content-center"
+                                  style={{
+                                    borderRadius: '8px',
+                                    width: '36px',
+                                    height: '36px',
+                                    backgroundColor: '#fee2e2',
+                                    border: '1px solid #fecaca',
+                                    color: '#dc2626',
+                                    boxShadow: '0 1px 2px rgba(220, 38, 38, 0.1)',
+                                    transition: 'all 0.15s ease',
+                                  }}
+                                  title="Delete Account (Super Admin Only)"
+                                  onClick={() => setDeleteModalUser(item)}
+                                >
+                                  <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-17"></iconify-icon>
+                                </button>
+                              )}
                             </div>
                           </td>
                         </tr>
@@ -1331,6 +1333,28 @@ export default function UserManagementPage() {
                                 class="fs-17"
                               ></iconify-icon>
                             </button>
+
+                            {/* Delete Customer (Super Admin Only) */}
+                            {isSuperAdmin && (
+                              <button
+                                type="button"
+                                className="btn btn-sm d-flex align-items-center justify-content-center"
+                                style={{
+                                  borderRadius: '8px',
+                                  width: '36px',
+                                  height: '36px',
+                                  backgroundColor: '#fee2e2',
+                                  border: '1px solid #fecaca',
+                                  color: '#dc2626',
+                                  boxShadow: '0 1px 2px rgba(220, 38, 38, 0.1)',
+                                  transition: 'all 0.15s ease',
+                                }}
+                                title="Delete Customer Account (Super Admin Only)"
+                                onClick={() => setDeleteModalUser(item)}
+                              >
+                                <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-17"></iconify-icon>
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1358,7 +1382,10 @@ export default function UserManagementPage() {
               className="modal-content border-0 shadow-lg"
               style={{ borderRadius: '12px', overflow: 'hidden' }}
             >
-              <div className="modal-header border-bottom px-4 py-3 bg-white">
+              <div
+                className="modal-header border-bottom px-4 py-3 bg-white d-flex align-items-center justify-content-between"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}
+              >
                 <div className="d-flex align-items-center gap-2.5">
                   <div
                     className="d-flex align-items-center justify-content-center"
@@ -1384,10 +1411,10 @@ export default function UserManagementPage() {
                   type="button"
                   onClick={() => setResetModalUser(null)}
                   disabled={isResetting}
-                  className="btn p-0 d-flex align-items-center justify-content-center transition-all flex-shrink-0"
+                  className="btn p-0 d-flex align-items-center justify-content-center transition-all flex-shrink-0 ms-auto"
                   style={{
-                    width: '36px',
-                    height: '36px',
+                    width: '34px',
+                    height: '34px',
                     borderRadius: '50%',
                     backgroundColor: '#f8fafc',
                     border: '1px solid #e2e8f0',
@@ -1395,6 +1422,7 @@ export default function UserManagementPage() {
                     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                     cursor: isResetting ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s ease',
+                    marginLeft: 'auto',
                   }}
                   onMouseEnter={(e) => {
                     if (!isResetting) {
@@ -1554,19 +1582,27 @@ export default function UserManagementPage() {
               className="modal-content border-0 shadow-lg"
               style={{ borderRadius: '12px', overflow: 'hidden' }}
             >
-              <div className="modal-header border-bottom px-4 py-3 bg-danger-subtle text-danger">
+              <div
+                className="modal-header border-bottom px-4 py-3 bg-danger-subtle text-danger d-flex align-items-center justify-content-between"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  width: '100%',
+                }}
+              >
                 <div className="d-flex align-items-center gap-2.5">
-                  <iconify-icon icon="solar:danger-triangle-bold" class="fs-22"></iconify-icon>
-                  <h5 className="modal-title fs-15 fw-bold mb-0">Confirm Account Deletion</h5>
+                  <iconify-icon icon="solar:danger-triangle-bold" class="fs-22 text-danger flex-shrink-0"></iconify-icon>
+                  <h5 className="modal-title fs-15 fw-bold mb-0 text-danger">Confirm Account Deletion</h5>
                 </div>
                 <button
                   type="button"
                   onClick={() => setDeleteModalUser(null)}
                   disabled={isDeleting}
-                  className="btn p-0 d-flex align-items-center justify-content-center transition-all flex-shrink-0"
+                  className="btn p-0 d-flex align-items-center justify-content-center transition-all flex-shrink-0 ms-auto"
                   style={{
-                    width: '36px',
-                    height: '36px',
+                    width: '34px',
+                    height: '34px',
                     borderRadius: '50%',
                     backgroundColor: '#ffffff',
                     border: '1px solid #fecaca',
@@ -1574,6 +1610,7 @@ export default function UserManagementPage() {
                     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                     cursor: isDeleting ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s ease',
+                    marginLeft: 'auto',
                   }}
                   onMouseEnter={(e) => {
                     if (!isDeleting) {
@@ -1679,7 +1716,10 @@ export default function UserManagementPage() {
               className="modal-content border-0 shadow-lg"
               style={{ borderRadius: '12px', overflow: 'hidden' }}
             >
-              <div className="modal-header border-bottom px-4 py-3 bg-white">
+              <div
+                className="modal-header border-bottom px-4 py-3 bg-white d-flex align-items-center justify-content-between"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}
+              >
                 <div className="d-flex align-items-center gap-2.5">
                   <div
                     className="d-flex align-items-center justify-content-center"
@@ -1702,10 +1742,10 @@ export default function UserManagementPage() {
                 <button
                   type="button"
                   onClick={() => setViewDetailsUser(null)}
-                  className="btn p-0 d-flex align-items-center justify-content-center transition-all flex-shrink-0"
+                  className="btn p-0 d-flex align-items-center justify-content-center transition-all flex-shrink-0 ms-auto"
                   style={{
-                    width: '36px',
-                    height: '36px',
+                    width: '34px',
+                    height: '34px',
                     borderRadius: '50%',
                     backgroundColor: '#f8fafc',
                     border: '1px solid #e2e8f0',
@@ -1713,6 +1753,7 @@ export default function UserManagementPage() {
                     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                     cursor: 'pointer',
                     transition: 'all 0.2s ease',
+                    marginLeft: 'auto',
                   }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = '#0f172a';
@@ -2003,7 +2044,10 @@ export default function UserManagementPage() {
               className="modal-content border-0 shadow-lg"
               style={{ borderRadius: '12px', overflow: 'hidden' }}
             >
-              <div className="modal-header border-bottom px-4 py-3 bg-white">
+              <div
+                className="modal-header border-bottom px-4 py-3 bg-white d-flex align-items-center justify-content-between"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}
+              >
                 <div className="d-flex align-items-center gap-2.5">
                   <div
                     className="d-flex align-items-center justify-content-center"
@@ -2031,10 +2075,10 @@ export default function UserManagementPage() {
                   type="button"
                   onClick={() => setCreateModalOpen(false)}
                   disabled={isCreating}
-                  className="btn p-0 d-flex align-items-center justify-content-center transition-all flex-shrink-0"
+                  className="btn p-0 d-flex align-items-center justify-content-center transition-all flex-shrink-0 ms-auto"
                   style={{
-                    width: '36px',
-                    height: '36px',
+                    width: '34px',
+                    height: '34px',
                     borderRadius: '50%',
                     backgroundColor: '#f8fafc',
                     border: '1px solid #e2e8f0',
@@ -2042,6 +2086,7 @@ export default function UserManagementPage() {
                     boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                     cursor: isCreating ? 'not-allowed' : 'pointer',
                     transition: 'all 0.2s ease',
+                    marginLeft: 'auto',
                   }}
                   onMouseEnter={(e) => {
                     if (!isCreating) {

@@ -27,6 +27,7 @@ router.post('/accept-invite', authRateLimiter, acceptAdminInvite);
 router.post('/forgot-password', authRateLimiter, forgotPassword);
 router.post('/reset-password', authRateLimiter, resetPassword);
 router.post('/verify-email', verifyEmail);
+router.get('/verify-email', verifyEmail);
 
 // Protected routes (Logged in user)
 router.get('/me', authenticateToken, getMe);

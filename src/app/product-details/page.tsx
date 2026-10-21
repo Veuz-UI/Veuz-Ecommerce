@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { ChevronLeft, ChevronRight, CheckCircle2, MessageSquare, Share2, Pin, Star, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, MessageSquare, Pin, Star, ThumbsUp, ThumbsDown, Pencil } from 'lucide-react';
 import { fetchProducts, getCachedProducts, recordProductClick } from '@/services/productsService';
 import { ProductItem, SYSTEM_COLORS } from '@/data/categoryProductsData';
 import type { ProductReview, ReviewSummary } from '@/app/api/reviews/route';
@@ -323,6 +323,8 @@ function ProductDetailsContent() {
 
   // Write Review Drawer state
   const [isReviewDrawerOpen, setIsReviewDrawerOpen] = useState(false);
+  const [editingReviewId, setEditingReviewId] = useState<string | null>(null);
+  const [userVotes, setUserVotes] = useState<Record<string, 'helpful' | 'unhelpful'>>({});
   const [reviewRating, setReviewRating] = useState<number>(5);
   const [reviewHoverRating, setReviewHoverRating] = useState<number>(0);
   const [reviewTitle, setReviewTitle] = useState<string>('');
@@ -330,6 +332,19 @@ function ProductDetailsContent() {
   const [reviewWouldRecommend, setReviewWouldRecommend] = useState<boolean>(true);
   const [reviewLocation, setReviewLocation] = useState<string>('Saudi Arabia');
   const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+
+  // Sync saved review votes from localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const saved = localStorage.getItem('veuz_review_votes');
+      if (saved) {
+        setUserVotes(JSON.parse(saved));
+      }
+    } catch {
+      // ignore JSON parse issues
+    }
+  }, []);
 
   // Lock website/body scroll while review modal drawer is open
   useEffect(() => {
@@ -497,18 +512,46 @@ function ProductDetailsContent() {
     };
   }, [product?.id]);
 
-  const handleOpenReviewModal = () => {
+  // Determine if the logged-in user already wrote a review for this product
+  const userExistingReview = useMemo(() => {
+    if (!user || !reviews.length) return null;
+    return (
+      reviews.find(
+        (r) =>
+          (r.userId && user.id && String(r.userId) === String(user.id)) ||
+          (r.userEmail && user.email && r.userEmail.toLowerCase() === user.email.toLowerCase())
+      ) || null
+    );
+  }, [user, reviews]);
+
+  const handleOpenReviewModal = (reviewToEdit?: ProductReview) => {
     if (!user) {
       showToast('Please login to your account to write a review.', 'info');
       router.push('/login?redirect=' + encodeURIComponent(window.location.pathname + window.location.search));
       return;
     }
-    setReviewRating(5);
-    setReviewHoverRating(0);
-    setReviewTitle('');
-    setReviewComment('');
-    setReviewWouldRecommend(true);
-    setReviewLocation('Saudi Arabia');
+
+    const targetReview = reviewToEdit || userExistingReview;
+
+    if (targetReview) {
+      // User has already created a review for this product -> EDIT ONLY
+      setEditingReviewId(targetReview.id);
+      setReviewRating(targetReview.rating || 5);
+      setReviewHoverRating(0);
+      setReviewTitle(targetReview.title || '');
+      setReviewComment(targetReview.comment || '');
+      setReviewWouldRecommend(targetReview.wouldRecommend !== false);
+      setReviewLocation(targetReview.location || 'Saudi Arabia');
+    } else {
+      // Fresh review
+      setEditingReviewId(null);
+      setReviewRating(5);
+      setReviewHoverRating(0);
+      setReviewTitle('');
+      setReviewComment('');
+      setReviewWouldRecommend(true);
+      setReviewLocation('Saudi Arabia');
+    }
     setIsReviewDrawerOpen(true);
   };
 
@@ -530,12 +573,17 @@ function ProductDetailsContent() {
       return;
     }
 
+    const isEditing = Boolean(editingReviewId || userExistingReview);
+    const reviewIdToUpdate = editingReviewId || userExistingReview?.id;
+
     setIsSubmittingReview(true);
     try {
       const res = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: isEditing ? 'edit' : undefined,
+          reviewId: reviewIdToUpdate,
           productId: product.id,
           rating: reviewRating,
           title: reviewTitle.trim(),
@@ -543,19 +591,25 @@ function ProductDetailsContent() {
           wouldRecommend: reviewWouldRecommend,
           userName: user.name || user.email.split('@')[0],
           userEmail: user.email,
-          userId: user.id,
+          userId: String(user.id),
           location: reviewLocation.trim() || 'Saudi Arabia',
         }),
       });
 
       const data = await res.json();
       if (data.success && data.review) {
-        setReviews((prev) => [data.review, ...prev]);
+        if (data.isEdit || isEditing) {
+          setReviews((prev) => prev.map((r) => (r.id === data.review.id ? data.review : r)));
+          showToast('Your review has been updated successfully!', 'success');
+        } else {
+          setReviews((prev) => [data.review, ...prev]);
+          showToast('Thank you! Your review has been submitted successfully.', 'success');
+        }
         if (data.summary) {
           setReviewSummary(data.summary);
         }
-        showToast('Thank you! Your review has been submitted successfully.', 'success');
         setIsReviewDrawerOpen(false);
+        setEditingReviewId(null);
         setReviewTitle('');
         setReviewComment('');
       } else {
@@ -569,11 +623,30 @@ function ProductDetailsContent() {
   };
 
   const handleVoteReview = async (reviewId: string, voteType: 'helpful' | 'unhelpful') => {
+    const previousVote = userVotes[reviewId];
+    const nextVote = previousVote === voteType ? undefined : voteType;
+
+    // Optimistically update local vote state & persist in localStorage
+    const updatedVotes = { ...userVotes };
+    if (nextVote) {
+      updatedVotes[reviewId] = nextVote;
+    } else {
+      delete updatedVotes[reviewId];
+    }
+    setUserVotes(updatedVotes);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('veuz_review_votes', JSON.stringify(updatedVotes));
+      } catch {
+        // ignore
+      }
+    }
+
     try {
       const res = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'vote', reviewId, voteType }),
+        body: JSON.stringify({ action: 'vote', reviewId, voteType, previousVote }),
       });
       const data = await res.json();
       if (data.success && data.review) {
@@ -1809,7 +1882,7 @@ function ProductDetailsContent() {
                   </p>
                   <button
                     type="button"
-                    onClick={handleOpenReviewModal}
+                    onClick={() => handleOpenReviewModal(userExistingReview || undefined)}
                     className="btn px-4 py-2 text-white fw-bold shadow-sm"
                     style={{
                       backgroundColor: '#0f172a',
@@ -1817,7 +1890,7 @@ function ProductDetailsContent() {
                       fontSize: '14px',
                     }}
                   >
-                    Write the First Review
+                    {userExistingReview ? 'Edit Your Review' : 'Write the First Review'}
                   </button>
                 </div>
               ) : (
@@ -1906,54 +1979,81 @@ function ProductDetailsContent() {
                         </div>
                       )}
 
-                      {/* Bottom Actions: Share, Helpful, Unhelpful */}
-                      <div className="d-flex align-items-center gap-3 pt-2 border-top text-muted fs-12 flex-wrap" style={{ borderColor: '#f1f5f9' }}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (navigator.clipboard) {
-                              navigator.clipboard.writeText(window.location.href);
-                              showToast('Link copied to clipboard!', 'success');
-                            }
-                          }}
-                          className="btn btn-link p-0 text-muted text-decoration-none fs-12 d-inline-flex align-items-center gap-1"
-                        >
-                          <Share2 size={13} />
-                          <span>Share</span>
-                        </button>
+                      {/* Bottom Actions: Helpful, Unhelpful, and Edit Review if own review */}
+                      {(() => {
+                        const isOwnReview = Boolean(
+                          user &&
+                          ((rev.userId && user.id && String(rev.userId) === String(user.id)) ||
+                           (rev.userEmail && user.email && rev.userEmail.toLowerCase() === user.email.toLowerCase()))
+                        );
+                        const currentVote = userVotes[rev.id];
+                        const isHelpfulActive = currentVote === 'helpful';
+                        const isUnhelpfulActive = currentVote === 'unhelpful';
 
-                        <span className="text-muted">|</span>
+                        return (
+                          <div className="d-flex align-items-center gap-3 pt-2 border-top text-muted fs-12 flex-wrap" style={{ borderColor: '#f1f5f9' }}>
+                            {/* Helpful Button (No background shade) */}
+                            <button
+                              type="button"
+                              onClick={() => handleVoteReview(rev.id, 'helpful')}
+                              className="btn btn-link p-0 text-decoration-none fs-12 d-inline-flex align-items-center gap-1.5"
+                              style={{
+                                color: isHelpfulActive ? '#2563eb' : '#64748b',
+                                background: 'none',
+                                border: 'none',
+                                padding: 0,
+                                fontWeight: isHelpfulActive ? 700 : 500,
+                                cursor: 'pointer',
+                                outline: 'none',
+                                boxShadow: 'none',
+                              }}
+                              title={isHelpfulActive ? 'You marked this review as helpful' : 'Mark as helpful'}
+                            >
+                              <ThumbsUp
+                                size={13}
+                                fill={isHelpfulActive ? '#2563eb' : 'none'}
+                                stroke={isHelpfulActive ? '#2563eb' : 'currentColor'}
+                              />
+                              <span>Helpful ({rev.helpfulCount || 0})</span>
+                            </button>
 
-                        <button
-                          type="button"
-                          onClick={() => handleVoteReview(rev.id, 'helpful')}
-                          className="btn btn-link p-0 text-muted text-decoration-none fs-12 d-inline-flex align-items-center gap-1"
-                          title="Mark as helpful"
-                        >
-                          <ThumbsUp size={13} />
-                          <span>Helpful ({rev.helpfulCount || 0})</span>
-                        </button>
+                            <span className="text-muted" style={{ opacity: 0.35 }}>|</span>
 
-                        <span className="text-muted">|</span>
-
-                        <button
-                          type="button"
-                          onClick={() => handleVoteReview(rev.id, 'unhelpful')}
-                          className="btn btn-link p-0 text-muted text-decoration-none fs-12 d-inline-flex align-items-center gap-1"
-                          title="Mark as unhelpful"
-                        >
-                          <ThumbsDown size={13} />
-                          <span>Unhelpful ({rev.unhelpfulCount || 0})</span>
-                        </button>
-                      </div>
+                            {/* Unhelpful Button (No background shade) */}
+                            <button
+                              type="button"
+                              onClick={() => handleVoteReview(rev.id, 'unhelpful')}
+                              className="btn btn-link p-0 text-decoration-none fs-12 d-inline-flex align-items-center gap-1.5"
+                              style={{
+                                color: isUnhelpfulActive ? '#ef4444' : '#64748b',
+                                background: 'none',
+                                border: 'none',
+                                padding: 0,
+                                fontWeight: isUnhelpfulActive ? 700 : 500,
+                                cursor: 'pointer',
+                                outline: 'none',
+                                boxShadow: 'none',
+                              }}
+                              title={isUnhelpfulActive ? 'You marked this review as unhelpful' : 'Mark as unhelpful'}
+                            >
+                              <ThumbsDown
+                                size={13}
+                                fill={isUnhelpfulActive ? '#ef4444' : 'none'}
+                                stroke={isUnhelpfulActive ? '#ef4444' : 'currentColor'}
+                              />
+                              <span>Unhelpful ({rev.unhelpfulCount || 0})</span>
+                            </button>
+                          </div>
+                        );
+                      })()}
                     </div>
                   ))}
 
-                  {/* Write a Review button at bottom of reviews list */}
+                  {/* Write a Review / Edit Your Review button at bottom of reviews list */}
                   <div className="d-flex justify-content-center mt-4 pt-2">
                     <button
                       type="button"
-                      onClick={handleOpenReviewModal}
+                      onClick={() => handleOpenReviewModal(userExistingReview || undefined)}
                       className="px-4 py-2.5 text-white fw-bold shadow-sm"
                       style={{
                         backgroundColor: '#0f172a',
@@ -1973,8 +2073,17 @@ function ProductDetailsContent() {
                         (e.currentTarget as HTMLElement).style.backgroundColor = '#0f172a';
                       }}
                     >
-                      <MessageSquare size={16} />
-                      <span>Write a Review</span>
+                      {userExistingReview ? (
+                        <>
+                          <Pencil size={15} />
+                          <span>Edit Your Review</span>
+                        </>
+                      ) : (
+                        <>
+                          <MessageSquare size={16} />
+                          <span>Write a Review</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>
@@ -2383,7 +2492,7 @@ function ProductDetailsContent() {
                   {product.category || 'Product Review'}
                 </span>
                 <h5 className="mb-0 fw-bold text-dark fs-16 mt-0.5" style={{ letterSpacing: '-0.2px' }}>
-                  Write a Review
+                  {editingReviewId || userExistingReview ? 'Edit Your Review' : 'Write a Review'}
                 </h5>
               </div>
 
@@ -2716,10 +2825,10 @@ function ProductDetailsContent() {
                 {isSubmittingReview ? (
                   <>
                     <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
-                    <span>Submitting...</span>
+                    <span>{editingReviewId || userExistingReview ? 'Updating Review...' : 'Submitting...'}</span>
                   </>
                 ) : (
-                  <span>Submit Review</span>
+                  <span>{editingReviewId || userExistingReview ? 'Update Review' : 'Submit Review'}</span>
                 )}
               </button>
             </div>

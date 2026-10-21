@@ -38,6 +38,25 @@ const resetPasswordSchema = z.object({
         .max(16, 'Password cannot exceed 16 characters')
         .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`])/, 'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character'),
 });
+// In-memory active customer tracker (strictly role === 'CUSTOMER', NEVER admins or superadmins)
+export const activeCustomerPresence = new Map();
+export const recordCustomerPresence = (userId, role) => {
+    if (role === 'CUSTOMER') {
+        activeCustomerPresence.set(userId, Date.now());
+    }
+};
+export const removeCustomerPresence = (userId) => {
+    activeCustomerPresence.delete(userId);
+};
+export const getActiveCustomerCount = () => {
+    const now = Date.now();
+    for (const [id, timestamp] of activeCustomerPresence.entries()) {
+        if (now - timestamp > 60000) {
+            activeCustomerPresence.delete(id);
+        }
+    }
+    return activeCustomerPresence.size;
+};
 // ========================================================
 // 1. GET ALL USERS (with filtering by role, status, search)
 // ========================================================
@@ -103,6 +122,7 @@ export const getUsers = async (req, res) => {
             prisma.user.count({ where: { role: 'CUSTOMER' } }),
             prisma.user.count({ where: { isBlocked: true } }),
         ]);
+        const onlineCustomerCount = getActiveCustomerCount();
         res.status(200).json({
             success: true,
             users,
@@ -113,10 +133,23 @@ export const getUsers = async (req, res) => {
                 customers: customerCount,
                 blocked: blockedCount,
                 active: totalCount - blockedCount,
+                onlineCustomers: onlineCustomerCount,
             },
         });
     }
     catch (error) {
+        const isDbUnreachable = error?.name === 'PrismaClientInitializationError' ||
+            error?.message?.includes("Can't reach database server") ||
+            error?.code === 'P1001';
+        if (isDbUnreachable) {
+            console.warn('⚠️ [getUsers] Database server is unreachable at localhost:3306. Please ensure MySQL is started in XAMPP.');
+            res.status(503).json({
+                success: false,
+                isDatabaseDown: true,
+                message: 'Cannot reach database server at localhost:3306. Please start MySQL in XAMPP Control Panel.',
+            });
+            return;
+        }
         console.error('getUsers error:', error);
         res.status(500).json({ success: false, message: 'Failed to fetch users. Please refresh or try again later.' });
     }

@@ -67,14 +67,18 @@ export const AppLayoutShell: React.FC<AppLayoutShellProps> = ({ children }) => {
         <StoreProvider>
           {isDashboardRoute || isAuthRoute ? (
             // Clean isolated render for Dashboard & Auth pages - zero storefront headers, footers, or leaky styles
-            <>{children}</>
+            <div key={pathname} className="veuz-page-transition" style={{ minHeight: '100vh', width: '100%' }}>
+              {children}
+            </div>
           ) : (
             // Complete Storefront Website Layout
             <>
               <StorefrontStyles />
               <ScrollRevealInit />
               <Header />
-              {children}
+              <div key={pathname} className="veuz-page-transition" style={{ minHeight: 'calc(100vh - 160px)', width: '100%' }}>
+                {children}
+              </div>
               <Footer />
               <ScrollToTopButton />
             </>

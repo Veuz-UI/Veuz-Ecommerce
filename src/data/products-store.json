@@ -7,7 +7,7 @@
     "categoryId": "cat-1",
     "price": "320 SR",
     "rating": "5.0",
-    "reviews": "1",
+    "reviews": "2",
     "image": "/uploads/img_1792094049136_45487352b9d15e40f208bc9ff0ade528.png",
     "badge": "New Arrival",
     "badgeClass": "new",
@@ -20,7 +20,7 @@
     "isNewArrival": true,
     "createdAt": 1792088439786,
     "views": 122,
-    "clicks": 121,
+    "clicks": 1,
     "isActive": true,
     "isDraft": false,
     "specifications": [
@@ -115,6 +115,9 @@
         "label": "Color / Finish",
         "value": "Green, Slate Gray, Orange"
       }
+    ],
+    "clickedCustomerIds": [
+      8
     ]
   },
   {
@@ -124,8 +127,8 @@
     "category": "Ear Protection",
     "categoryId": "cat-6",
     "price": "120 SR",
-    "rating": "0.0",
-    "reviews": "0",
+    "rating": "3.0",
+    "reviews": "1",
     "image": "/uploads/img_1792066340483_741c500c87afd826ce83bf5e82c4ae6a.png",
     "badge": "New Arrival",
     "badgeClass": "new",
@@ -138,7 +141,7 @@
     "isNewArrival": true,
     "createdAt": 1792066473722,
     "views": 34,
-    "clicks": 33,
+    "clicks": 1,
     "isActive": true,
     "specifications": [],
     "sizes": [
@@ -157,7 +160,10 @@
     "deliveryOptionName": "Express Delivery",
     "deliveryCharge": 30,
     "deliveryEstimatedDays": "1-2 Business Days",
-    "isDraft": false
+    "isDraft": false,
+    "clickedCustomerIds": [
+      8
+    ]
   },
   {
     "id": "prod-1792064578945",

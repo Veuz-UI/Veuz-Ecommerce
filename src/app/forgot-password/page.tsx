@@ -9,6 +9,7 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { showToast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -19,16 +20,18 @@ export default function ForgotPasswordPage() {
     }
 
     setLoading(true);
+    setError(null);
 
     try {
       await authService.forgotPassword(email);
       setLoading(false);
       setSubmitted(true);
-      showToast('success', 'Password reset instructions have been sent to your email.', 'Successfully Message');
-    } catch (err) {
+      showToast('success', 'Password reset instructions have been sent to your email.', 'Success');
+    } catch (err: any) {
       setLoading(false);
-      setSubmitted(true);
-      showToast('success', 'Password reset instructions have been sent to your email.', 'Successfully Message');
+      const errMsg = err?.data?.message || err?.message || 'No account found with this email address. Please register first.';
+      setError(errMsg);
+      showToast('error', errMsg, 'Account Not Found');
     }
   };
 
@@ -56,6 +59,28 @@ export default function ForgotPasswordPage() {
           <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', margin: '0 0 24px 0' }}>
             Enter your email and we will send you a secure one-time reset link
           </p>
+
+          {error && (
+            <div style={{
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fee2e2',
+              borderRadius: '10px',
+              padding: '12px 14px',
+              marginBottom: '20px',
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '10px',
+              textAlign: 'left'
+            }}>
+              <span style={{ fontSize: '16px', lineHeight: '1.2' }}>⚠️</span>
+              <div style={{ fontSize: '13px', color: '#991b1b', lineHeight: '1.4' }}>
+                {error}{' '}
+                <Link href="/register" style={{ fontWeight: '700', color: '#5b58b4', textDecoration: 'underline', marginLeft: '4px' }}>
+                  Register here
+                </Link>
+              </div>
+            </div>
+          )}
 
           {submitted ? (
             <div style={{ textAlign: 'center', padding: '16px 0' }}>

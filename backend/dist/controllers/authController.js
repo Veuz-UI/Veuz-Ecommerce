@@ -3,6 +3,8 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { z } from 'zod';
 import { prisma } from '../config/prisma.js';
+import { recordCustomerPresence, removeCustomerPresence } from './adminUserController.js';
+import { mailService } from '../services/mailService.js';
 const JWT_SECRET = process.env.JWT_SECRET || 'veuz_super_secure_jwt_secret_key_2026';
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
 // Validation Schemas with Strong Security
@@ -30,7 +32,7 @@ const registerSchema = z.object({
     path: ['confirmPassword'],
 });
 const loginSchema = z.object({
-    email: z.string().trim().email('Invalid email address'),
+    email: z.string().trim().min(1, 'Email or username is required'),
     password: z.string().min(1, 'Password is required'),
 });
 const inviteAdminSchema = z.object({
@@ -71,6 +73,19 @@ const signToken = (user) => {
         name: user.name,
     }, JWT_SECRET, { expiresIn: '7d' });
 };
+// Helper: Generate collision-free 6-digit numeric verification code
+const generateUniqueVerifyCode = async () => {
+    for (let i = 0; i < 20; i++) {
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const existing = await prisma.user.findFirst({
+            where: { verifyToken: code },
+            select: { id: true },
+        });
+        if (!existing)
+            return code;
+    }
+    return Math.floor(100000 + Math.random() * 900000).toString();
+};
 // ========================================================
 // 1. CUSTOMER REGISTRATION (Strictly Customer Role Only)
 // ========================================================
@@ -91,10 +106,7 @@ export const register = async (req, res) => {
         // Hash password with strong salt rounds (12)
         const salt = await bcrypt.genSalt(12);
         const hashedPassword = await bcrypt.hash(validatedData.password, salt);
-        // Generate random 24h verification token
-        const verifyToken = crypto.randomBytes(32).toString('hex');
-        const verifyTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        // Create user (Strictly CUSTOMER role)
+        // Create user (Strictly CUSTOMER role, verifyToken null until requested in profile)
         const newUser = await prisma.user.create({
             data: {
                 name: validatedData.name.trim(),
@@ -102,8 +114,8 @@ export const register = async (req, res) => {
                 password: hashedPassword,
                 role: 'CUSTOMER',
                 isEmailVerified: false,
-                verifyToken,
-                verifyTokenExpires,
+                verifyToken: null,
+                verifyTokenExpires: null,
                 avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(validatedData.name)}`,
             },
             select: {
@@ -122,9 +134,13 @@ export const register = async (req, res) => {
             role: newUser.role,
             name: newUser.name,
         });
+        // Asynchronously dispatch Welcome/Registration Success email only
+        mailService.sendWelcomeEmail(newUser.email, newUser.name).catch((mailErr) => {
+            console.error('Failed to dispatch welcome email:', mailErr);
+        });
         res.status(201).json({
             success: true,
-            message: 'Account registered successfully. Welcome to Veuz Safety!',
+            message: 'Account registered successfully! Welcome aboard. Please verify your email in your profile.',
             token,
             user: newUser,
         });
@@ -148,8 +164,14 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
     try {
         const validatedData = loginSchema.parse(req.body);
-        const user = await prisma.user.findUnique({
-            where: { email: validatedData.email.toLowerCase().trim() },
+        const identifier = validatedData.email.toLowerCase().trim();
+        const user = await prisma.user.findFirst({
+            where: {
+                OR: [
+                    { email: identifier },
+                    { name: identifier },
+                ],
+            },
         });
         // Prevent timing attack & user enumeration: constant time comparison
         if (!user) {
@@ -180,6 +202,9 @@ export const login = async (req, res) => {
             role: user.role,
             name: user.name,
         });
+        if (user.role === 'CUSTOMER') {
+            recordCustomerPresence(user.id, 'CUSTOMER');
+        }
         res.status(200).json({
             success: true,
             message: 'Logged in successfully.',
@@ -237,6 +262,9 @@ export const getMe = async (req, res) => {
             res.status(404).json({ success: false, message: 'User not found.' });
             return;
         }
+        if (user.role === 'CUSTOMER') {
+            recordCustomerPresence(user.id, 'CUSTOMER');
+        }
         res.status(200).json({
             success: true,
             user: {
@@ -246,6 +274,18 @@ export const getMe = async (req, res) => {
         });
     }
     catch (error) {
+        const isDbUnreachable = error?.name === 'PrismaClientInitializationError' ||
+            error?.message?.includes("Can't reach database server") ||
+            error?.code === 'P1001';
+        if (isDbUnreachable) {
+            console.warn('⚠️ [GetMe] Database server is unreachable at localhost:3306. Please ensure MySQL is started in XAMPP.');
+            res.status(503).json({
+                success: false,
+                isDatabaseDown: true,
+                message: 'Database server is not running at localhost:3306. Please start MySQL in XAMPP.',
+            });
+            return;
+        }
         console.error('GetMe Error:', error);
         res.status(500).json({ success: false, message: 'Internal server error.' });
     }
@@ -285,9 +325,13 @@ export const inviteAdmin = async (req, res) => {
             },
         });
         const inviteLink = `${process.env.CLIENT_URL || 'http://localhost:3000'}/admin/setup?token=${token}`;
+        // Dispatch Admin Team Invitation Email
+        mailService.sendAdminInviteEmail(email, validatedData.role, token).catch((mailErr) => {
+            console.error('Failed to dispatch admin invite email:', mailErr);
+        });
         res.status(200).json({
             success: true,
-            message: `Admin invitation created for ${email}. Link valid for 24 hours.`,
+            message: `Admin invitation sent to ${email}. An official invitation email with activation link has been dispatched.`,
             inviteLink,
             expiresAt: invite.expiresAt,
         });
@@ -387,20 +431,30 @@ export const sendVerificationEmail = async (req, res) => {
             res.status(401).json({ success: false, message: 'Authentication required' });
             return;
         }
-        const token = crypto.randomBytes(32).toString('hex');
+        const code = await generateUniqueVerifyCode();
         const expires = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        await prisma.user.update({
+        const updatedUser = await prisma.user.update({
             where: { id: req.user.userId },
             data: {
-                verifyToken: token,
+                verifyToken: code,
                 verifyTokenExpires: expires,
             },
+            select: { email: true, name: true },
         });
-        const verifyLink = `${process.env.CLIENT_URL || 'http://localhost:3000'}/verify-email?token=${token}`;
+        const verifyLink = `${process.env.CLIENT_URL || 'http://localhost:3000'}/api/auth/verify-email?token=${code}`;
+        // Dispatch verification email with 6-digit code
+        const mailResult = await mailService.sendVerificationEmail(updatedUser.email, updatedUser.name, code, code);
+        if (!mailResult.success) {
+            console.warn('⚠️ Mail dispatch warning:', mailResult.error);
+        }
+        else {
+            console.log(`✅ Verification email sent to ${updatedUser.email} with code ${code}`);
+        }
         res.status(200).json({
             success: true,
-            message: 'Verification email sent. Link is valid for 24 hours.',
+            message: `Verification code sent to ${updatedUser.email}! Please check your inbox (and spam folder).`,
             verifyLink,
+            code,
         });
     }
     catch (error) {
@@ -410,9 +464,27 @@ export const sendVerificationEmail = async (req, res) => {
 };
 export const verifyEmail = async (req, res) => {
     try {
-        const { token } = req.body;
+        const rawToken = (req.body?.token || req.body?.code || req.query?.token || req.query?.code);
+        const token = typeof rawToken === 'string' ? rawToken.trim() : '';
+        const clientUrl = process.env.CLIENT_URL || 'http://localhost:3000';
         if (!token) {
-            res.status(400).json({ success: false, message: 'Verification token required' });
+            if (req.method === 'GET') {
+                res.status(400).send(`
+          <!DOCTYPE html>
+          <html>
+            <head><meta charset="utf-8"><title>Verification Failed</title></head>
+            <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;text-align:center;padding:60px 20px;background:#f4f5f8;color:#0f172a;">
+              <div style="max-width:480px;margin:0 auto;background:#fff;padding:40px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+                <h2 style="color:#e11d48;margin-bottom:12px;">Missing Verification Code</h2>
+                <p style="color:#64748b;font-size:14px;margin-bottom:24px;">No verification code was found in this request.</p>
+                <a href="${clientUrl}/login" style="display:inline-block;background:#0f172a;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Return to Login</a>
+              </div>
+            </body>
+          </html>
+        `);
+                return;
+            }
+            res.status(400).json({ success: false, message: 'Verification code is required.' });
             return;
         }
         const user = await prisma.user.findFirst({
@@ -422,9 +494,25 @@ export const verifyEmail = async (req, res) => {
             },
         });
         if (!user) {
+            if (req.method === 'GET') {
+                res.status(400).send(`
+          <!DOCTYPE html>
+          <html>
+            <head><meta charset="utf-8"><title>Code Expired - Veuz Safety</title></head>
+            <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;text-align:center;padding:60px 20px;background:#f4f5f8;color:#0f172a;">
+              <div style="max-width:480px;margin:0 auto;background:#fff;padding:40px;border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.05);">
+                <h2 style="color:#e11d48;margin-bottom:12px;">Verification Code Expired or Invalid</h2>
+                <p style="color:#64748b;font-size:14px;margin-bottom:24px;">This code has expired or has already been used. Please request a fresh verification code from your profile.</p>
+                <a href="${clientUrl}/login" style="display:inline-block;background:#0f172a;color:#fff;padding:12px 28px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">Return to Login</a>
+              </div>
+            </body>
+          </html>
+        `);
+                return;
+            }
             res.status(400).json({
                 success: false,
-                message: 'Invalid or expired verification link.',
+                message: 'Invalid or expired verification code. Please check and try again.',
             });
             return;
         }
@@ -436,9 +524,20 @@ export const verifyEmail = async (req, res) => {
                 verifyTokenExpires: null,
             },
         });
+        if (req.method === 'GET') {
+            res.redirect(`${clientUrl}/profile?verified=true`);
+            return;
+        }
         res.status(200).json({
             success: true,
-            message: 'Email successfully verified!',
+            message: 'Email address verified successfully!',
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                isEmailVerified: true,
+            },
         });
     }
     catch (error) {
@@ -454,11 +553,11 @@ export const forgotPassword = async (req, res) => {
         const validatedData = forgotPasswordSchema.parse(req.body);
         const email = validatedData.email.toLowerCase().trim();
         const user = await prisma.user.findUnique({ where: { email } });
-        // Always respond with success to prevent account enumeration
+        // Inform the client if user is not registered
         if (!user) {
-            res.status(200).json({
-                success: true,
-                message: 'If an account exists with this email, a reset link has been dispatched.',
+            res.status(404).json({
+                success: false,
+                message: 'No account found with this email address. Please register first.',
             });
             return;
         }
@@ -472,10 +571,14 @@ export const forgotPassword = async (req, res) => {
             },
         });
         const resetLink = `${process.env.CLIENT_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
+        // Dispatch Password Reset Email
+        mailService.sendPasswordResetEmail(user.email, user.name, token).catch((mailErr) => {
+            console.error('Failed to dispatch password reset email:', mailErr);
+        });
         res.status(200).json({
             success: true,
-            message: 'If an account exists with this email, a reset link has been dispatched.',
-            resetLink, // returned in development
+            message: 'If an account exists with this email, a secure reset link has been dispatched to your inbox.',
+            resetLink: process.env.NODE_ENV !== 'production' ? resetLink : undefined,
         });
     }
     catch (error) {
@@ -509,18 +612,23 @@ export const resetPassword = async (req, res) => {
         }
         const salt = await bcrypt.genSalt(12);
         const hashedPassword = await bcrypt.hash(validatedData.password, salt);
-        await prisma.user.update({
+        const updatedUser = await prisma.user.update({
             where: { email: resetRecord.email },
             data: { password: hashedPassword },
+            select: { email: true, name: true },
         });
         // Mark token as used permanently
         await prisma.passwordReset.update({
             where: { id: resetRecord.id },
             data: { isUsed: true },
         });
+        // Dispatch Password Reset Success Confirmation Email
+        mailService.sendPasswordResetSuccessEmail(updatedUser.email, updatedUser.name).catch((mailErr) => {
+            console.error('Failed to dispatch password reset success email:', mailErr);
+        });
         res.status(200).json({
             success: true,
-            message: 'Password successfully reset! You can now log in.',
+            message: 'Password successfully reset! A confirmation email has been dispatched. You can now log in.',
         });
     }
     catch (error) {
@@ -578,8 +686,14 @@ export const updateProfile = async (req, res) => {
             updateData.dateOfBirth = dateOfBirth ? dateOfBirth.trim() : null;
         if (gender !== undefined)
             updateData.gender = gender ? gender.trim() : null;
-        if (avatar !== undefined)
-            updateData.avatar = avatar;
+        if (avatar !== undefined) {
+            if (typeof avatar === 'string' && avatar.startsWith('data:image/') && avatar.length <= 250) {
+                updateData.avatar = null;
+            }
+            else {
+                updateData.avatar = avatar;
+            }
+        }
         if (address !== undefined)
             updateData.address = address;
         if (settings !== undefined)
@@ -716,4 +830,22 @@ export const deleteAccount = async (req, res) => {
         console.error('Delete Account Error:', error);
         res.status(500).json({ success: false, message: 'Internal server error.' });
     }
+};
+// ========================================================
+// 11. LIVE CUSTOMER PRESENCE PING & LOGOUT (Role === 'CUSTOMER' Only)
+// ========================================================
+export const pingCustomerPresence = async (req, res) => {
+    if (req.user && req.user.role === 'CUSTOMER') {
+        recordCustomerPresence(req.user.userId, 'CUSTOMER');
+        res.status(200).json({ success: true, isCustomer: true, online: true });
+        return;
+    }
+    // Admins and SuperAdmins are intentionally ignored
+    res.status(200).json({ success: true, isCustomer: false, online: false });
+};
+export const logoutCustomerPresence = async (req, res) => {
+    if (req.user && req.user.role === 'CUSTOMER') {
+        removeCustomerPresence(req.user.userId);
+    }
+    res.status(200).json({ success: true });
 };

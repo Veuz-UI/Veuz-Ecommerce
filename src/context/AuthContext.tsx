@@ -48,6 +48,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const savedToken = typeof window !== 'undefined' ? localStorage.getItem('veuz_token') : null;
     const savedUser = typeof window !== 'undefined' ? localStorage.getItem('veuz_user') : null;
 
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.removeItem('veuz_is_logging_out');
+      } catch (e) {}
+    }
+
     // Detect and discard fake legacy mock tokens immediately
     const isMockToken =
       savedToken === 'super-admin-token' ||
@@ -283,12 +289,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const verifyUserEmail = async (token?: string) => {
-    try {
-      if (token) {
-        await authService.verifyEmail(token);
+    if (token) {
+      const res = await authService.verifyEmail(token);
+      if (user) {
+        const updatedUser = { ...user, isEmailVerified: true };
+        setUser(updatedUser);
+        localStorage.setItem('veuz_user', JSON.stringify(updatedUser));
       }
-    } catch (error) {
-      console.warn('Backend verify email failed, verifying locally');
+      return res;
     }
     if (user) {
       const updatedUser = { ...user, isEmailVerified: true };
@@ -300,9 +308,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = () => {
     const wasAdmin = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
-    setToken(null);
-    setUser(null);
+    const destination = wasAdmin ? '/login' : '/';
+
     if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem('veuz_is_logging_out', 'true');
+      } catch (e) {}
+
       try {
         if ('scrollRestoration' in window.history) {
           window.history.scrollRestoration = 'manual';
@@ -314,12 +326,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Broadcast logout immediately to all other tabs and windows
       try {
-        localStorage.setItem('veuz_auth_sync', JSON.stringify({ action: 'logout', timestamp: Date.now() }));
+        localStorage.setItem('veuz_auth_sync', JSON.stringify({ action: 'logout', wasAdmin, timestamp: Date.now() }));
       } catch (e) {}
       try {
         if ('BroadcastChannel' in window) {
           const channel = new BroadcastChannel('veuz_auth_channel');
-          channel.postMessage({ action: 'logout' });
+          channel.postMessage({ action: 'logout', wasAdmin });
           channel.close();
         }
       } catch (e) {}
@@ -340,13 +352,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.removeItem('veuz_wishlist_guest');
       localStorage.removeItem('veuz_cart');
       localStorage.removeItem('veuz_wishlist');
-      sessionStorage.clear();
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-      if (wasAdmin) {
-        window.location.replace('/login');
-      } else {
-        window.location.replace('/');
-      }
+
+      setToken(null);
+      setUser(null);
+
+      // Instant direct redirection: customers to home '/', admins/superadmins to '/login'
+      window.location.replace(destination);
+    } else {
+      setToken(null);
+      setUser(null);
     }
   };
 

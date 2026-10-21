@@ -14,6 +14,7 @@ export interface ProductReview {
   wouldRecommend?: boolean;
   location?: string;
   createdAt: string;
+  updatedAt?: string;
   verifiedBuyer?: boolean;
   helpfulCount?: number;
   unhelpfulCount?: number;
@@ -138,24 +139,44 @@ export async function POST(request: Request) {
 
     // Helpful / Unhelpful Vote Action
     if (action === 'vote') {
-      const { reviewId, voteType } = body;
+      const { reviewId, voteType, previousVote } = body;
       const review = allReviews.find((r) => r.id === reviewId);
       if (!review) {
         return NextResponse.json({ success: false, error: 'Review not found' }, { status: 404 });
       }
 
-      if (voteType === 'helpful') {
-        review.helpfulCount = (review.helpfulCount || 0) + 1;
-      } else if (voteType === 'unhelpful') {
-        review.unhelpfulCount = (review.unhelpfulCount || 0) + 1;
+      // Handle vote toggling and switching
+      if (previousVote === voteType) {
+        // User clicked the active button again -> untoggle vote
+        if (voteType === 'helpful') {
+          review.helpfulCount = Math.max(0, (review.helpfulCount || 0) - 1);
+        } else if (voteType === 'unhelpful') {
+          review.unhelpfulCount = Math.max(0, (review.unhelpfulCount || 0) - 1);
+        }
+      } else if (previousVote) {
+        // User switched their vote from one to another
+        if (voteType === 'helpful') {
+          review.unhelpfulCount = Math.max(0, (review.unhelpfulCount || 0) - 1);
+          review.helpfulCount = (review.helpfulCount || 0) + 1;
+        } else if (voteType === 'unhelpful') {
+          review.helpfulCount = Math.max(0, (review.helpfulCount || 0) - 1);
+          review.unhelpfulCount = (review.unhelpfulCount || 0) + 1;
+        }
+      } else {
+        // Fresh vote
+        if (voteType === 'helpful') {
+          review.helpfulCount = (review.helpfulCount || 0) + 1;
+        } else if (voteType === 'unhelpful') {
+          review.unhelpfulCount = (review.unhelpfulCount || 0) + 1;
+        }
       }
 
       writeReviews(allReviews);
       return NextResponse.json({ success: true, review });
     }
 
-    // Submit New Review
-    const { productId, rating, title, comment, wouldRecommend, userName, userEmail, userId, location } = body;
+    // Submit New Review or Edit Existing Review
+    const { reviewId, productId, rating, title, comment, wouldRecommend, userName, userEmail, userId, location } = body;
 
     if (!productId) {
       return NextResponse.json({ success: false, error: 'Product ID is required' }, { status: 400 });
@@ -170,6 +191,45 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Review comment is required' }, { status: 400 });
     }
 
+    // Check if user already has an existing review for this product
+    const existingReview = allReviews.find((r) => {
+      if (reviewId && r.id === reviewId) return true;
+      if (r.productId !== productId) return false;
+      if (userId && r.userId && r.userId === userId) return true;
+      if (userEmail && r.userEmail && r.userEmail.toLowerCase() === userEmail.toLowerCase()) return true;
+      return false;
+    });
+
+    if (existingReview || action === 'edit') {
+      // User already created a review for this product -> EDIT IN-PLACE
+      const target = existingReview || allReviews.find((r) => r.id === reviewId);
+      if (!target) {
+        return NextResponse.json({ success: false, error: 'Review to edit not found' }, { status: 404 });
+      }
+
+      target.rating = Math.min(5, Math.max(1, Number(rating)));
+      target.title = title.trim();
+      target.comment = comment.trim();
+      target.wouldRecommend = wouldRecommend !== false;
+      if (location) target.location = location.trim();
+      if (userName && userName.trim()) target.userName = userName.trim();
+      target.updatedAt = new Date().toISOString();
+
+      writeReviews(allReviews);
+
+      const productReviews = allReviews.filter((r) => r.productId === productId);
+      const summary = computeSummary(productReviews);
+      syncProductRating(productId, summary);
+
+      return NextResponse.json({
+        success: true,
+        review: target,
+        summary,
+        isEdit: true,
+      });
+    }
+
+    // Create New Review (Only if user has no existing review for this product)
     const newReview: ProductReview = {
       id: `rev-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       productId,
@@ -199,6 +259,7 @@ export async function POST(request: Request) {
       success: true,
       review: newReview,
       summary,
+      isEdit: false,
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

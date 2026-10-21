@@ -1,5 +1,38 @@
 [
   {
+    "id": "rev-1792613875814-x7efy",
+    "productId": "prod-1792065980066",
+    "userId": 8,
+    "userName": "Reja Nabeel",
+    "userEmail": "reja@veuz.in",
+    "rating": 3,
+    "title": "Awsome!!!",
+    "comment": "orem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy",
+    "wouldRecommend": true,
+    "location": "Saudi Arabia",
+    "createdAt": "2026-10-21T20:17:55.814Z",
+    "verifiedBuyer": true,
+    "helpfulCount": 1,
+    "unhelpfulCount": 0
+  },
+  {
+    "id": "rev-1792613786041-4pjrx",
+    "productId": "prod-1792088421327",
+    "userId": 8,
+    "userName": "Reja Nabeel",
+    "userEmail": "reja@veuz.in",
+    "rating": 5,
+    "title": "Awsome Product!!!!",
+    "comment": "orem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy",
+    "wouldRecommend": true,
+    "location": "India",
+    "createdAt": "2026-10-21T20:16:26.041Z",
+    "verifiedBuyer": true,
+    "helpfulCount": 1,
+    "unhelpfulCount": 0,
+    "updatedAt": "2026-10-21T20:44:37.455Z"
+  },
+  {
     "id": "rev-1792269343875-e8lwj",
     "productId": "prod-1792088421327",
     "userId": 5,

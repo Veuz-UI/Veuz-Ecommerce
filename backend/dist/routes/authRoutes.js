@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, getMe, inviteAdmin, acceptAdminInvite, sendVerificationEmail, verifyEmail, forgotPassword, resetPassword, updateProfile, changePassword, deleteAccount, } from '../controllers/authController.js';
+import { register, login, getMe, inviteAdmin, acceptAdminInvite, sendVerificationEmail, verifyEmail, forgotPassword, resetPassword, updateProfile, changePassword, deleteAccount, pingCustomerPresence, logoutCustomerPresence, } from '../controllers/authController.js';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
 const router = Router();
@@ -10,12 +10,15 @@ router.post('/accept-invite', authRateLimiter, acceptAdminInvite);
 router.post('/forgot-password', authRateLimiter, forgotPassword);
 router.post('/reset-password', authRateLimiter, resetPassword);
 router.post('/verify-email', verifyEmail);
+router.get('/verify-email', verifyEmail);
 // Protected routes (Logged in user)
 router.get('/me', authenticateToken, getMe);
 router.put('/profile', authenticateToken, updateProfile);
 router.post('/change-password', authenticateToken, changePassword);
 router.delete('/account', authenticateToken, deleteAccount);
 router.post('/send-verification', authenticateToken, sendVerificationEmail);
+router.post('/ping', authenticateToken, pingCustomerPresence);
+router.post('/logout-session', authenticateToken, logoutCustomerPresence);
 // Admin-Only routes (Protected with requireAdmin)
 router.post('/invite-admin', authenticateToken, requireAdmin, inviteAdmin);
 export default router;

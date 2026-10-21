@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth, User } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
+import authService from '@/services/authService';
 import { validateImageFile, compressImage } from '@/utils/imageSecurity';
 import {
   sanitizeNumeric,
@@ -68,7 +70,7 @@ const COUNTRIES = [
 
 export default function ProfilePage() {
   const router = useRouter();
-  const { user, logout, isAdmin, isLoading, updateUserProfile, changeUserPassword, deleteUserAccount, verifyUserEmail } = useAuth();
+  const { user, setUser, logout, isAdmin, isLoading, updateUserProfile, changeUserPassword, deleteUserAccount, verifyUserEmail } = useAuth();
   const { showToast } = useToast();
 
   // Helper to convert date strings (ISO, dd/mm/yyyy, or yyyy-mm-dd) into standard HTML input date format YYYY-MM-DD
@@ -90,7 +92,7 @@ export default function ProfilePage() {
 
   const isAdminRole = user?.role === 'ADMIN';
   const isSuperAdminRole = user?.role === 'SUPER_ADMIN';
-  const isEmailReadOnly = isAdminRole && !isSuperAdminRole;
+  const isEmailReadOnly = (isAdminRole && !isSuperAdminRole) || !!user?.isEmailVerified;
 
   // Tab State: basic-info | password-change | address-setup | account-settings | delete-account
   const [activeTab, setActiveTab] = useState<'basic-info' | 'password-change' | 'address-setup' | 'account-settings' | 'delete-account'>('basic-info');
@@ -203,11 +205,120 @@ export default function ProfilePage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Email Verification Modal / State
-  const [showVerifyModal, setShowVerifyModal] = useState(false);
-  const [verifyOtp, setVerifyOtp] = useState('');
+  // Email Verification 2-Minute Cooldown & State
+  const [verifyCooldown, setVerifyCooldown] = useState<number>(0);
   const [verifySending, setVerifySending] = useState(false);
-  const [verifySuccessMsg, setVerifySuccessMsg] = useState('');
+  const [verifySentOnce, setVerifySentOnce] = useState(false);
+  const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [otpDigits, setOtpDigits] = useState<string[]>(['', '', '', '', '', '']);
+  const [focusedOtpIdx, setFocusedOtpIdx] = useState<number | null>(null);
+  const [isVerifyingCode, setIsVerifyingCode] = useState(false);
+  const [isVerifySuccess, setIsVerifySuccess] = useState(false);
+  const [isModalClosing, setIsModalClosing] = useState(false);
+  const [verifyCodeError, setVerifyCodeError] = useState<string | null>(null);
+  const [resendNotice, setResendNotice] = useState<string | null>(null);
+  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Smooth close modal with fade-out animation
+  const handleCloseVerifyModal = () => {
+    if (isVerifySuccess || isModalClosing) return;
+    setIsModalClosing(true);
+    setTimeout(() => {
+      setShowVerifyModal(false);
+      setIsModalClosing(false);
+      setVerifyCodeError(null);
+      setResendNotice(null);
+    }, 280);
+  };
+
+  // Lock body scroll when verification modal is open (covers header and prevents background scroll)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (showVerifyModal) {
+      const originalOverflow = document.body.style.overflow;
+      const originalPaddingRight = document.body.style.paddingRight;
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+
+      document.body.style.overflow = 'hidden';
+      if (scrollbarWidth > 0) {
+        document.body.style.paddingRight = `${scrollbarWidth}px`;
+      }
+
+      return () => {
+        document.body.style.overflow = originalOverflow;
+        document.body.style.paddingRight = originalPaddingRight;
+      };
+    }
+  }, [showVerifyModal]);
+
+  // Focus first OTP box whenever modal opens
+  useEffect(() => {
+    if (showVerifyModal) {
+      setIsVerifySuccess(false);
+      setIsModalClosing(false);
+      setVerifyCodeError(null);
+      setResendNotice(null);
+      const timer = setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, [showVerifyModal]);
+
+  // Load remaining 2-minute cooldown from localStorage if active
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const storageKey = user?.id ? `veuz_verify_cooldown_${user.id}` : 'veuz_verify_cooldown';
+    const savedExpiry = localStorage.getItem(storageKey);
+    if (savedExpiry) {
+      const remaining = Math.max(0, Math.ceil((parseInt(savedExpiry, 10) - Date.now()) / 1000));
+      if (remaining > 0) {
+        setVerifyCooldown(remaining);
+        setVerifySentOnce(true);
+      } else {
+        localStorage.removeItem(storageKey);
+        setVerifySentOnce(true);
+      }
+    }
+  }, [user?.id]);
+
+  // Countdown timer tick every 1 second
+  useEffect(() => {
+    if (verifyCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setVerifyCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          if (typeof window !== 'undefined') {
+            const storageKey = user?.id ? `veuz_verify_cooldown_${user.id}` : 'veuz_verify_cooldown';
+            localStorage.removeItem(storageKey);
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [verifyCooldown, user?.id]);
+
+  // Auto-sync verification status when user returns to profile tab
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const checkVerificationStatus = () => {
+      if (user && !user.isEmailVerified) {
+        authService.getMe().then((res) => {
+          if (res?.success && res.user?.isEmailVerified) {
+            setUser(res.user);
+            localStorage.setItem('veuz_user', JSON.stringify(res.user));
+            showToast('Congratulations! Your email address has been verified.', 'success');
+          }
+        }).catch(() => {});
+      }
+    };
+
+    window.addEventListener('focus', checkVerificationStatus);
+    return () => window.removeEventListener('focus', checkVerificationStatus);
+  }, [user, setUser, showToast]);
 
   // UI Feedback State
   const [isSaving, setIsSaving] = useState(false);
@@ -258,12 +369,6 @@ export default function ProfilePage() {
     }
   }, [user]);
 
-  // Auth Protection & Page Scroll
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.replace('/login');
-    }
-  }, [user, isLoading, router]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -516,6 +621,8 @@ export default function ProfilePage() {
   const hasNumber = /\d/.test(newPassword);
   const hasSpecialChar = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?~`]/.test(newPassword);
   const isPasswordValid = hasMinLength && hasLowerCase && hasUpperCase && hasNumber && hasSpecialChar;
+  const isPasswordsMatching = Boolean(newPassword && confirmPassword && newPassword === confirmPassword);
+  const isPasswordsMismatch = Boolean(confirmPassword && newPassword && newPassword !== confirmPassword);
 
   // Handle Change Password
   const handleUpdatePassword = async (e: React.FormEvent) => {
@@ -628,32 +735,153 @@ export default function ProfilePage() {
     }
   };
 
-  // Email Verification Simulation / Action
-  const handleSendVerificationCode = () => {
-    setVerifySending(true);
-    setTimeout(() => {
-      setVerifySending(false);
-      setVerifySuccessMsg('A 6-digit verification code has been dispatched to ' + email);
-    }, 800);
+  // Format cooldown time mm:ss
+  const formatCooldown = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
-  const handleConfirmVerification = async () => {
-    setIsSaving(true);
+  // Dispatch real verification email with 2-minute (120s) rate limit cooldown
+  const handleSendVerificationEmail = async (openModalAfter: boolean = true) => {
+    if (verifyCooldown > 0) {
+      if (openModalAfter) setShowVerifyModal(true);
+      return;
+    }
+    if (verifySending) return;
+    setVerifySending(true);
+
     try {
-      await verifyUserEmail(verifyOtp || 'manual-otp-verified');
-      setShowVerifyModal(false);
-      setVerifyOtp('');
-      setVerifySuccessMsg('');
-      showToast('Congratulations! Your email address has been verified.');
+      const res = await authService.sendVerification();
+      const expiry = Date.now() + 120 * 1000; // 2 minutes (120 seconds)
+      const storageKey = user?.id ? `veuz_verify_cooldown_${user.id}` : 'veuz_verify_cooldown';
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(storageKey, expiry.toString());
+      }
+      setVerifyCooldown(120);
+      setVerifySentOnce(true);
+      showToast(
+        res?.message || `Verification code sent to ${user?.email || email}!`,
+        'success'
+      );
+      if (openModalAfter) {
+        setShowVerifyModal(true);
+      }
     } catch (err: any) {
-      showToast('Verification failed. Please try again.', 'error');
+      const errMsg = err?.data?.message || err?.message || 'Failed to send verification email. Please try again.';
+      showToast(errMsg, 'error');
+      if (openModalAfter) {
+        setShowVerifyModal(true);
+      }
     } finally {
-      setIsSaving(false);
+      setVerifySending(false);
     }
   };
 
-  // Redirect to login if user is not authenticated
+  const handleResendInsideModal = async () => {
+    if (verifyCooldown > 0 || verifySending) return;
+    setOtpDigits(['', '', '', '', '', '']);
+    setVerifyCodeError(null);
+    setResendNotice('Verification email with your 6-digit code has been sent!');
+    await handleSendVerificationEmail(false);
+    setTimeout(() => {
+      otpInputRefs.current[0]?.focus();
+    }, 120);
+  };
+
+  const handleOtpChange = (val: string, idx: number) => {
+    const clean = val.replace(/\D/g, '');
+    const char = clean.slice(-1);
+    const newDigits = [...otpDigits];
+    newDigits[idx] = char;
+    setOtpDigits(newDigits);
+    setVerifyCodeError(null);
+
+    if (char && idx < 5) {
+      otpInputRefs.current[idx + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, idx: number) => {
+    if (e.key === 'Backspace') {
+      if (!otpDigits[idx] && idx > 0) {
+        const newDigits = [...otpDigits];
+        newDigits[idx - 1] = '';
+        setOtpDigits(newDigits);
+        otpInputRefs.current[idx - 1]?.focus();
+      } else {
+        const newDigits = [...otpDigits];
+        newDigits[idx] = '';
+        setOtpDigits(newDigits);
+      }
+    } else if (e.key === 'ArrowLeft' && idx > 0) {
+      otpInputRefs.current[idx - 1]?.focus();
+    } else if (e.key === 'ArrowRight' && idx < 5) {
+      otpInputRefs.current[idx + 1]?.focus();
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      handleVerifyOtpSubmit();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const paste = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (!paste) return;
+    const newDigits = [...otpDigits];
+    for (let i = 0; i < 6; i++) {
+      newDigits[i] = paste[i] || '';
+    }
+    setOtpDigits(newDigits);
+    setVerifyCodeError(null);
+    const nextIdx = Math.min(paste.length, 5);
+    otpInputRefs.current[nextIdx]?.focus();
+  };
+
+  const handleVerifyOtpSubmit = async () => {
+    const code = otpDigits.join('').trim();
+    if (code.length !== 6) {
+      setVerifyCodeError('Please enter the 6-digit verification code.');
+      return;
+    }
+    setIsVerifyingCode(true);
+    setVerifyCodeError(null);
+    try {
+      await verifyUserEmail(code);
+      setIsVerifyingCode(false);
+      setIsVerifySuccess(true);
+
+      const storageKey = user?.id ? `veuz_verify_cooldown_${user.id}` : 'veuz_verify_cooldown';
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(storageKey);
+      }
+      setVerifyCooldown(0);
+
+      // Show success state inside modal for 1.5s, then smoothly fade out
+      setTimeout(() => {
+        setIsModalClosing(true);
+        setTimeout(() => {
+          setShowVerifyModal(false);
+          setIsVerifySuccess(false);
+          setIsModalClosing(false);
+          setOtpDigits(['', '', '', '', '', '']);
+          showToast('Congratulations! Your email address has been verified.', 'success');
+        }, 280);
+      }, 1500);
+    } catch (err: any) {
+      setIsVerifyingCode(false);
+      const msg = err?.data?.message || err?.message || 'Invalid or expired verification code. Please check and try again.';
+      setVerifyCodeError(msg);
+      showToast(msg, 'error');
+    }
+  };
+
+  // Redirect to login if user is not authenticated (unless logging out directly to home)
   useEffect(() => {
+    if (typeof window !== 'undefined' && sessionStorage.getItem('veuz_is_logging_out') === 'true') {
+      window.location.replace('/');
+      return;
+    }
     if (!isLoading && !user) {
       router.replace('/login?redirect=/profile%23basic-info');
     }
@@ -661,32 +889,8 @@ export default function ProfilePage() {
 
   const isSkeletonPreview = typeof window !== 'undefined' && window.location.search.includes('skeleton=true');
 
-  if (isLoading || isSkeletonPreview) {
+  if (isLoading || isSkeletonPreview || !user) {
     return <ProfileSkeleton />;
-  }
-
-  if (!user) {
-    return (
-      <main className="main" style={{ backgroundColor: '#f8fafc', minHeight: '85vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px' }}>
-        <div style={{ maxWidth: '440px', width: '100%', background: '#ffffff', borderRadius: '16px', border: '1px solid #e2e8f0', padding: '36px 24px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.04)' }}>
-          <div style={{ width: '56px', height: '56px', borderRadius: '50%', backgroundColor: '#f1f5f9', color: '#0f172a', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', marginBottom: '16px' }}>
-            <i className="fi fi-rs-user"></i>
-          </div>
-          <h4 style={{ fontWeight: '800', color: '#0f172a', marginBottom: '8px' }}>Sign in Required</h4>
-          <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '24px', lineHeight: '1.6' }}>
-            Please sign in to access and manage your profile details, password, and addresses.
-          </p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <Link href="/login?redirect=/profile%23basic-info" className="profile-btn-primary" style={{ justifyContent: 'center', width: '100%', textDecoration: 'none', height: '46px' }}>
-              Sign In to Profile
-            </Link>
-            <Link href="/register" className="profile-btn-cancel" style={{ justifyContent: 'center', width: '100%', textDecoration: 'none', height: '46px' }}>
-              Create an Account
-            </Link>
-          </div>
-        </div>
-      </main>
-    );
   }
 
   return (
@@ -698,6 +902,39 @@ export default function ProfilePage() {
         @keyframes profileFadeIn {
           from { opacity: 0; }
           to { opacity: 1; }
+        }
+        @keyframes verifyBackdropFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes verifyBackdropFadeOut {
+          from { opacity: 1; }
+          to { opacity: 0; }
+        }
+        @keyframes verifyCardZoomIn {
+          from {
+            opacity: 0;
+            transform: scale(0.92) translateY(14px);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+        }
+        @keyframes verifyCardZoomOut {
+          from {
+            opacity: 1;
+            transform: scale(1) translateY(0);
+          }
+          to {
+            opacity: 0;
+            transform: scale(0.92) translateY(14px);
+          }
+        }
+        @keyframes successCheckBounce {
+          0% { transform: scale(0); opacity: 0; }
+          60% { transform: scale(1.15); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
         }
       `}} />
       <div className="container py-3 py-md-4">
@@ -877,11 +1114,10 @@ export default function ProfilePage() {
 
                   {/* Email Address with Verification Badge & Action */}
                   <div className="col-md-6">
+                    {/* Email Address Label */}
                     <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
                       <label className="profile-input-label mb-0">Email Address</label>
-                      
-                      {/* Email Verification Status */}
-                      {user.isEmailVerified && !emailChangedWarning ? (
+                      {user.isEmailVerified && !emailChangedWarning && (
                         <span
                           className="badge"
                           style={{
@@ -896,42 +1132,6 @@ export default function ProfilePage() {
                         >
                           ✓ Verified
                         </span>
-                      ) : (
-                        <div className="d-flex align-items-center gap-2">
-                          <span
-                            className="badge"
-                            style={{
-                              backgroundColor: '#fef3c7',
-                              color: '#b45309',
-                              fontSize: '11.5px',
-                              fontWeight: '700',
-                              padding: '4px 8px',
-                              borderRadius: '6px',
-                              border: '1px solid #fde68a',
-                            }}
-                          >
-                            ⚠ Unverified
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setShowVerifyModal(true);
-                              handleSendVerificationCode();
-                            }}
-                            className="btn btn-sm"
-                            style={{
-                              fontSize: '11px',
-                              fontWeight: '700',
-                              padding: '2px 8px',
-                              backgroundColor: '#0f172a',
-                              color: '#ffffff',
-                              borderRadius: '5px',
-                              border: 'none',
-                            }}
-                          >
-                            Verify Email
-                          </button>
-                        </div>
                       )}
                     </div>
 
@@ -942,11 +1142,73 @@ export default function ProfilePage() {
                       value={email}
                       onChange={(e) => handleEmailChange(e.target.value)}
                       disabled={isEmailReadOnly}
+                      readOnly={isEmailReadOnly}
+                      style={
+                        isEmailReadOnly
+                          ? { backgroundColor: '#f8fafc', color: '#64748b', cursor: 'not-allowed' }
+                          : undefined
+                      }
                       required
                     />
 
+                    {/* Below the input: smaller verify email link and warning icon */}
+                    {!user.isEmailVerified && (
+                      <div
+                        style={{
+                          marginTop: '6px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          fontSize: '12px',
+                        }}
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#d97706"
+                          strokeWidth="2.2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          style={{ flexShrink: 0 }}
+                        >
+                          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                          <line x1="12" y1="9" x2="12" y2="13" />
+                          <line x1="12" y1="17" x2="12.01" y2="17" />
+                        </svg>
+
+                        <button
+                          type="button"
+                          onClick={() => handleSendVerificationEmail(true)}
+                          disabled={verifySending}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            color: '#2563eb',
+                            fontWeight: '600',
+                            fontSize: '12px',
+                            textDecoration: 'underline',
+                            cursor: verifySending ? 'not-allowed' : 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                          }}
+                        >
+                          {verifySending ? 'Sending code...' : 'Verify email'}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Verified Locked Notice */}
+                    {user.isEmailVerified && (
+                      <small style={{ color: '#15803d', fontSize: '12px', marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <i className="fi fi-rs-lock"></i> Verified email address is locked for account security.
+                      </small>
+                    )}
+
                     {/* Admin Locked Notice */}
-                    {isEmailReadOnly && (
+                    {!user.isEmailVerified && isEmailReadOnly && (
                       <small style={{ color: '#64748b', fontSize: '12px', marginTop: '4px', display: 'block' }}>
                         <i className="fi fi-rs-lock mr-5"></i> Admin email is locked and can only be changed by a Super Admin.
                       </small>
@@ -1055,7 +1317,30 @@ export default function ProfilePage() {
 
               <form onSubmit={handleUpdatePassword}>
                 <div className="row g-3 g-md-4">
-                  {/* Current Password */}
+                  {/* Row 1 / Col 1: Email Address (Read-only) */}
+                  <div className="col-md-6">
+                    <label className="profile-input-label d-flex align-items-center justify-content-between">
+                      <span>Email Address</span>
+                      <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '500' }}>
+                        <i className="fi fi-rs-lock mr-5"></i> Read-only
+                      </span>
+                    </label>
+                    <input
+                      type="email"
+                      className="profile-input-field"
+                      value={user?.email || email}
+                      readOnly
+                      disabled
+                      style={{
+                        backgroundColor: '#f8fafc',
+                        cursor: 'not-allowed',
+                        color: '#64748b',
+                        border: '1px solid #e2e8f0',
+                      }}
+                    />
+                  </div>
+
+                  {/* Row 1 / Col 2: Current Password */}
                   <div className="col-md-6">
                     <label className="profile-input-label">
                       Current Password <span style={{ color: '#ef4444' }}>*</span>
@@ -1090,7 +1375,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  {/* New Password */}
+                  {/* Row 2 / Col 1: New Password */}
                   <div className="col-md-6">
                     <label className="profile-input-label">
                       New Password <span style={{ color: '#ef4444' }}>*</span>
@@ -1125,7 +1410,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  {/* Confirm New Password */}
+                  {/* Row 2 / Col 2: Confirm New Password */}
                   <div className="col-md-6">
                     <label className="profile-input-label">
                       Confirm New Password <span style={{ color: '#ef4444' }}>*</span>
@@ -1138,7 +1423,20 @@ export default function ProfilePage() {
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         required
-                        style={{ paddingRight: '45px' }}
+                        style={{
+                          paddingRight: '45px',
+                          border: isPasswordsMismatch
+                            ? '1.5px solid #ef4444'
+                            : isPasswordsMatching
+                            ? '1.5px solid #16a34a'
+                            : undefined,
+                          backgroundColor: isPasswordsMismatch
+                            ? '#fef2f2'
+                            : isPasswordsMatching
+                            ? '#f0fdf4'
+                            : undefined,
+                          transition: 'border-color 0.15s ease, background-color 0.15s ease',
+                        }}
                       />
                       <button
                         type="button"
@@ -1158,10 +1456,20 @@ export default function ProfilePage() {
                         <i className={showConfirmPassword ? 'fi fi-rs-eye-crossed' : 'fi fi-rs-eye'}></i>
                       </button>
                     </div>
+                    {isPasswordsMatching && (
+                      <div style={{ color: '#16a34a', fontSize: '12px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
+                        <span>✓</span> Passwords match
+                      </div>
+                    )}
+                    {isPasswordsMismatch && (
+                      <div style={{ color: '#ef4444', fontSize: '12px', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span>⚠️</span> Passwords do not match
+                      </div>
+                    )}
                   </div>
                 </div>
 
-                {/* Password Requirements Checklist (Exact Image 2 Requirements) */}
+                {/* Password Requirements Checklist (Full Width, Multi-Column Aligned) */}
                 <div
                   style={{
                     backgroundColor: '#f8fafc',
@@ -1169,29 +1477,46 @@ export default function ProfilePage() {
                     borderRadius: '12px',
                     padding: '16px 20px',
                     marginTop: '24px',
-                    maxWidth: '600px',
+                    width: '100%',
+                    boxSizing: 'border-box',
                   }}
                 >
-                  <p style={{ fontWeight: '700', fontSize: '13px', color: '#334155', marginBottom: '8px' }}>
-                    *Password requirements:
-                  </p>
-                  <ul style={{ paddingLeft: '18px', margin: 0, fontSize: '13px', color: '#64748b', lineHeight: '1.8' }}>
-                    <li style={{ color: hasMinLength ? '#16a34a' : undefined, fontWeight: hasMinLength ? '600' : 'normal' }}>
-                      {hasMinLength ? '✓' : '•'} Between 8 and 16 characters
-                    </li>
-                    <li style={{ color: hasLowerCase ? '#16a34a' : undefined, fontWeight: hasLowerCase ? '600' : 'normal' }}>
-                      {hasLowerCase ? '✓' : '•'} At least one lowercase character
-                    </li>
-                    <li style={{ color: hasUpperCase ? '#16a34a' : undefined, fontWeight: hasUpperCase ? '600' : 'normal' }}>
-                      {hasUpperCase ? '✓' : '•'} At least one uppercase character
-                    </li>
-                    <li style={{ color: hasNumber ? '#16a34a' : undefined, fontWeight: hasNumber ? '600' : 'normal' }}>
-                      {hasNumber ? '✓' : '•'} At least one numeric character (0-9)
-                    </li>
-                    <li style={{ color: hasSpecialChar ? '#16a34a' : undefined, fontWeight: hasSpecialChar ? '600' : 'normal' }}>
-                      {hasSpecialChar ? '✓' : '•'} At least one special character (!@#$%^&*...)
-                    </li>
-                  </ul>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+                    <span style={{ fontWeight: '700', fontSize: '13px', color: '#334155' }}>
+                      *Password requirements:
+                    </span>
+                    <span style={{ fontSize: '11.5px', color: '#64748b' }}>
+                      {[hasMinLength, hasLowerCase, hasUpperCase, hasNumber, hasSpecialChar].filter(Boolean).length} of 5 completed
+                    </span>
+                  </div>
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))',
+                      gap: '8px 16px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: hasMinLength ? '#16a34a' : '#64748b', fontWeight: hasMinLength ? '600' : 'normal' }}>
+                      <span style={{ fontWeight: '800' }}>{hasMinLength ? '✓' : '•'}</span>
+                      <span>Between 8 and 16 characters</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: hasLowerCase ? '#16a34a' : '#64748b', fontWeight: hasLowerCase ? '600' : 'normal' }}>
+                      <span style={{ fontWeight: '800' }}>{hasLowerCase ? '✓' : '•'}</span>
+                      <span>At least one lowercase character (a-z)</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: hasUpperCase ? '#16a34a' : '#64748b', fontWeight: hasUpperCase ? '600' : 'normal' }}>
+                      <span style={{ fontWeight: '800' }}>{hasUpperCase ? '✓' : '•'}</span>
+                      <span>At least one uppercase character (A-Z)</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: hasNumber ? '#16a34a' : '#64748b', fontWeight: hasNumber ? '600' : 'normal' }}>
+                      <span style={{ fontWeight: '800' }}>{hasNumber ? '✓' : '•'}</span>
+                      <span>At least one numeric character (0-9)</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12.5px', color: hasSpecialChar ? '#16a34a' : '#64748b', fontWeight: hasSpecialChar ? '600' : 'normal' }}>
+                      <span style={{ fontWeight: '800' }}>{hasSpecialChar ? '✓' : '•'}</span>
+                      <span>At least one special symbol (!@#$%^&*...)</span>
+                    </div>
+                  </div>
                 </div>
 
                 {/* Bottom Actions */}
@@ -1637,134 +1962,332 @@ export default function ProfilePage() {
 
       </div>
 
-      {/* EMAIL VERIFICATION MODAL */}
-      {showVerifyModal && (
+      {/* Exact OTP Verification Modal rendered via Portal to sit above header */}
+      {showVerifyModal && typeof document !== 'undefined' && createPortal(
         <div
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
+            inset: 0,
             width: '100vw',
             height: '100vh',
             backgroundColor: 'rgba(15, 23, 42, 0.65)',
-            backdropFilter: 'blur(4px)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 10000,
+            zIndex: 999999,
             padding: '16px',
+            boxSizing: 'border-box',
+            animation: isModalClosing
+              ? 'verifyBackdropFadeOut 0.28s ease forwards'
+              : 'verifyBackdropFadeIn 0.25s ease forwards',
           }}
+          onClick={handleCloseVerifyModal}
         >
           <div
             style={{
               backgroundColor: '#ffffff',
-              borderRadius: '16px',
-              padding: '32px',
-              maxWidth: '460px',
+              borderRadius: '24px',
+              padding: isVerifySuccess ? '44px 32px 38px 32px' : '36px 28px 32px 28px',
+              maxWidth: '420px',
               width: '100%',
-              boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+              boxShadow: '0 25px 60px -12px rgba(15, 23, 42, 0.35)',
               position: 'relative',
+              textAlign: 'center',
+              boxSizing: 'border-box',
+              animation: isModalClosing
+                ? 'verifyCardZoomOut 0.28s cubic-bezier(0.4, 0, 0.2, 1) forwards'
+                : 'verifyCardZoomIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards',
             }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <button
-              type="button"
-              onClick={() => setShowVerifyModal(false)}
-              style={{
-                position: 'absolute',
-                top: '16px',
-                right: '16px',
-                background: 'none',
-                border: 'none',
-                fontSize: '18px',
-                cursor: 'pointer',
-                color: '#64748b',
-              }}
-            >
-              <i className="fi fi-rs-cross"></i>
-            </button>
-
-            <div className="text-center mb-4">
-              <div
+            {/* Close Button (hidden during success completion) */}
+            {!isVerifySuccess && (
+              <button
+                type="button"
+                onClick={handleCloseVerifyModal}
                 style={{
-                  width: '56px',
-                  height: '56px',
+                  position: 'absolute',
+                  top: '16px',
+                  right: '16px',
+                  width: '32px',
+                  height: '32px',
                   borderRadius: '50%',
                   backgroundColor: '#f1f5f9',
-                  color: '#0f172a',
-                  display: 'inline-flex',
+                  border: 'none',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '24px',
-                  marginBottom: '12px',
+                  fontSize: '14px',
+                  fontWeight: '700',
+                  transition: 'all 0.15s ease',
                 }}
+                aria-label="Close"
               >
-                <i className="fi fi-rs-envelope-open"></i>
-              </div>
-              <h4 style={{ fontWeight: '800', color: '#0f172a', marginBottom: '6px' }}>Verify Your Email</h4>
-              <p style={{ color: '#64748b', fontSize: '13.5px', marginBottom: 0 }}>
-                We sent a 6-digit confirmation code to <strong>{email}</strong>
-              </p>
-            </div>
-
-            {verifySuccessMsg && (
-              <div
-                style={{
-                  backgroundColor: '#f0fdf4',
-                  border: '1px solid #bbf7d0',
-                  color: '#15803d',
-                  borderRadius: '8px',
-                  padding: '10px 14px',
-                  fontSize: '13px',
-                  fontWeight: '600',
-                  marginBottom: '18px',
-                  textAlign: 'center',
-                }}
-              >
-                {verifySuccessMsg}
-              </div>
+                ✕
+              </button>
             )}
 
-            <div className="mb-4">
-              <label className="profile-input-label text-center">Enter 6-Digit Code</label>
-              <input
-                type="text"
-                maxLength={6}
-                className="profile-input-field text-center"
-                placeholder="123456"
-                value={verifyOtp}
-                onChange={(e) => setVerifyOtp(e.target.value)}
-                style={{
-                  letterSpacing: '6px',
-                  fontSize: '20px',
-                  fontWeight: '700',
-                  height: '52px',
-                }}
-              />
-            </div>
+            {isVerifySuccess ? (
+              /* Success State inside Modal */
+              <div style={{ animation: 'verifyCardZoomIn 0.3s ease' }}>
+                <div
+                  style={{
+                    width: '72px',
+                    height: '72px',
+                    borderRadius: '50%',
+                    backgroundColor: '#dcfce7',
+                    border: '2px solid #86efac',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 20px auto',
+                    boxShadow: '0 10px 25px rgba(22, 163, 74, 0.22)',
+                    animation: 'successCheckBounce 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+                  }}
+                >
+                  <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
 
-            <div className="d-flex flex-column gap-2">
-              <button
-                type="button"
-                className="profile-btn-primary justify-content-center"
-                onClick={handleConfirmVerification}
-                disabled={isSaving}
-                style={{ width: '100%', height: '44px' }}
-              >
-                {isSaving ? 'Verifying...' : 'Confirm Verification'}
-              </button>
+                <h3
+                  style={{
+                    fontSize: '22px',
+                    fontWeight: '800',
+                    color: '#0f172a',
+                    marginBottom: '8px',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  Email Verified Successfully!
+                </h3>
 
-              <button
-                type="button"
-                className="btn btn-link text-decoration-none"
-                onClick={handleSendVerificationCode}
-                disabled={verifySending}
-                style={{ fontSize: '13px', color: '#0f172a', fontWeight: '600' }}
-              >
-                {verifySending ? 'Resending Code...' : 'Resend Code'}
-              </button>
-            </div>
+                <p
+                  style={{
+                    fontSize: '14px',
+                    color: '#64748b',
+                    lineHeight: 1.55,
+                    margin: 0,
+                  }}
+                >
+                  Your email address <strong style={{ color: '#0f172a' }}>{user?.email || email}</strong> is now verified and your account is secure.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Circular Blue Envelope Icon */}
+                <div
+                  style={{
+                    width: '64px',
+                    height: '64px',
+                    borderRadius: '50%',
+                    backgroundColor: '#eff6ff',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 20px auto',
+                  }}
+                >
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="#2563eb">
+                    <path d="M20 4H4C2.9 4 2.01 4.9 2.01 6L2 18C2 19.1 2.9 20 4 20H20C21.1 20 22 19.1 22 18V6C22 4.9 21.1 4 20 4ZM20 8L12 13L4 8V6L12 11L20 6V8Z" />
+                  </svg>
+                </div>
+
+                {/* Title */}
+                <h3
+                  style={{
+                    fontSize: '24px',
+                    fontWeight: '700',
+                    color: '#111827',
+                    marginBottom: '10px',
+                    letterSpacing: '-0.02em',
+                  }}
+                >
+                  Check your email
+                </h3>
+
+                {/* Subtitle */}
+                <p
+                  style={{
+                    fontSize: '14px',
+                    color: '#64748b',
+                    lineHeight: 1.5,
+                    marginBottom: '26px',
+                  }}
+                >
+                  Enter the verification code sent to
+                  <br />
+                  <strong style={{ color: '#0f172a', fontWeight: '600' }}>
+                    {user?.email || email}
+                  </strong>
+                </p>
+
+                {/* 6 OTP Input Boxes */}
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    marginBottom: '22px',
+                  }}
+                >
+                  {otpDigits.map((digit, idx) => (
+                    <input
+                      key={idx}
+                      ref={(el) => {
+                        otpInputRefs.current[idx] = el;
+                      }}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      maxLength={1}
+                      value={digit}
+                      placeholder={focusedOtpIdx === idx ? '' : '·'}
+                      onChange={(e) => handleOtpChange(e.target.value, idx)}
+                      onKeyDown={(e) => handleOtpKeyDown(e, idx)}
+                      onPaste={handleOtpPaste}
+                      onFocus={(e) => {
+                        setFocusedOtpIdx(idx);
+                        e.target.select();
+                      }}
+                      onBlur={() => setFocusedOtpIdx(null)}
+                      style={{
+                        width: '46px',
+                        height: '52px',
+                        borderRadius: '10px',
+                        border: focusedOtpIdx === idx ? '2px solid #2563eb' : '1.5px solid #e2e8f0',
+                        textAlign: 'center',
+                        fontSize: '22px',
+                        fontWeight: '700',
+                        color: '#0f172a',
+                        backgroundColor: '#ffffff',
+                        outline: 'none',
+                        padding: 0,
+                        margin: 0,
+                        lineHeight: '50px',
+                        caretColor: '#2563eb',
+                        textIndent: 0,
+                        boxSizing: 'border-box',
+                        transition: 'border-color 0.15s ease',
+                      }}
+                    />
+                  ))}
+                </div>
+
+                {/* Resend Notice */}
+                {resendNotice && (
+                  <div
+                    style={{
+                      backgroundColor: '#f0fdf4',
+                      border: '1px solid #bbf7d0',
+                      color: '#15803d',
+                      borderRadius: '8px',
+                      padding: '7px 12px',
+                      fontSize: '12px',
+                      fontWeight: '600',
+                      marginBottom: '16px',
+                      textAlign: 'center',
+                    }}
+                  >
+                    ✓ {resendNotice}
+                  </div>
+                )}
+
+                {/* Didn't get a code? resend (with red cooldown) */}
+                <div
+                  style={{
+                    fontSize: '13.5px',
+                    color: '#64748b',
+                    marginBottom: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '5px',
+                  }}
+                >
+                  <span>Didn&apos;t get a code?</span>
+                  {verifyCooldown > 0 ? (
+                    <span style={{ color: '#ef4444', fontWeight: '600' }}>
+                      resend in {formatCooldown(verifyCooldown)}
+                    </span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendInsideModal}
+                      disabled={verifySending}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        padding: 0,
+                        color: '#2563eb',
+                        fontWeight: '600',
+                        textDecoration: 'underline',
+                        cursor: verifySending ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {verifySending ? 'sending...' : 'resend'}
+                    </button>
+                  )}
+                </div>
+
+                {/* Error Message if any */}
+                {verifyCodeError && (
+                  <div
+                    style={{
+                      color: '#ef4444',
+                      fontSize: '12.5px',
+                      fontWeight: '500',
+                      backgroundColor: '#fef2f2',
+                      padding: '8px 12px',
+                      borderRadius: '8px',
+                      marginBottom: '16px',
+                    }}
+                  >
+                    {verifyCodeError}
+                  </div>
+                )}
+
+                {/* Verify Button */}
+                <button
+                  type="button"
+                  onClick={handleVerifyOtpSubmit}
+                  disabled={isVerifyingCode || otpDigits.join('').length !== 6}
+                  style={{
+                    width: '100%',
+                    height: '48px',
+                    backgroundColor: otpDigits.join('').length === 6 && !isVerifyingCode ? '#2563eb' : '#93c5fd',
+                    color: '#ffffff',
+                    borderRadius: '12px',
+                    border: 'none',
+                    fontSize: '15px',
+                    fontWeight: '600',
+                    cursor: otpDigits.join('').length === 6 && !isVerifyingCode ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    transition: 'all 0.15s ease',
+                    boxShadow: otpDigits.join('').length === 6 ? '0 4px 12px rgba(37, 99, 235, 0.25)' : 'none',
+                  }}
+                >
+                  {isVerifyingCode ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm" role="status" style={{ width: '16px', height: '16px', borderWidth: '2px' }} />
+                      <span>Verifying...</span>
+                    </>
+                  ) : (
+                    <span>Verify email</span>
+                  )}
+                </button>
+              </>
+            )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </main>
   );

@@ -1031,13 +1031,13 @@ export const Header: React.FC = () => {
                           {/* Sign out */}
                           <li style={{ borderTop: '1px solid #f1f5f9', marginTop: '6px', paddingTop: '8px' }}>
                             <a
-                              href="/login"
+                              href="#"
                               onClick={(e) => {
                                 e.preventDefault();
                                 setMobileAccountOpen(false);
                                 logout();
                               }}
-                              style={{ color: '#ef4444' }}
+                              style={{ color: '#ef4444', display: 'flex', alignItems: 'center', cursor: 'pointer' }}
                             >
                               <i className="fi fi-rs-sign-out mr-10"></i>Sign out
                             </a>
