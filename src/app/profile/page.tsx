@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -167,6 +167,12 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState('');
   const [alternatePhone, setAlternatePhone] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  // Date of Birth must strictly be at least 12 years ago (minimum 12 years old)
+  const maxAllowedDob = useMemo(() => {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() - 12);
+    return d.toISOString().split('T')[0];
+  }, []);
   const [gender, setGender] = useState('Prefer not to say');
   const fallbackAvatar = 'https://api.dicebear.com/7.x/initials/svg?seed=User';
   const [avatarPreview, setAvatarPreview] = useState<string>(
@@ -573,6 +579,12 @@ export default function ProfilePage() {
       return;
     }
 
+    // 5. Validate Date of Birth (must strictly be at least 12 years old if provided)
+    if (dateOfBirth && dateOfBirth > maxAllowedDob) {
+      showToast('danger', 'You must be at least 12 years old. Please select a valid date of birth.', 'Invalid Date of Birth');
+      return;
+    }
+
     setIsSaving(true);
     const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
     const isEmailUpdated = user && email.toLowerCase().trim() !== user.email.toLowerCase().trim();
@@ -894,7 +906,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <main className="main" style={{ backgroundColor: '#f8fafc', minHeight: '85vh', paddingBottom: '70px', animation: 'profileFadeIn 0.25s ease forwards' }}>
+    <main className="main" style={{ backgroundColor: '#ffffff', minHeight: '85vh', paddingBottom: '70px', animation: 'profileFadeIn 0.25s ease forwards' }}>
       <style dangerouslySetInnerHTML={{ __html: `
         @keyframes profileSpin {
           to { transform: rotate(360deg); }
@@ -1025,7 +1037,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 className={`profile-tab-btn ${activeTab === 'delete-account' ? 'active' : ''}`}
-                style={activeTab === 'delete-account' ? { color: '#ef4444', borderBottomColor: '#ef4444', backgroundColor: '#fef2f2' } : undefined}
+                style={activeTab === 'delete-account' ? { color: '#ef4444', borderBottomColor: '#ef4444', backgroundColor: 'transparent' } : undefined}
                 onClick={(e) => {
                   setActiveTab('delete-account');
                   e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
@@ -1239,16 +1251,26 @@ export default function ProfilePage() {
                     />
                   </div>
 
-                  {/* Date of Birth (Normal Native Calendar Date Picker) */}
+                  {/* Date of Birth (Normal Native Calendar Date Picker - strictly 12+ years old) */}
                   <div className="col-md-6">
                     <label className="profile-input-label">Date of Birth</label>
                     <input
                       type="date"
                       className="profile-input-field"
                       value={dateOfBirth}
-                      max={new Date().toISOString().split('T')[0]}
-                      onChange={(e) => setDateOfBirth(e.target.value)}
+                      max={maxAllowedDob}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val && val > maxAllowedDob) {
+                          showToast('danger', 'You must be at least 12 years old. Dates within the last 12 years are not allowed.', 'Invalid Date of Birth');
+                          return;
+                        }
+                        setDateOfBirth(val);
+                      }}
                     />
+                    <small className="text-muted fs-12 mt-1 d-block">
+                      Must be at least 12 years old.
+                    </small>
                   </div>
 
                   {/* Alternate Mobile Details (Numbers Only) */}
@@ -1829,52 +1851,55 @@ export default function ProfilePage() {
                   </div>
                 </div>
 
-                <hr style={{ borderColor: '#f1f5f9', margin: '28px 0' }} />
+                {/* Communication & Alerts (Hidden for now as requested) */}
+                {false && (
+                  <>
+                    <hr style={{ borderColor: '#f1f5f9', margin: '28px 0' }} />
+                    <h6 style={{ fontWeight: '700', color: '#0f172a', marginBottom: '14px', fontSize: '14.5px' }}>
+                      Communication & Alerts
+                    </h6>
+                    <div className="d-flex flex-column gap-3 mb-4">
+                      <div className="form-check form-switch">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id="emailNotifSwitch"
+                          checked={emailNotif}
+                          onChange={(e) => setEmailNotif(e.target.checked)}
+                        />
+                        <label className="form-check-label" htmlFor="emailNotifSwitch" style={{ fontSize: '13.5px', color: '#334155' }}>
+                          Email notifications for order confirmations and dispatch tracking
+                        </label>
+                      </div>
 
-                {/* Notifications Preferences */}
-                <h6 style={{ fontWeight: '700', color: '#0f172a', marginBottom: '14px', fontSize: '14.5px' }}>
-                  Communication & Alerts
-                </h6>
-                <div className="d-flex flex-column gap-3 mb-4">
-                  <div className="form-check form-switch">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      id="emailNotifSwitch"
-                      checked={emailNotif}
-                      onChange={(e) => setEmailNotif(e.target.checked)}
-                    />
-                    <label className="form-check-label" htmlFor="emailNotifSwitch" style={{ fontSize: '13.5px', color: '#334155' }}>
-                      Email notifications for order confirmations and dispatch tracking
-                    </label>
-                  </div>
+                      <div className="form-check form-switch">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id="smsNotifSwitch"
+                          checked={smsNotif}
+                          onChange={(e) => setSmsNotif(e.target.checked)}
+                        />
+                        <label className="form-check-label" htmlFor="smsNotifSwitch" style={{ fontSize: '13.5px', color: '#334155' }}>
+                          SMS alerts for instant delivery updates and OTP security
+                        </label>
+                      </div>
 
-                  <div className="form-check form-switch">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      id="smsNotifSwitch"
-                      checked={smsNotif}
-                      onChange={(e) => setSmsNotif(e.target.checked)}
-                    />
-                    <label className="form-check-label" htmlFor="smsNotifSwitch" style={{ fontSize: '13.5px', color: '#334155' }}>
-                      SMS alerts for instant delivery updates and OTP security
-                    </label>
-                  </div>
-
-                  <div className="form-check form-switch">
-                    <input
-                      className="form-check-input"
-                      type="checkbox"
-                      id="promoNotifSwitch"
-                      checked={promoNotif}
-                      onChange={(e) => setPromoNotif(e.target.checked)}
-                    />
-                    <label className="form-check-label" htmlFor="promoNotifSwitch" style={{ fontSize: '13.5px', color: '#334155' }}>
-                      Promotional discounts, safety equipment offers, and quarterly catalogs
-                    </label>
-                  </div>
-                </div>
+                      <div className="form-check form-switch">
+                        <input
+                          className="form-check-input"
+                          type="checkbox"
+                          id="promoNotifSwitch"
+                          checked={promoNotif}
+                          onChange={(e) => setPromoNotif(e.target.checked)}
+                        />
+                        <label className="form-check-label" htmlFor="promoNotifSwitch" style={{ fontSize: '13.5px', color: '#334155' }}>
+                          Promotional discounts, safety equipment offers, and quarterly catalogs
+                        </label>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Bottom Actions */}
                 <div className="profile-form-actions mt-4 pt-2">

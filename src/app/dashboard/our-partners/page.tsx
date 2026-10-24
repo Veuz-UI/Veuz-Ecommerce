@@ -117,7 +117,7 @@ export default function OurPartnersDashboardPage() {
     setFormOrder(item.order || 1);
   };
 
-  // Optical normalization for partner brand logos
+  // Optical normalization and background removal for partner brand logos
   const normalizePartnerLogo = (file: File): Promise<File | Blob> => {
     if (file.type === 'image/svg+xml' || file.name.endsWith('.svg')) {
       return Promise.resolve(file);
@@ -139,7 +139,7 @@ export default function OurPartnersDashboardPage() {
             const srcCanvas = document.createElement('canvas');
             srcCanvas.width = origW;
             srcCanvas.height = origH;
-            const srcCtx = srcCanvas.getContext('2d');
+            const srcCtx = srcCanvas.getContext('2d', { willReadFrequently: true });
             if (!srcCtx) {
               resolve(file);
               return;
@@ -149,12 +149,31 @@ export default function OurPartnersDashboardPage() {
             const imgData = srcCtx.getImageData(0, 0, origW, origH);
             const data = imgData.data;
 
+            // 1. Detect corner/border background color to remove background
+            const sample = (x: number, y: number) => {
+              const i = (y * origW + x) * 4;
+              return { r: data[i], g: data[i + 1], b: data[i + 2], a: data[i + 3] };
+            };
+
+            const corners = [
+              sample(0, 0),
+              sample(origW - 1, 0),
+              sample(0, origH - 1),
+              sample(origW - 1, origH - 1),
+            ];
+
+            const avgR = corners.reduce((acc, c) => acc + c.r, 0) / 4;
+            const avgG = corners.reduce((acc, c) => acc + c.g, 0) / 4;
+            const avgB = corners.reduce((acc, c) => acc + c.b, 0) / 4;
+            const isLightBg = avgR > 220 && avgG > 220 && avgB > 220;
+
             let minX = origW;
             let minY = origH;
             let maxX = 0;
             let maxY = 0;
             let hasContent = false;
 
+            // 2. Remove background & calculate exact content bounding box
             for (let y = 0; y < origH; y++) {
               for (let x = 0; x < origW; x++) {
                 const idx = (y * origW + x) * 4;
@@ -163,10 +182,27 @@ export default function OurPartnersDashboardPage() {
                 const b = data[idx + 2];
                 const a = data[idx + 3];
 
-                const isTransparent = a < 25;
-                const isWhite = r > 245 && g > 245 && b > 245;
+                let isBackground = false;
 
-                if (!isTransparent && !isWhite) {
+                if (a < 15) {
+                  isBackground = true;
+                } else if (isLightBg) {
+                  const dist = Math.sqrt((r - avgR) ** 2 + (g - avgG) ** 2 + (b - avgB) ** 2);
+                  if (r > 240 && g > 240 && b > 240) {
+                    isBackground = true;
+                  } else if (dist < 24 && r > 215 && g > 215 && b > 215) {
+                    isBackground = true;
+                  }
+                } else {
+                  const dist = Math.sqrt((r - avgR) ** 2 + (g - avgG) ** 2 + (b - avgB) ** 2);
+                  if (dist < 22) {
+                    isBackground = true;
+                  }
+                }
+
+                if (isBackground) {
+                  data[idx + 3] = 0; // Pure transparent!
+                } else {
                   if (x < minX) minX = x;
                   if (x > maxX) maxX = x;
                   if (y < minY) minY = y;
@@ -176,21 +212,8 @@ export default function OurPartnersDashboardPage() {
               }
             }
 
-            // Fallback for dark or white backgrounds if needed
-            if (!hasContent || minX > maxX || minY > maxY) {
-              for (let y = 0; y < origH; y++) {
-                for (let x = 0; x < origW; x++) {
-                  const idx = (y * origW + x) * 4;
-                  if (data[idx + 3] > 20) {
-                    if (x < minX) minX = x;
-                    if (x > maxX) maxX = x;
-                    if (y < minY) minY = y;
-                    if (y > maxY) maxY = y;
-                    hasContent = true;
-                  }
-                }
-              }
-            }
+            // Put modified transparent pixels back
+            srcCtx.putImageData(imgData, 0, 0);
 
             if (!hasContent || minX > maxX || minY > maxY) {
               minX = 0;
@@ -202,11 +225,12 @@ export default function OurPartnersDashboardPage() {
             const cropW = Math.max(1, maxX - minX + 1);
             const cropH = Math.max(1, maxY - minY + 1);
 
-            // Normalized optical canvas 400x200
-            const targetW = 400;
-            const targetH = 200;
-            const maxTargetW = 340;
-            const maxTargetH = 150;
+            // 3. Normalized optical canvas: 320x110 (System main size)
+            // Scaling up to fill 90% width or 88% height without losing logo full area
+            const targetW = 320;
+            const targetH = 110;
+            const maxTargetW = Math.round(targetW * 0.90);
+            const maxTargetH = Math.round(targetH * 0.88);
 
             const scale = Math.min(maxTargetW / cropW, maxTargetH / cropH);
             const drawW = Math.round(cropW * scale);
@@ -272,11 +296,9 @@ export default function OurPartnersDashboardPage() {
 
     setIsUploading(true);
     try {
-      // Normalize optical zoom and crop excess whitespace so all logos fit uniformly
-      const processedFile = await normalizePartnerLogo(file);
-
       const formData = new FormData();
-      formData.append('file', processedFile);
+      formData.append('file', file);
+      formData.append('type', 'partner');
 
       const res = await fetch('/api/upload', {
         method: 'POST',
@@ -741,9 +763,9 @@ export default function OurPartnersDashboardPage() {
                             width: '100px',
                             height: '52px',
                             backgroundColor: '#ffffff',
-                            borderRadius: '3px',
+                            borderRadius: '4px',
                             border: '1px solid #e2e8f0',
-                            padding: '4px 8px',
+                            padding: '4px 6px',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -758,6 +780,8 @@ export default function OurPartnersDashboardPage() {
                               width: 'auto',
                               height: 'auto',
                               objectFit: 'contain',
+                              display: 'block',
+                              margin: '0 auto',
                               filter: item.isActive ? 'none' : 'grayscale(100%) opacity(0.5)',
                               transition: 'all 0.2s ease',
                             }}
@@ -1137,6 +1161,8 @@ export default function OurPartnersDashboardPage() {
                                   width: 'auto',
                                   height: 'auto',
                                   objectFit: 'contain',
+                                  display: 'block',
+                                  margin: '0 auto',
                                 }}
                               />
                             </div>

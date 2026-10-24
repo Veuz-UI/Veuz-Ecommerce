@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { fetchPromotionArea, savePromotionArea, PROMOTION_AREA_EVENT } from '@/services/promotionAreaService';
 import { PromotionCardItem, DEFAULT_PROMOTION_AREA } from '@/data/defaultPromotionArea';
@@ -25,22 +26,82 @@ interface DestinationDropdownProps {
 
 function DestinationDropdown({ value, onChange, categories }: DestinationDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [coords, setCoords] = useState<{ top?: number; bottom?: number; left: number; width: number }>({
+    left: 0,
+    width: 0,
+  });
 
-  // Close when clicking outside
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const updatePosition = useCallback(() => {
+    if (!buttonRef.current) return;
+    const rect = buttonRef.current.getBoundingClientRect();
+    const dropdownHeight = 220;
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const shouldOpenUp = spaceBelow < dropdownHeight && rect.top > dropdownHeight;
+
+    if (shouldOpenUp) {
+      setCoords({
+        bottom: window.innerHeight - rect.top + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    } else {
+      setCoords({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+  }, []);
+
+  const handleToggle = () => {
+    if (!isOpen) {
+      updatePosition();
+    }
+    setIsOpen((prev) => !prev);
+  };
+
+  // Close when clicking outside or resizing/scrolling
+  useEffect(() => {
+    if (!isOpen) return;
+
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        buttonRef.current &&
+        !buttonRef.current.contains(target) &&
+        menuRef.current &&
+        !menuRef.current.contains(target)
+      ) {
         setIsOpen(false);
       }
     }
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+
+    function handleScrollOrResize(event: Event) {
+      // If scrolling inside the dropdown menu itself, let it scroll freely and do not close!
+      if (menuRef.current && (event.target === menuRef.current || menuRef.current.contains(event.target as Node))) {
+        return;
+      }
+      // If scrolling the page/parent, update position so it stays attached to the trigger button
+      updatePosition();
     }
+
+    document.addEventListener('mousedown', handleClickOutside);
+    window.addEventListener('scroll', handleScrollOrResize, true);
+    window.addEventListener('resize', handleScrollOrResize);
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('scroll', handleScrollOrResize, true);
+      window.removeEventListener('resize', handleScrollOrResize);
     };
-  }, [isOpen]);
+  }, [isOpen, updatePosition]);
 
   // Selected item display text
   const selectedPage = STORE_PAGES.find((p) => p.value === value);
@@ -48,9 +109,10 @@ function DestinationDropdown({ value, onChange, categories }: DestinationDropdow
   const displayLabel = selectedPage?.label || (selectedCat ? `${selectedCat.name} (${selectedCat.link || `/products?category=${encodeURIComponent(selectedCat.name)}`})` : value || '/products');
 
   return (
-    <div className="position-relative w-100" ref={dropdownRef}>
+    <div className="w-100 position-relative">
       {/* Trigger Button */}
       <button
+        ref={buttonRef}
         type="button"
         className="form-control form-control-sm d-flex align-items-center justify-content-between text-dark fw-medium bg-white text-start shadow-none"
         style={{
@@ -61,7 +123,7 @@ function DestinationDropdown({ value, onChange, categories }: DestinationDropdow
           padding: '0 12px',
           cursor: 'pointer',
         }}
-        onClick={() => setIsOpen((prev) => !prev)}
+        onClick={handleToggle}
       >
         <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
           <iconify-icon icon="solar:cursor-bold" class="fs-14 text-secondary flex-shrink-0"></iconify-icon>
@@ -77,18 +139,23 @@ function DestinationDropdown({ value, onChange, categories }: DestinationDropdow
         ></iconify-icon>
       </button>
 
-      {/* Floating Dropdown List - 5 items shown, then balance scrolls */}
-      {isOpen && (
+      {/* Floating Dropdown List - Rendered OUTSIDE table container directly into document.body */}
+      {isOpen && mounted && typeof document !== 'undefined' && createPortal(
         <div
-          className="position-absolute start-0 w-100 bg-white border shadow-lg"
+          ref={menuRef}
+          className="bg-white border shadow-lg"
           style={{
-            top: '38px',
-            borderRadius: '3px',
-            zIndex: 1050,
-            maxHeight: '190px', // Shows 5 items, remainder scrolls
+            position: 'fixed',
+            top: coords.top !== undefined ? `${coords.top}px` : undefined,
+            bottom: coords.bottom !== undefined ? `${coords.bottom}px` : undefined,
+            left: `${coords.left}px`,
+            width: `${coords.width}px`,
+            borderRadius: '4px',
+            zIndex: 999999,
+            maxHeight: '210px',
             overflowY: 'auto',
-            borderColor: '#e2e8f0',
-            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.14), 0 8px 10px -6px rgba(0, 0, 0, 0.08)',
+            borderColor: '#cbd5e1',
+            boxShadow: '0 12px 30px rgba(0, 0, 0, 0.18), 0 4px 12px rgba(0, 0, 0, 0.08)',
           }}
         >
           {/* Group 1: Store Pages */}
@@ -184,7 +251,8 @@ function DestinationDropdown({ value, onChange, categories }: DestinationDropdow
                 </div>
               </>
             )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
@@ -198,6 +266,17 @@ export default function PromotionAreaPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
+  const [imageDimensions, setImageDimensions] = useState<Record<number, { width: number; height: number }>>({});
+
+  const handleImageLoad = (index: number, e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (img.naturalWidth && img.naturalHeight) {
+      setImageDimensions((prev) => ({
+        ...prev,
+        [index]: { width: img.naturalWidth, height: img.naturalHeight },
+      }));
+    }
+  };
 
   // Load initial data (promotions + active store categories)
   const loadData = useCallback(async () => {
@@ -208,8 +287,12 @@ export default function PromotionAreaPage() {
         fetchShopSettings(),
       ]);
 
-      if (promoData && Array.isArray(promoData.promotions) && promoData.promotions.length === 3) {
-        setPromotions(promoData.promotions);
+      if (promoData && Array.isArray(promoData.promotions) && promoData.promotions.length > 0) {
+        const list = [...promoData.promotions];
+        while (list.length < 4) {
+          list.push({ id: `promo-card-${list.length + 1}`, image: '', title: '', link: '/products' });
+        }
+        setPromotions(list.slice(0, 4));
       }
       if (shopData && Array.isArray(shopData.categories)) {
         setCategories(shopData.categories.filter((c) => c.isActive !== false));
@@ -228,7 +311,11 @@ export default function PromotionAreaPage() {
     const handleUpdated = (e: Event) => {
       const customEvent = e as CustomEvent;
       if (customEvent.detail && Array.isArray(customEvent.detail.promotions)) {
-        setPromotions(customEvent.detail.promotions);
+        const list = [...customEvent.detail.promotions];
+        while (list.length < 4) {
+          list.push({ id: `promo-card-${list.length + 1}`, image: '', title: '', link: '/products' });
+        }
+        setPromotions(list.slice(0, 4));
       }
     };
 
@@ -302,6 +389,11 @@ export default function PromotionAreaPage() {
       };
       return updated;
     });
+    setImageDimensions((prev) => {
+      const updated = { ...prev };
+      delete updated[index];
+      return updated;
+    });
     showToast('info', `Cleared image for Card ${index + 1}.`);
   };
 
@@ -332,9 +424,34 @@ export default function PromotionAreaPage() {
   };
 
   const slotLabels = [
-    { title: 'Promotion Card 1 (Left)', desc: 'First card in the storefront 3-card banner.' },
-    { title: 'Promotion Card 2 (Center)', desc: 'Middle card in the storefront 3-card banner.' },
-    { title: 'Promotion Card 3 (Right)', desc: 'Third card in the storefront 3-card banner.' },
+    {
+      title: 'Promotion Card 1 (Left Tall Banner)',
+      desc: 'Spans the full height of the left side.',
+      recommendedSize: '600 × 740 px',
+      previewWidth: '64px',
+      previewHeight: '80px',
+    },
+    {
+      title: 'Promotion Card 2 (Top-Left Banner)',
+      desc: 'Top-left medium banner on the right grid.',
+      recommendedSize: '500 × 350 px',
+      previewWidth: '92px',
+      previewHeight: '64px',
+    },
+    {
+      title: 'Promotion Card 3 (Top-Right Banner)',
+      desc: 'Top-right medium banner on the right grid.',
+      recommendedSize: '500 × 350 px',
+      previewWidth: '92px',
+      previewHeight: '64px',
+    },
+    {
+      title: 'Promotion Card 4 (Bottom Wide Banner)',
+      desc: 'Full-width panoramic banner across the bottom right.',
+      recommendedSize: '900 × 320 px',
+      previewWidth: '124px',
+      previewHeight: '44px',
+    },
   ];
 
   return (
@@ -368,7 +485,7 @@ export default function PromotionAreaPage() {
                 Promotion Area
               </h2>
               <p className="text-muted fs-14 mb-0" style={{ color: '#64748b' }}>
-                Update the 3 promotional images displayed on your storefront and configure their destination page links.
+                Update the 4 promotional images displayed on your storefront and configure their destination page links.
               </p>
             </div>
 
@@ -423,45 +540,143 @@ export default function PromotionAreaPage() {
           {/* Divider */}
           <div style={{ borderBottom: '1px solid #f1f5f9', margin: '16px 0 20px 0' }}></div>
 
-          {/* Dimension Guidelines Info Callout */}
+          {/* Dimension Guidelines & Interactive Visual Map */}
           <div
-            className="p-3 mb-4 rounded-3 d-flex align-items-center justify-content-between flex-wrap gap-2"
+            className="p-3 mb-4 rounded-3 border"
             style={{
-              backgroundColor: '#f0fdf4',
-              border: '1px solid #bbf7d0',
-              color: '#166534',
+              backgroundColor: '#f8fafc',
+              borderColor: '#e2e8f0',
             }}
           >
-            <div className="d-flex align-items-center gap-2.5">
-              <iconify-icon icon="solar:info-circle-bold" class="fs-22 text-success flex-shrink-0"></iconify-icon>
-              <div className="fs-13">
-                <span className="fw-bold text-success-emphasis">Recommended Image Dimensions:</span> Width: <strong>~500px</strong> &times; Height: <strong>400px</strong>.
-                <div className="text-muted fs-12 mt-0.5" style={{ color: '#15803d' }}>
-                  The storefront promotion box height is set to <strong>400px</strong>. Any uploaded image automatically adapts and fits the full box size without cropping text.
+            <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+              <div className="d-flex align-items-center gap-2">
+                <iconify-icon icon="solar:widget-2-bold" class="fs-20 text-primary flex-shrink-0"></iconify-icon>
+                <span className="fw-bold fs-14 text-dark">
+                  Storefront Promotion Layout &amp; Card Dimension Specifications
+                </span>
+              </div>
+              <span className="badge bg-dark text-white fs-11 fw-semibold" style={{ borderRadius: '4px', padding: '4px 10px' }}>
+                4-Banner Asymmetric Layout
+              </span>
+            </div>
+            <p className="text-muted fs-12 mb-3">
+              Each banner slot has a distinct shape on the storefront. All uploaded images automatically adapt to their card container with 100% full visibility (no cut-off text or graphics):
+            </p>
+
+            {/* Visual Storefront Mockup Diagram */}
+            <div
+              className="p-3 rounded-3 mb-3 border bg-white"
+              style={{
+                borderColor: '#e2e8f0',
+                boxShadow: 'inset 0 1px 2px rgba(0, 0, 0, 0.03)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'minmax(200px, 1fr) minmax(280px, 1.5fr)',
+                  gap: '12px',
+                  minHeight: '170px',
+                }}
+              >
+                {/* Slot 1 Mockup */}
+                <div
+                  className="p-3 rounded d-flex flex-column justify-content-between text-white"
+                  style={{
+                    background: 'linear-gradient(145deg, #0f172a 0%, #1e293b 100%)',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.2)',
+                  }}
+                >
+                  <div className="d-flex justify-content-between align-items-center">
+                    <span className="badge bg-primary text-white fs-10 fw-bold px-2 py-1">Slot 1</span>
+                    <span className="fs-10 text-white-50">Left Tall Banner</span>
+                  </div>
+                  <div className="my-2">
+                    <div className="fs-15 fw-bold text-white mb-0.5">600 &times; 740 px</div>
+                  </div>
+                  <div className="fs-10 text-white-50 border-top pt-1 border-secondary">
+                    Full Left Height
+                  </div>
+                </div>
+
+                {/* Right Stack Mockup */}
+                <div className="d-flex flex-column gap-2" style={{ height: '100%' }}>
+                  {/* Top 2 Medium Slots */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', flex: 1 }}>
+                    <div
+                      className="p-2.5 rounded d-flex flex-column justify-content-between border"
+                      style={{
+                        background: '#f1f5f9',
+                        borderColor: '#cbd5e1',
+                        borderRadius: '6px',
+                      }}
+                    >
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span className="badge bg-primary text-white fs-10 fw-bold px-1.5 py-0.5">Slot 2</span>
+                        <span className="fs-10 text-muted">Top-Left</span>
+                      </div>
+                      <div className="my-1">
+                        <div className="fs-13 fw-bold text-dark">500 &times; 350 px</div>
+                      </div>
+                      <div className="fs-9 text-muted border-top pt-0.5">Medium Box</div>
+                    </div>
+
+                    <div
+                      className="p-2.5 rounded d-flex flex-column justify-content-between border"
+                      style={{
+                        background: '#f1f5f9',
+                        borderColor: '#cbd5e1',
+                        borderRadius: '6px',
+                      }}
+                    >
+                      <div className="d-flex justify-content-between align-items-center">
+                        <span className="badge bg-primary text-white fs-10 fw-bold px-1.5 py-0.5">Slot 3</span>
+                        <span className="fs-10 text-muted">Top-Right</span>
+                      </div>
+                      <div className="my-1">
+                        <div className="fs-13 fw-bold text-dark">500 &times; 350 px</div>
+                      </div>
+                      <div className="fs-9 text-muted border-top pt-0.5">Medium Box</div>
+                    </div>
+                  </div>
+
+                  {/* Bottom Wide Slot */}
+                  <div
+                    className="p-2.5 rounded d-flex justify-content-between align-items-center border"
+                    style={{
+                      background: '#f1f5f9',
+                      borderColor: '#cbd5e1',
+                      borderRadius: '6px',
+                      flex: 1,
+                    }}
+                  >
+                    <div>
+                      <div className="d-flex align-items-center gap-1.5 mb-0.5">
+                        <span className="badge bg-primary text-white fs-10 fw-bold px-1.5 py-0.5">Slot 4</span>
+                        <span className="fs-11 fw-semibold text-dark">Bottom Wide Banner</span>
+                      </div>
+                      <div className="fs-13 fw-bold text-dark">900 &times; 320 px</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-            <span
-              className="badge bg-success text-white fs-11 px-3 py-1.5 rounded-pill fw-semibold shadow-sm"
-              style={{ letterSpacing: '0.3px' }}
-            >
-              Box Height: 400px
-            </span>
           </div>
 
           {/* 3. Promotion Cards Vertical Table Style */}
           {isLoading ? (
-            <DashboardTableSkeleton rows={3} cols={5} />
+            <DashboardTableSkeleton rows={4} cols={5} />
           ) : (
             <div className="table-responsive rounded-3 border bg-white mb-3" style={{ borderColor: '#e2e8f0' }}>
               <table className="table align-middle mb-0" style={{ fontSize: '13px' }}>
                 <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                   <tr className="font-12 text-muted">
-                    <th style={{ width: '60px' }} className="ps-3 py-2.5">Slot</th>
-                    <th style={{ width: '220px' }} className="py-2.5">Card Position</th>
-                    <th style={{ width: '260px' }} className="py-2.5">Image &amp; Upload</th>
+                    <th style={{ width: '50px' }} className="ps-3 py-2.5">Slot</th>
+                    <th style={{ width: '280px' }} className="py-2.5">Card Position &amp; Exact Size</th>
+                    <th style={{ width: '280px' }} className="py-2.5">Image &amp; Upload</th>
                     <th className="py-2.5">Destination Link</th>
-                    <th style={{ width: '100px' }} className="py-2.5 text-end pe-3">Action</th>
+                    <th style={{ width: '90px' }} className="py-2.5 text-end pe-3">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -469,8 +684,12 @@ export default function PromotionAreaPage() {
                     const label = slotLabels[idx] || {
                       title: `Promotion Card ${idx + 1}`,
                       desc: 'Promotional banner card on storefront',
+                      recommendedSize: '600 × 400 px',
+                      previewWidth: '92px',
+                      previewHeight: '64px',
                     };
                     const isUploadingThis = uploadingSlot === idx;
+                    const dim = imageDimensions[idx];
 
                     return (
                       <tr key={card.id || `promo-card-${idx}`} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -492,83 +711,121 @@ export default function PromotionAreaPage() {
                         {/* Card Position & description */}
                         <td>
                           <div className="fw-bold text-dark font-14 mb-0.5">{label.title}</div>
-                          <div className="text-muted font-11 mb-1.5">{label.desc}</div>
-                          <span
-                            className="badge bg-primary-subtle text-primary border border-primary-subtle font-11 fw-semibold d-inline-flex align-items-center gap-1"
-                            style={{ borderRadius: '3px', padding: '2px 6px' }}
-                          >
-                            <iconify-icon icon="solar:ruler-bold" class="fs-11"></iconify-icon>
-                            <span>~500 &times; 400 px</span>
-                          </span>
+                          <div className="text-muted font-11 mb-2">{label.desc}</div>
+                          <div className="d-flex align-items-center gap-1.5 flex-wrap">
+                            <span
+                              className="badge bg-primary text-white font-11 fw-bold d-inline-flex align-items-center gap-1 shadow-sm"
+                              style={{ borderRadius: '3px', padding: '3px 8px' }}
+                              title="Required dimensions for this specific card slot"
+                            >
+                              <iconify-icon icon="solar:ruler-bold" class="fs-12"></iconify-icon>
+                              <span>Size: {label.recommendedSize}</span>
+                            </span>
+                            {dim ? (
+                              <span
+                                className="badge bg-success-subtle text-success border border-success-subtle font-10 fw-semibold d-inline-flex align-items-center gap-1"
+                                style={{ borderRadius: '3px', padding: '3px 7px' }}
+                                title="Dimensions of currently uploaded image"
+                              >
+                                <iconify-icon icon="solar:check-circle-bold" class="fs-11"></iconify-icon>
+                                <span>Uploaded: {dim.width} &times; {dim.height} px</span>
+                              </span>
+                            ) : card.image ? (
+                              <span
+                                className="badge bg-secondary-subtle text-secondary font-10 fw-normal"
+                                style={{ borderRadius: '3px', padding: '2px 6px' }}
+                              >
+                                Measuring...
+                              </span>
+                            ) : null}
+                          </div>
                         </td>
 
-                        {/* Image Preview & Upload Button */}
+                        {/* Image Preview & Upload Button (Fixed 130px Preview Zone for 100% Equal Level Alignment) */}
                         <td>
                           <div className="d-flex align-items-center gap-3">
+                            {/* Uniform width preview column so all Change buttons align horizontally */}
                             <div
-                              className="position-relative overflow-hidden border d-flex align-items-center justify-content-center flex-shrink-0"
                               style={{
-                                width: '92px',
-                                height: '72px',
-                                borderRadius: '3px',
-                                backgroundColor: '#f8fafc',
-                                borderColor: '#e2e8f0',
+                                width: '130px',
+                                height: '82px',
+                                flexShrink: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
                               }}
                             >
-                              {card.image ? (
-                                <img
-                                  src={card.image}
-                                  alt={label.title}
-                                  style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover',
-                                    borderRadius: '3px',
-                                  }}
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.onerror = null;
-                                    target.src = '/assets/imgs/theme/placeholder.svg';
-                                  }}
-                                />
-                              ) : (
-                                <div className="text-center p-1 text-muted">
-                                  <iconify-icon icon="solar:gallery-wide-bold" class="fs-20 text-secondary mb-0.5"></iconify-icon>
-                                  <div className="fs-10 fw-medium">No Image</div>
-                                </div>
-                              )}
+                              <div
+                                className="position-relative overflow-hidden border d-flex align-items-center justify-content-center"
+                                style={{
+                                  width: label.previewWidth || '92px',
+                                  height: label.previewHeight || '64px',
+                                  borderRadius: '4px',
+                                  backgroundColor: '#f8fafc',
+                                  borderColor: '#e2e8f0',
+                                }}
+                              >
+                                {card.image ? (
+                                  <img
+                                    src={card.image}
+                                    alt={label.title}
+                                    onLoad={(e) => handleImageLoad(idx, e)}
+                                    style={{
+                                      width: '100%',
+                                      height: '100%',
+                                      objectFit: 'fill',
+                                      borderRadius: '3px',
+                                    }}
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.onerror = null;
+                                      target.src = '/assets/imgs/theme/placeholder.svg';
+                                    }}
+                                  />
+                                ) : (
+                                  <div className="text-center p-1 text-muted">
+                                    <iconify-icon icon="solar:gallery-wide-bold" class="fs-20 text-secondary mb-0.5"></iconify-icon>
+                                    <div className="fs-10 fw-medium">No Image</div>
+                                  </div>
+                                )}
 
-                              {isUploadingThis && (
-                                <div
-                                  className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center"
-                                  style={{ backgroundColor: 'rgba(15, 23, 42, 0.78)', zIndex: 10, borderRadius: '3px' }}
-                                >
-                                  <div className="spinner-border text-light spinner-border-sm" role="status"></div>
-                                </div>
-                              )}
+                                {isUploadingThis && (
+                                  <div
+                                    className="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column align-items-center justify-content-center"
+                                    style={{ backgroundColor: 'rgba(15, 23, 42, 0.78)', zIndex: 10, borderRadius: '3px' }}
+                                  >
+                                    <div className="spinner-border text-light spinner-border-sm" role="status"></div>
+                                  </div>
+                                )}
+                              </div>
                             </div>
 
-                            {/* Upload Button */}
-                            <label
-                              className="btn btn-sm btn-outline-dark d-inline-flex align-items-center gap-1.5 font-12 fw-semibold mb-0"
-                              style={{ borderRadius: '3px', padding: '6px 14px', cursor: 'pointer', whiteSpace: 'nowrap' }}
-                            >
-                              <iconify-icon icon="solar:upload-minimalistic-bold" class="fs-15"></iconify-icon>
-                              <span>{card.image ? 'Change' : 'Upload'}</span>
-                              <input
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp,image/gif"
-                                className="d-none"
-                                disabled={isUploadingThis || isSaving}
-                                onChange={(e) => {
-                                  const file = e.target.files?.[0];
-                                  if (file) {
-                                    handleFileUpload(idx, file);
-                                  }
-                                  e.target.value = '';
-                                }}
-                              />
-                            </label>
+                            {/* Upload Button & Size Hint (Uniform width and equal horizontal position) */}
+                            <div className="d-flex flex-column gap-1" style={{ width: '105px', flexShrink: 0 }}>
+                              <label
+                                className="btn btn-sm btn-outline-dark d-inline-flex align-items-center justify-content-center gap-1.5 font-12 fw-semibold mb-0 w-100"
+                                style={{ borderRadius: '3px', padding: '6px 0', cursor: 'pointer', whiteSpace: 'nowrap' }}
+                              >
+                                <iconify-icon icon="solar:upload-minimalistic-bold" class="fs-14"></iconify-icon>
+                                <span>{card.image ? 'Change' : 'Upload'}</span>
+                                <input
+                                  type="file"
+                                  accept="image/jpeg,image/png,image/webp,image/gif"
+                                  className="d-none"
+                                  disabled={isUploadingThis || isSaving}
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) {
+                                      handleFileUpload(idx, file);
+                                    }
+                                    e.target.value = '';
+                                  }}
+                                />
+                              </label>
+                              <span className="font-10 text-muted text-center" style={{ fontSize: '10px' }}>
+                                Target: <strong>{label.recommendedSize}</strong>
+                              </span>
+                            </div>
                           </div>
                         </td>
 

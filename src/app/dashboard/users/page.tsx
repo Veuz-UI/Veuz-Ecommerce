@@ -281,6 +281,9 @@ export default function UserManagementPage() {
           dateOfBirth: '',
         });
         fetchUsers();
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('veuz:dashboard-notifications-updated'));
+        }
       } else {
         showToast('danger', res.message || 'Failed to create user account.');
       }
@@ -2280,6 +2283,7 @@ export default function UserManagementPage() {
                           border: '1px solid #d1d5db',
                           boxShadow: '0 1px 2px rgba(0, 0, 0, 0.04)',
                         }}
+                        max={new Date(new Date().setFullYear(new Date().getFullYear() - 12)).toISOString().split('T')[0]}
                         value={createForm.dateOfBirth}
                         onChange={(e) =>
                           setCreateForm({ ...createForm, dateOfBirth: e.target.value })

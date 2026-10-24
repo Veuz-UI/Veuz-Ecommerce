@@ -269,7 +269,7 @@ export default function CartPage() {
   };
 
   return (
-    <main className="main py-4 py-md-5" style={{ backgroundColor: '#f8fafc', minHeight: '85vh' }}>
+    <main className="main py-4 py-md-5" style={{ backgroundColor: '#ffffff', minHeight: '85vh' }}>
       <div className="container">
         {/* Full-width Unified White Card Container (spanning exact container width) */}
         <div

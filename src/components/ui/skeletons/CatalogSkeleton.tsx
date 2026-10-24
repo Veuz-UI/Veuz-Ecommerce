@@ -5,7 +5,7 @@ import { ProductCardSkeleton } from './ProductCardSkeleton';
 
 export function CatalogSkeleton() {
   return (
-    <main className="main" style={{ minHeight: '85vh', backgroundColor: '#f8fafc', paddingBottom: '60px' }}>
+    <main className="main" style={{ minHeight: '85vh', backgroundColor: '#ffffff', paddingBottom: '60px' }}>
       <div className="container py-3 py-md-4">
         {/* Top Header & Breadcrumb Skeleton */}
         <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-4 pb-2 border-bottom">

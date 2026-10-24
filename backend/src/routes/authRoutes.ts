@@ -8,6 +8,7 @@ import {
   sendVerificationEmail,
   verifyEmail,
   forgotPassword,
+  verifyResetOtp,
   resetPassword,
   updateProfile,
   changePassword,
@@ -25,6 +26,7 @@ router.post('/register', authRateLimiter, register);
 router.post('/login', authRateLimiter, login);
 router.post('/accept-invite', authRateLimiter, acceptAdminInvite);
 router.post('/forgot-password', authRateLimiter, forgotPassword);
+router.post('/verify-reset-otp', authRateLimiter, verifyResetOtp);
 router.post('/reset-password', authRateLimiter, resetPassword);
 router.post('/verify-email', verifyEmail);
 router.get('/verify-email', verifyEmail);

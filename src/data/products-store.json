@@ -1,5 +1,203 @@
 [
   {
+    "id": "prod-1792862150746",
+    "title": "Ingco HGNG01 Nitrile Anti-Skid Safety Work Gloves",
+    "desc": "Experience the durability of the nitrile material used in these work gloves, providing reliable protection for hands engaged in tough jobs. These gloves cater to users who require robust hand protection without sacrificing flexibility. The nitrile construction offers resistance to cuts, punctures, and abrasions, making it ideal for various work environments. With these gloves, you can trust that your hands are shielded during demanding tasks, ensuring a safer and more comfortable work experience.",
+    "category": "Cut Gloves",
+    "categoryId": "cat-5",
+    "price": "20 SR",
+    "rating": "5.0",
+    "reviews": "10",
+    "image": "/uploads/img_1792862875021_fe7ea96ffc66227a5d4dc4236d50bffe.png",
+    "badge": "22% OFF",
+    "badgeClass": "sale",
+    "location": "",
+    "standard": "Certified Safety Standard",
+    "inStock": true,
+    "link": "/product-details?id=prod-1792862150746",
+    "originalPrice": 25,
+    "currentPrice": 20,
+    "isSpecialOffer": true,
+    "isNewArrival": false,
+    "createdAt": 1792862541033,
+    "views": 0,
+    "clicks": 0,
+    "isActive": true,
+    "isDraft": false,
+    "specifications": [
+      {
+        "id": "sec-overview",
+        "heading": "Product Overview",
+        "type": "description",
+        "description": "Indulge in secure handling with the anti-slip design of these work gloves, providing enhanced grip for precise tasks. This feature caters to users who need reliable control when handling tools and materials. The anti-slip texture on the palms and fingers ensures a firm grip, reducing the risk of accidents and improving overall work efficiency."
+      },
+      {
+        "id": "sec-specs-table",
+        "heading": "Technical Specifications",
+        "type": "points",
+        "points": [
+          {
+            "id": "spec-pname",
+            "heading": "Product Name",
+            "text": "Ingco HGNG01 Nitrile Anti-Skid Safety Work Gloves"
+          },
+          {
+            "id": "spec-brand",
+            "heading": "Brand / Manufacturer",
+            "text": "Ingco"
+          },
+          {
+            "id": "spec-model",
+            "heading": "Model / Item Code",
+            "text": "HGNG01"
+          },
+          {
+            "id": "spec-standards",
+            "heading": "Safety Standard & Certification",
+            "text": "Certified Safety Standard"
+          },
+          {
+            "id": "spec-rating",
+            "heading": "Protection Level / Class",
+            "text": "cut-resistant, latex-free, oil-resistant"
+          },
+          {
+            "id": "spec-weight",
+            "heading": "Product Weight",
+            "text": "209 g"
+          },
+          {
+            "id": "spec-sizes",
+            "heading": "Available Sizes",
+            "text": "S, M, L, XL, 2XL"
+          },
+          {
+            "id": "spec-material",
+            "heading": "Primary Material",
+            "text": "Nitrile"
+          },
+          {
+            "id": "spec-color",
+            "heading": "Color / Finish",
+            "text": "Black, White"
+          },
+          {
+            "id": "spec-app",
+            "heading": "Recommended Application",
+            "text": "Construction Work"
+          },
+          {
+            "id": "cs-1792862674142",
+            "heading": "Unit Count",
+            "text": "1"
+          },
+          {
+            "id": "cs-1792862690270",
+            "heading": "Garment Size Country",
+            "text": "United States"
+          }
+        ]
+      }
+    ],
+    "technicalSpecs": [
+      {
+        "id": "spec-pname",
+        "label": "Product Name",
+        "value": "Ingco HGNG01 Nitrile Anti-Skid Safety Work Gloves"
+      },
+      {
+        "id": "spec-brand",
+        "label": "Brand / Manufacturer",
+        "value": "Ingco"
+      },
+      {
+        "id": "spec-model",
+        "label": "Model / Item Code",
+        "value": "HGNG01"
+      },
+      {
+        "id": "spec-standards",
+        "label": "Safety Standard & Certification",
+        "value": "Certified Safety Standard"
+      },
+      {
+        "id": "spec-rating",
+        "label": "Protection Level / Class",
+        "value": "cut-resistant, latex-free, oil-resistant"
+      },
+      {
+        "id": "spec-weight",
+        "label": "Product Weight",
+        "value": "209 g"
+      },
+      {
+        "id": "spec-sizes",
+        "label": "Available Sizes",
+        "value": "S, M, L, XL, 2XL"
+      },
+      {
+        "id": "spec-material",
+        "label": "Primary Material",
+        "value": "Nitrile"
+      },
+      {
+        "id": "spec-color",
+        "label": "Color / Finish",
+        "value": "Black, White"
+      },
+      {
+        "id": "spec-app",
+        "label": "Recommended Application",
+        "value": "Construction Work"
+      },
+      {
+        "id": "cs-1792862674142",
+        "label": "Unit Count",
+        "value": "1"
+      },
+      {
+        "id": "cs-1792862690270",
+        "label": "Garment Size Country",
+        "value": "United States"
+      }
+    ],
+    "sizes": [
+      "S",
+      "M",
+      "L",
+      "XL",
+      "2XL"
+    ],
+    "colors": [
+      "Yellow"
+    ],
+    "gender": "Unisex",
+    "deliveryOptionId": "del-express",
+    "deliveryOptionName": "Express Delivery",
+    "deliveryCharge": 30,
+    "deliveryEstimatedDays": "1-2 Business Days",
+    "colorImages": {
+      "Yellow": [
+        "/uploads/img_1792862875021_fe7ea96ffc66227a5d4dc4236d50bffe.png",
+        "/uploads/img_1792862899754_cf451df9f5a8f75c6aeea4e8853c7122.png",
+        "/uploads/img_1792862925928_4da451e982339208af6c8a08615cd34c.png",
+        "/uploads/img_1792862952096_327fa27cb2b2ac5e55024f3cd721a035.png",
+        ""
+      ]
+    },
+    "colorSizes": {},
+    "images": [
+      "/uploads/img_1792862899754_cf451df9f5a8f75c6aeea4e8853c7122.png",
+      "/uploads/img_1792862925928_4da451e982339208af6c8a08615cd34c.png",
+      "/uploads/img_1792862952096_327fa27cb2b2ac5e55024f3cd721a035.png"
+    ],
+    "specificationsOverview": "Indulge in secure handling with the anti-slip design of these work gloves, providing enhanced grip for precise tasks. This feature caters to users who need reliable control when handling tools and materials. The anti-slip texture on the palms and fingers ensures a firm grip, reducing the risk of accidents and improving overall work efficiency.",
+    "oldPrice": "25 SR",
+    "discount": "22% OFF",
+    "offerPercent": 22,
+    "offerEndDate": ""
+  },
+  {
     "id": "prod-1792088421327",
     "title": "3M Hard Hat SecureFit H-700 Series Cap Style Safety Helmet with Uvicator Sensor, 4-Point Pressure Diffusion Ratchet Suspension",
     "desc": "3M Hard Hat SecureFit H-700 Series Cap Style Safety Helmet with Uvicator Sensor, 4-Point Pressure Diffusion Ratchet Suspension",
@@ -20,7 +218,7 @@
     "isNewArrival": true,
     "createdAt": 1792088439786,
     "views": 122,
-    "clicks": 1,
+    "clicks": 2,
     "isActive": true,
     "isDraft": false,
     "specifications": [
@@ -117,7 +315,8 @@
       }
     ],
     "clickedCustomerIds": [
-      8
+      8,
+      10
     ]
   },
   {
@@ -141,7 +340,7 @@
     "isNewArrival": true,
     "createdAt": 1792066473722,
     "views": 34,
-    "clicks": 1,
+    "clicks": 2,
     "isActive": true,
     "specifications": [],
     "sizes": [
@@ -162,7 +361,8 @@
     "deliveryEstimatedDays": "1-2 Business Days",
     "isDraft": false,
     "clickedCustomerIds": [
-      8
+      8,
+      10
     ]
   },
   {
@@ -286,7 +486,7 @@
     "isNewArrival": true,
     "createdAt": 1792008124976,
     "views": 26,
-    "clicks": 25,
+    "clicks": 1,
     "isActive": true,
     "specifications": [
       {
@@ -352,6 +552,9 @@
       "/uploads/img_1792008035158_4dbc73353555bfebe9b9f916ba64d779.png",
       "/uploads/img_1792008082472_001a4979df3ab1414f37c2371befdedb.png",
       "/uploads/img_1792008100973_dc463969f6552eff87701e70f152a031.png"
+    ],
+    "clickedCustomerIds": [
+      10
     ]
   },
   {

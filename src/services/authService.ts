@@ -94,10 +94,24 @@ class AuthService {
   }
 
   /**
-   * Request password reset link
+   * Request password reset OTP
    */
-  public async forgotPassword(email: string): Promise<ApiResponse> {
-    return apiClient.post<ApiResponse>('/auth/forgot-password', { email });
+  public async forgotPassword(email: string): Promise<ApiResponse<{ email?: string; otp?: string }>> {
+    return apiClient.post<ApiResponse<{ email?: string; otp?: string }>>('/auth/forgot-password', { email });
+  }
+
+  /**
+   * Confirm/Verify OTP for password reset
+   */
+  public async verifyResetOtp(email: string, otp: string): Promise<ApiResponse<{ resetToken?: string }>> {
+    return apiClient.post<ApiResponse<{ resetToken?: string }>>('/auth/verify-reset-otp', { email, otp });
+  }
+
+  /**
+   * Set new password using verified OTP/token
+   */
+  public async resetPassword(data: { token: string; password: string; email?: string }): Promise<ApiResponse> {
+    return apiClient.post<ApiResponse>('/auth/reset-password', data);
   }
 
   /**

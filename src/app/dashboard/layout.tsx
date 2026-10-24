@@ -4,6 +4,14 @@ import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
+import {
+  DashboardNotificationItem,
+  fetchDashboardNotifications,
+  markDashboardNotificationAsRead,
+  markAllDashboardNotificationsAsRead,
+  clearAllDashboardNotifications,
+  DASHBOARD_NOTIFICATIONS_EVENT,
+} from '@/services/dashboardNotificationService';
 
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
@@ -28,6 +36,53 @@ export default function DashboardLayout({
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [themeOffcanvasOpen, setThemeOffcanvasOpen] = useState(false);
+
+  // Real-time Dashboard Notifications (Admin & Owner Only)
+  const isStaff = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+  const isOwner = user?.role === 'SUPER_ADMIN';
+  const [dashNotifications, setDashNotifications] = useState<DashboardNotificationItem[]>([]);
+
+  useEffect(() => {
+    if (!isStaff || !user) {
+      setDashNotifications([]);
+      return;
+    }
+
+    let isMounted = true;
+
+    const loadDashNotifications = () => {
+      fetchDashboardNotifications(user).then((items) => {
+        if (isMounted) {
+          setDashNotifications(items);
+        }
+      });
+    };
+
+    loadDashNotifications();
+
+    const handleCustomUpdate = () => {
+      loadDashNotifications();
+    };
+
+    const handleStorageUpdate = (e: StorageEvent) => {
+      if (e.key === 'veuz_realtime_customer_registered') {
+        loadDashNotifications();
+      }
+    };
+
+    window.addEventListener(DASHBOARD_NOTIFICATIONS_EVENT, handleCustomUpdate);
+    window.addEventListener('storage', handleStorageUpdate);
+    const pollInterval = setInterval(loadDashNotifications, 25000);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener(DASHBOARD_NOTIFICATIONS_EVENT, handleCustomUpdate);
+      window.removeEventListener('storage', handleStorageUpdate);
+      clearInterval(pollInterval);
+    };
+  }, [user, isStaff]);
+
+  const unreadDashCount = dashNotifications.filter((n) => !n.isRead).length;
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isLayoutReady, setIsLayoutReady] = useState(false);
   const [overlayRemoved, setOverlayRemoved] = useState(false);
@@ -526,6 +581,24 @@ export default function DashboardLayout({
         .modal-dialog {
           z-index: 1075 !important;
         }
+
+        /* 6. Unified Dashboard Badges: Square shape, 3px border radius, well padded */
+        .badge,
+        span.badge,
+        div.badge,
+        [class*="badge"],
+        .rounded-pill {
+          border-radius: 3px !important;
+          padding: 4px 8px !important;
+          font-weight: 600 !important;
+        }
+
+        /* 7. Unified Light Background: rgb(247, 247, 247) */
+        .bg-light,
+        .bg-light-subtle {
+          --bs-bg-opacity: 1;
+          background-color: rgb(247 247 247) !important;
+        }
       `}} />
 
       {!isLoading && !user ? (
@@ -708,84 +781,162 @@ export default function DashboardLayout({
                   </button>
                 </div>
 
-                {/* Notification Dropdown */}
-                <div ref={notificationsRef} className="dropdown topbar-item position-relative">
-                  <button
-                    type="button"
-                    className="topbar-button position-relative"
-                    onClick={() => setNotificationsOpen(!notificationsOpen)}
-                    title="Notifications"
-                  >
-                    <iconify-icon icon="solar:bell-bing-broken" class="fs-24 align-middle"></iconify-icon>
-                    <span className="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill">
-                      3<span className="visually-hidden">unread messages</span>
-                    </span>
-                  </button>
-
-                  {notificationsOpen && (
-                    <div
-                      className="dropdown-menu py-0 dropdown-lg dropdown-menu-end show"
-                      style={{
-                        position: 'absolute',
-                        right: 0,
-                        top: '100%',
-                        marginTop: '8px',
-                        display: 'block',
-                        minWidth: '320px',
-                        boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
-                        borderRadius: '8px',
-                        zIndex: 1050,
-                      }}
+                {/* Notification Dropdown (Only visible to Admin and Owner) */}
+                {isStaff && (
+                  <div ref={notificationsRef} className="dropdown topbar-item position-relative">
+                    <button
+                      type="button"
+                      className="topbar-button position-relative"
+                      onClick={() => setNotificationsOpen(!notificationsOpen)}
+                      title="Notifications"
                     >
-                      <div className="p-3 border-bottom">
-                        <div className="row align-items-center">
-                          <div className="col">
-                            <h6 className="m-0 fs-16 fw-semibold">Notifications</h6>
+                      <iconify-icon icon="solar:bell-bing-broken" class="fs-24 align-middle"></iconify-icon>
+                      {unreadDashCount > 0 && (
+                        <span className="position-absolute topbar-badge fs-10 translate-middle badge bg-danger rounded-pill">
+                          {unreadDashCount > 9 ? '9+' : unreadDashCount}
+                          <span className="visually-hidden">unread notifications</span>
+                        </span>
+                      )}
+                    </button>
+
+                    {notificationsOpen && (
+                      <div
+                        className="dropdown-menu py-0 dropdown-lg dropdown-menu-end show"
+                        style={{
+                          position: 'absolute',
+                          right: 0,
+                          top: '100%',
+                          marginTop: '8px',
+                          display: 'block',
+                          minWidth: '330px',
+                          boxShadow: '0 10px 30px rgba(0,0,0,0.15)',
+                          borderRadius: '12px',
+                          zIndex: 1050,
+                          border: '1px solid #eef2f6',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {/* Header Row */}
+                        <div className="p-3 border-bottom d-flex align-items-center justify-content-between">
+                          <div className="d-flex align-items-center gap-2">
+                            <h6 className="m-0 fs-15 fw-bold text-dark">Notifications</h6>
+                            {unreadDashCount > 0 && (
+                              <span className="badge bg-primary-subtle text-primary">
+                                {unreadDashCount} New
+                              </span>
+                            )}
                           </div>
-                          <div className="col-auto">
-                            <span className="badge bg-primary-subtle text-primary">3 New</span>
-                          </div>
+
+                          {dashNotifications.length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => clearAllDashboardNotifications(user.id)}
+                              className="btn btn-sm btn-link p-0 text-decoration-none text-danger fs-12 fw-semibold d-flex align-items-center gap-1"
+                              title="Clear all notifications"
+                            >
+                              <i className="bx bx-trash fs-13"></i> Clear all
+                            </button>
+                          )}
                         </div>
+
+                        {/* List Area */}
+                        <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
+                          {dashNotifications.length === 0 ? (
+                            <div className="text-center py-4 px-3">
+                              <div
+                                className="avatar-sm rounded-circle d-inline-flex align-items-center justify-content-center p-2 mb-2"
+                                style={{ backgroundColor: '#f1f5f9', color: '#94a3b8', width: '42px', height: '42px' }}
+                              >
+                                <i className="bx bx-bell-off fs-20"></i>
+                              </div>
+                              <p className="mb-0 fs-13 fw-semibold text-dark">All clear for today</p>
+                              <small className="text-muted fs-11">
+                                {isOwner
+                                  ? 'No new customer or admin activity'
+                                  : 'No new customer activity'}
+                              </small>
+                            </div>
+                          ) : (
+                            dashNotifications.map((notif) => (
+                              <Link
+                                key={notif.id}
+                                href={notif.link}
+                                onClick={() => {
+                                  markDashboardNotificationAsRead(user.id, notif.id);
+                                  setNotificationsOpen(false);
+                                }}
+                                className="dropdown-item py-2.5 px-3 border-bottom text-wrap d-flex align-items-start gap-2.5 text-decoration-none"
+                                style={{
+                                  backgroundColor: notif.isRead ? '#ffffff' : '#f8fafc',
+                                  transition: 'background-color 0.15s ease',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                <div
+                                  className={`rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 mt-0.5 ${
+                                    notif.type === 'CUSTOMER_JOIN'
+                                      ? 'bg-success-subtle text-success'
+                                      : 'bg-primary-subtle text-primary'
+                                  }`}
+                                  style={{ width: '36px', height: '36px' }}
+                                >
+                                  <i
+                                    className={`${
+                                      notif.type === 'CUSTOMER_JOIN'
+                                        ? 'bx bx-user-plus'
+                                        : 'bx bx-shield-plus'
+                                    } fs-18`}
+                                  ></i>
+                                </div>
+
+                                <div className="flex-grow-1 min-w-0">
+                                  <div className="d-flex align-items-center justify-content-between gap-1 mb-0.5">
+                                    <p className="mb-0 fs-13 fw-semibold text-dark text-truncate">
+                                      {notif.title}
+                                    </p>
+                                    <small className="text-muted fs-11 flex-shrink-0">
+                                      {notif.timeAgo}
+                                    </small>
+                                  </div>
+                                  <p
+                                    className="mb-0 fs-12 text-muted"
+                                    style={{ lineHeight: '1.38', wordBreak: 'break-word' }}
+                                  >
+                                    {notif.message}
+                                  </p>
+                                </div>
+                              </Link>
+                            ))
+                          )}
+                        </div>
+
+                        {/* Footer Row */}
+                        {dashNotifications.length > 0 && (
+                          <div className="text-center py-2 border-top bg-light-subtle d-flex justify-content-between px-3">
+                            {unreadDashCount > 0 ? (
+                              <button
+                                type="button"
+                                onClick={() => markAllDashboardNotificationsAsRead(user.id, dashNotifications)}
+                                className="btn btn-link p-0 text-decoration-none fs-12 text-primary fw-semibold"
+                              >
+                                Mark all read
+                              </button>
+                            ) : (
+                              <span className="fs-12 text-muted">All read</span>
+                            )}
+                            <Link
+                              href="/dashboard/users"
+                              onClick={() => setNotificationsOpen(false)}
+                              className="text-decoration-none fs-12 text-secondary fw-semibold"
+                            >
+                              View all users &rarr;
+                            </Link>
+                          </div>
+                        )}
                       </div>
-
-                      <div style={{ maxHeight: '280px', overflowY: 'auto' }}>
-                        <div className="dropdown-item py-3 border-bottom text-wrap d-flex align-items-start gap-2">
-                          <div className="avatar-sm bg-primary-subtle text-primary rounded-circle d-flex align-items-center justify-content-center p-2">
-                            <i className="bx bx-cart fs-18"></i>
-                          </div>
-                          <div>
-                            <p className="mb-0 fs-13 fw-semibold">New Safety Order #9842</p>
-                            <small className="text-muted">3M Respirator + Safety Harness (1,450 SR)</small>
-                          </div>
-                        </div>
-
-                        <div className="dropdown-item py-3 border-bottom text-wrap d-flex align-items-start gap-2">
-                          <div className="avatar-sm bg-warning-subtle text-warning rounded-circle d-flex align-items-center justify-content-center p-2">
-                            <i className="bx bx-shield fs-18"></i>
-                          </div>
-                          <div>
-                            <p className="mb-0 fs-13 fw-semibold">Low Stock Alert</p>
-                            <small className="text-muted">Heavy Duty Welding Gloves &lt; 15 units</small>
-                          </div>
-                        </div>
-
-                        <div className="dropdown-item py-3 text-wrap d-flex align-items-start gap-2">
-                          <div className="avatar-sm bg-success-subtle text-success rounded-circle d-flex align-items-center justify-content-center p-2">
-                            <i className="bx bx-user-check fs-18"></i>
-                          </div>
-                          <div>
-                            <p className="mb-0 fs-13 fw-semibold">Admin Invite Accepted</p>
-                            <small className="text-muted">Admin successfully onboarded</small>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="text-center py-2 border-top">
-                        <small className="text-muted">All clear for today</small>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                    )}
+                  </div>
+                )}
 
 
                 {/* User Dropdown */}
@@ -1124,6 +1275,26 @@ export default function DashboardLayout({
                     <iconify-icon icon="solar:login-2-broken"></iconify-icon>
                   </span>
                   <span className="nav-text"> Login Setup </span>
+                </Link>
+              </li>
+
+              {/* 10. Footer Setup */}
+              <li className="nav-item">
+                <Link className={`nav-link ${pathname?.startsWith('/dashboard/footer-setup') ? 'active' : ''}`} href="/dashboard/footer-setup">
+                  <span className="nav-icon">
+                    <iconify-icon icon="solar:panel-bottom-broken"></iconify-icon>
+                  </span>
+                  <span className="nav-text"> Footer Setup </span>
+                </Link>
+              </li>
+
+              {/* 11. Support Management */}
+              <li className="nav-item">
+                <Link className={`nav-link ${pathname?.startsWith('/dashboard/support-management') ? 'active' : ''}`} href="/dashboard/support-management">
+                  <span className="nav-icon">
+                    <iconify-icon icon="solar:headphones-round-sound-broken"></iconify-icon>
+                  </span>
+                  <span className="nav-text"> Support Management </span>
                 </Link>
               </li>
             </ul>

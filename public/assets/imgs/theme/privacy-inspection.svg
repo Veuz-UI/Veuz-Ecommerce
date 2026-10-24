@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 380 280" fill="none">
+  <!-- Body / Blue Shirt -->
+  <path
+    d="M60 280 C70 200, 115 140, 190 134 C210 132, 255 142, 285 180 C300 200, 315 240, 325 280 Z"
+    fill="#2563eb"
+  />
+  <path
+    d="M60 280 C70 200, 115 140, 190 134 C210 132, 255 142, 285 180 C300 200, 315 240, 325 280"
+    stroke="#0f172a"
+    stroke-width="2.5"
+    stroke-linecap="round"
+  />
+  
+  <!-- Shirt Bottom Fold Line -->
+  <path
+    d="M78 245 C120 255, 230 255, 298 245"
+    stroke="#1d4ed8"
+    stroke-width="3"
+    stroke-linecap="round"
+  />
+
+  <!-- Shirt Center Seam & White Stitches -->
+  <line x1="188" y1="135" x2="188" y2="280" stroke="#93c5fd" stroke-width="2" stroke-dasharray="6 6" />
+  
+  <!-- Shirt Collar Notch -->
+  <path
+    d="M175 135 L188 145 L201 135"
+    stroke="#ffffff"
+    stroke-width="2.5"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+
+  <!-- Neck -->
+  <path
+    d="M172 110 L172 136 L204 136 L204 110 Z"
+    fill="#ffffff"
+    stroke="#0f172a"
+    stroke-width="2.5"
+  />
+
+  <!-- Head Base -->
+  <path
+    d="M165 85 C165 52, 185 35, 218 35 C242 35, 258 52, 258 78 C258 102, 236 116, 204 116 C178 116, 165 102, 165 85 Z"
+    fill="#ffffff"
+    stroke="#0f172a"
+    stroke-width="2.5"
+  />
+
+  <!-- Ear -->
+  <path
+    d="M170 72 C164 72, 160 77, 162 84 C164 89, 169 91, 172 88"
+    fill="#ffffff"
+    stroke="#0f172a"
+    stroke-width="2"
+  />
+  <path d="M167 79 C166 82, 168 84, 170 83" stroke="#0f172a" stroke-width="1.5" stroke-linecap="round" />
+
+  <!-- Stylized Hair -->
+  <path
+    d="M172 56 C174 34, 198 22, 226 24 C248 26, 266 42, 264 62 C260 55, 252 50, 240 52 C232 46, 218 46, 208 52 C196 48, 182 52, 172 56 Z"
+    fill="#0f172a"
+  />
+  <path
+    d="M172 56 C174 34, 198 22, 226 24 C248 26, 266 42, 264 62 C260 55, 252 50, 240 52 C232 46, 218 46, 208 52 C196 48, 182 52, 172 56 Z"
+    stroke="#0f172a"
+    stroke-width="2"
+    stroke-linejoin="round"
+  />
+
+  <!-- Magnifying Glass Handle -->
+  <rect
+    x="228"
+    y="130"
+    width="10"
+    height="48"
+    rx="5"
+    fill="#10b981"
+    stroke="#0f172a"
+    stroke-width="2.5"
+  />
+
+  <!-- Magnifying Glass Rim & Lens -->
+  <circle
+    cx="233"
+    cy="90"
+    r="28"
+    fill="#ffffff"
+    stroke="#06b6d4"
+    stroke-width="4.5"
+  />
+  <circle
+    cx="233"
+    cy="90"
+    r="28"
+    fill="none"
+    stroke="#0f172a"
+    stroke-width="2"
+  />
+
+  <!-- Eye looking through magnifying glass -->
+  <ellipse cx="231" cy="90" rx="3.5" ry="4.5" fill="#0f172a" />
+  <circle cx="230" cy="88" r="1.2" fill="#ffffff" />
+  <!-- Eyelid / eyebrow inside lens -->
+  <path d="M224 81 C228 78, 235 78, 239 81" stroke="#0f172a" stroke-width="1.8" stroke-linecap="round" />
+
+  <!-- Hand Holding Glass (Fingers curled from right side) -->
+  <!-- Thumb -->
+  <path
+    d="M234 142 C240 142, 244 145, 244 150 C244 155, 240 157, 234 157"
+    fill="#ffffff"
+    stroke="#0f172a"
+    stroke-width="2.5"
+    stroke-linecap="round"
+  />
+  <!-- Index finger -->
+  <path
+    d="M234 154 C244 154, 248 158, 248 164 C248 170, 242 171, 234 171"
+    fill="#ffffff"
+    stroke="#0f172a"
+    stroke-width="2.5"
+    stroke-linecap="round"
+  />
+  <!-- Middle finger -->
+  <path
+    d="M232 168 C242 168, 246 172, 246 177 C246 182, 240 183, 232 183"
+    fill="#ffffff"
+    stroke="#0f172a"
+    stroke-width="2.5"
+    stroke-linecap="round"
+  />
+  <!-- Arm line going down-right -->
+  <path
+    d="M246 177 C275 185, 320 220, 345 280"
+    stroke="#0f172a"
+    stroke-width="2.5"
+    stroke-linecap="round"
+  />
+  <path
+    d="M238 183 C260 200, 290 235, 310 280"
+    stroke="#0f172a"
+    stroke-width="2.5"
+    stroke-linecap="round"
+  />
+</svg>

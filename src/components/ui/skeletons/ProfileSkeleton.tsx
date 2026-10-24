@@ -4,7 +4,7 @@ import React from 'react';
 
 export function ProfileSkeleton() {
   return (
-    <main className="main" style={{ backgroundColor: '#f8fafc', minHeight: '85vh', paddingBottom: '70px' }}>
+    <main className="main" style={{ backgroundColor: '#ffffff', minHeight: '85vh', paddingBottom: '70px' }}>
       <div className="container py-3 py-md-4">
         {/* Page Top Header */}
         <div className="mb-3 mb-md-4 mt-1">

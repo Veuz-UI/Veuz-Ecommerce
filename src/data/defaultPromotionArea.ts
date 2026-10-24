@@ -27,5 +27,6 @@ export const DEFAULT_PROMOTION_AREA: PromotionAreaData = {
         { id: 'promo-card-1', image: '', title: '', link: '/products' },
         { id: 'promo-card-2', image: '', title: '', link: '/products' },
         { id: 'promo-card-3', image: '', title: '', link: '/products' },
+        { id: 'promo-card-4', image: '', title: '', link: '/products' },
       ],
 };

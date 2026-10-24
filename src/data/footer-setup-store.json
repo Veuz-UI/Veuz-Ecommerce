@@ -1,0 +1,180 @@
+{
+  "features": {
+    "isVisible": true,
+    "items": [
+      {
+        "id": "pickup",
+        "title": "Free in-store pick up",
+        "subtitle": "24/7 Amazing services",
+        "icon": "pickup",
+        "isVisible": true
+      },
+      {
+        "id": "shipping",
+        "title": "Free Shipping",
+        "subtitle": "24/7 Amazing services",
+        "icon": "shipping",
+        "isVisible": true
+      },
+      {
+        "id": "payment",
+        "title": "Flexible Payment",
+        "subtitle": "24/7 Amazing services",
+        "icon": "payment",
+        "isVisible": true
+      },
+      {
+        "id": "help",
+        "title": "Convenient help",
+        "subtitle": "24/7 Amazing services",
+        "icon": "help",
+        "isVisible": true
+      }
+    ]
+  },
+  "linkColumns": {
+    "isVisible": true,
+    "columns": [
+      {
+        "id": "col-navigation",
+        "title": "Main Pages",
+        "type": "navigation",
+        "isVisible": true
+      },
+      {
+        "id": "col-categories",
+        "title": "Popular Categories",
+        "type": "categories",
+        "isVisible": true
+      },
+      {
+        "id": "col-common",
+        "title": "More Categories",
+        "type": "common",
+        "isVisible": true
+      },
+      {
+        "id": "col-support",
+        "title": "Support & Services",
+        "type": "support",
+        "isVisible": true
+      }
+    ]
+  },
+  "appDownload": {
+    "sectionTitle": "Download Our App",
+    "isVisible": true,
+    "apps": [
+      {
+        "id": "app-store",
+        "name": "App Store",
+        "subText": "Download on the",
+        "url": "https://www.apple.com/app-store/",
+        "isVisible": true
+      },
+      {
+        "id": "google-play",
+        "name": "Google Play",
+        "subText": "GET IT ON",
+        "url": "https://play.google.com/store",
+        "isVisible": true
+      }
+    ]
+  },
+  "paymentMethods": {
+    "sectionTitle": "Payment Method",
+    "isVisible": true,
+    "methods": [
+      {
+        "id": "tabby",
+        "name": "Tabby",
+        "code": "tabby",
+        "isVisible": true,
+        "linkUrl": "#"
+      },
+      {
+        "id": "tamara",
+        "name": "Tamara",
+        "code": "tamara",
+        "isVisible": true,
+        "linkUrl": "#"
+      },
+      {
+        "id": "visa",
+        "name": "VISA",
+        "code": "visa",
+        "isVisible": true,
+        "linkUrl": "#"
+      },
+      {
+        "id": "mastercard",
+        "name": "Mastercard",
+        "code": "mc",
+        "isVisible": true,
+        "linkUrl": "#"
+      },
+      {
+        "id": "apple-pay",
+        "name": "Apple Pay",
+        "code": "apple-pay",
+        "isVisible": true,
+        "linkUrl": "#"
+      },
+      {
+        "id": "google-pay",
+        "name": "Google Pay",
+        "code": "g-pay",
+        "isVisible": true,
+        "linkUrl": "#"
+      },
+      {
+        "id": "amex",
+        "name": "AMEX",
+        "code": "amex",
+        "isVisible": true,
+        "linkUrl": "#"
+      }
+    ]
+  },
+  "socialLinks": {
+    "sectionTitle": "Stay Connected",
+    "isVisible": true,
+    "links": [
+      {
+        "id": "facebook",
+        "name": "Facebook",
+        "platform": "facebook",
+        "url": "https://facebook.com",
+        "isVisible": true
+      },
+      {
+        "id": "x",
+        "name": "X (Twitter)",
+        "platform": "x",
+        "url": "https://x.com",
+        "isVisible": true
+      },
+      {
+        "id": "instagram",
+        "name": "Instagram",
+        "platform": "instagram",
+        "url": "https://instagram.com",
+        "isVisible": true
+      },
+      {
+        "id": "linkedin",
+        "name": "LinkedIn",
+        "platform": "linkedin",
+        "url": "https://linkedin.com",
+        "isVisible": true
+      },
+      {
+        "id": "tiktok",
+        "name": "TikTok",
+        "platform": "tiktok",
+        "url": "https://tiktok.com",
+        "isVisible": true
+      }
+    ]
+  }
+}

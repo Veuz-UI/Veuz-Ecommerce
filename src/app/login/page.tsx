@@ -239,11 +239,11 @@ function LoginForm() {
                   aria-hidden={!isActive}
                 >
                   <img
-                    src={slide.image}
+                    src={slide.image || '/assets/imgs/theme/login-slider-placeholder.svg'}
                     alt={slide.caption ? slide.caption.slice(0, 30) : 'Veuz Store'}
                     className="auth-hero-img"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/assets/imgs/theme/placeholder.svg';
+                      (e.target as HTMLImageElement).src = '/assets/imgs/theme/login-slider-placeholder.svg';
                     }}
                   />
                 </div>
@@ -383,7 +383,7 @@ function LoginForm() {
                   <label htmlFor="password" className="auth-label" style={{ margin: 0 }}>
                     Password
                   </label>
-                  <Link href="/forgot-password" className="auth-forgot-link">
+                  <Link href="/reset-password" className="auth-forgot-link">
                     Forgot password?
                   </Link>
                 </div>

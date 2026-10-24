@@ -64,7 +64,7 @@ export default function LoginSetupDashboardPage() {
 
     const newSlide: LoginSlideItem = {
       id: `slide-${Date.now()}`,
-      image: '/assets/imgs/banner/urban-login-hero.jpg',
+      image: '/assets/imgs/theme/login-slider-placeholder.svg',
       caption: 'Add your 3-line promotional or welcome caption here for your customers.',
       isActive: true,
     };
@@ -219,12 +219,25 @@ export default function LoginSetupDashboardPage() {
           {/* 2. Page Header & Actions Bar */}
           <div className="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-4">
             <div>
-              <h2
-                className="fw-bold text-dark"
-                style={{ fontSize: '23px', letterSpacing: '-0.4px', color: '#0f172a', marginBottom: '8px' }}
-              >
-                Login Page Slider Setup
-              </h2>
+              <div className="d-flex align-items-center gap-2 mb-1">
+                <h2
+                  className="fw-bold text-dark m-0"
+                  style={{ fontSize: '23px', letterSpacing: '-0.4px', color: '#0f172a' }}
+                >
+                  Login Page Slider Setup
+                </h2>
+                <span
+                  className="badge fs-12 fw-semibold"
+                  style={{
+                    backgroundColor: '#0f172a',
+                    color: '#ffffff',
+                    borderRadius: '3px',
+                    padding: '4px 9px',
+                  }}
+                >
+                  {setupData.slides.length} / 4 Slides
+                </span>
+              </div>
               <p className="text-muted fs-14 mb-0" style={{ color: '#64748b' }}>
                 Configure auto-sliding visuals and 3-line captions displayed on the storefront login page (Maximum 4 slides).
               </p>
@@ -232,6 +245,28 @@ export default function LoginSetupDashboardPage() {
 
             {/* Header Action Buttons */}
             <div className="d-flex align-items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={handleAddSlide}
+                disabled={setupData.slides.length >= 4}
+                className="btn btn-sm d-flex align-items-center gap-2 fs-13 fw-semibold"
+                style={{
+                  borderRadius: '8px',
+                  backgroundColor: '#ffffff',
+                  border: '1px solid #d1d5db',
+                  color: '#0f172a',
+                  padding: '8px 18px',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
+                  cursor: setupData.slides.length >= 4 ? 'not-allowed' : 'pointer',
+                  opacity: setupData.slides.length >= 4 ? 0.6 : 1,
+                  transition: 'all 0.2s ease',
+                }}
+                title={setupData.slides.length >= 4 ? 'Maximum 4 slides reached' : 'Add a new slide'}
+              >
+                <iconify-icon icon="solar:add-circle-broken" className="fs-16"></iconify-icon>
+                <span>Add Slide</span>
+              </button>
+
               <button
                 type="button"
                 onClick={handleSave}
@@ -260,45 +295,6 @@ export default function LoginSetupDashboardPage() {
             </div>
           </div>
 
-          {/* 3. Sub-Header Controls Bar (Slide Count & Add Button, Speed Option Removed) */}
-          <div
-            className="d-flex align-items-center justify-content-between flex-wrap gap-2 p-3 mb-4 rounded-3"
-            style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}
-          >
-            <div className="d-flex align-items-center gap-2">
-              <span
-                className="badge px-2.5 py-1.5 font-12 fw-semibold"
-                style={{ backgroundColor: '#0f172a', color: '#ffffff', borderRadius: '6px' }}
-              >
-                {setupData.slides.length} / 4 Slides Configured
-              </span>
-              <span className="text-muted font-13">
-                {setupData.slides.length >= 4
-                  ? '(Maximum 4 images reached)'
-                  : `(Can add ${4 - setupData.slides.length} more)`}
-              </span>
-            </div>
-
-            {/* Add Slide Button */}
-            <button
-              type="button"
-              onClick={handleAddSlide}
-              disabled={setupData.slides.length >= 4}
-              className="btn btn-sm text-white d-flex align-items-center gap-1.5 font-13 fw-semibold"
-              style={{
-                backgroundColor: setupData.slides.length >= 4 ? '#94a3b8' : '#0f172a',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '6px 14px',
-                cursor: setupData.slides.length >= 4 ? 'not-allowed' : 'pointer',
-              }}
-              title={setupData.slides.length >= 4 ? 'Maximum 4 slides reached' : 'Add a new slide'}
-            >
-              <iconify-icon icon="solar:add-circle-broken" className="fs-16"></iconify-icon>
-              <span>Add Slide</span>
-            </button>
-          </div>
-
           {/* 4. Main Body: Slide Editors & Live Preview */}
           {isLoading ? (
             <LoginSetupSkeleton />
@@ -322,15 +318,15 @@ export default function LoginSetupDashboardPage() {
                       <div className="d-flex align-items-center justify-content-between mb-3 pb-2 border-bottom">
                         <div className="d-flex align-items-center gap-2">
                           <span
-                            className="badge font-12 fw-semibold px-2 py-1"
-                            style={{ backgroundColor: '#0f172a', color: '#ffffff', borderRadius: '5px' }}
+                            className="badge font-12 fw-semibold"
+                            style={{ backgroundColor: '#0f172a', color: '#ffffff', borderRadius: '3px', padding: '4px 8px' }}
                           >
                             Slide #{idx + 1}
                           </span>
                           {safePreviewIdx === idx && (
                             <span
                               className="badge font-11 fw-semibold"
-                              style={{ backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', borderRadius: '5px' }}
+                              style={{ backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', borderRadius: '3px', padding: '4px 8px' }}
                             >
                               Previewing Now
                             </span>
@@ -380,25 +376,25 @@ export default function LoginSetupDashboardPage() {
                         <div className="d-flex align-items-center gap-3">
                           {/* Small Preview Image Thumbnail */}
                           <div
-                            className="position-relative overflow-hidden rounded-3 border bg-light flex-shrink-0"
+                            className="position-relative overflow-hidden rounded-3 border bg-dark flex-shrink-0"
                             style={{
                               width: '76px',
-                              height: '76px',
-                              boxShadow: '0 2px 5px rgba(0,0,0,0.06)',
+                              height: '92px',
+                              boxShadow: '0 2px 6px rgba(0,0,0,0.08)',
                             }}
                           >
                             <img
-                              src={slide.image}
+                              src={slide.image || '/assets/imgs/theme/login-slider-placeholder.svg'}
                               alt={`Slide ${idx + 1}`}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/assets/imgs/theme/placeholder.svg';
+                                (e.target as HTMLImageElement).src = '/assets/imgs/theme/login-slider-placeholder.svg';
                               }}
                             />
                           </div>
 
-                          {/* Hidden File Input & Upload Button */}
-                          <div className="d-flex flex-column gap-1">
+                          {/* Hidden File Input & Upload Button with Dimensions */}
+                          <div className="d-flex flex-column gap-1.5">
                             <input
                               type="file"
                               accept="image/*"
@@ -409,35 +405,53 @@ export default function LoginSetupDashboardPage() {
                               onChange={(e) => handleFileUpload(slide.id, e)}
                             />
 
-                            <button
-                              type="button"
-                              disabled={uploadingSlideId === slide.id}
-                              className="btn btn-sm d-inline-flex align-items-center gap-1.5 font-12 fw-semibold"
-                              style={{
-                                width: 'fit-content',
-                                backgroundColor: '#ffffff',
-                                border: '1.5px solid #0f172a',
-                                color: '#0f172a',
-                                borderRadius: '7px',
-                                padding: '5px 12px',
-                              }}
-                              onClick={() => fileInputRefs.current[slide.id]?.click()}
-                            >
-                              {uploadingSlideId === slide.id ? (
-                                <>
-                                  <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                                  <span>Uploading...</span>
-                                </>
-                              ) : (
-                                <>
-                                  <iconify-icon icon="solar:upload-track-broken" className="fs-15"></iconify-icon>
-                                  <span>{slide.image ? 'Change Image' : 'Upload Image'}</span>
-                                </>
-                              )}
-                            </button>
+                            <div className="d-flex align-items-center gap-2 flex-wrap">
+                              <button
+                                type="button"
+                                disabled={uploadingSlideId === slide.id}
+                                className="btn btn-sm d-inline-flex align-items-center gap-1.5 font-12 fw-semibold"
+                                style={{
+                                  width: 'fit-content',
+                                  backgroundColor: '#ffffff',
+                                  border: '1.5px solid #0f172a',
+                                  color: '#0f172a',
+                                  borderRadius: '7px',
+                                  padding: '5px 12px',
+                                }}
+                                onClick={() => fileInputRefs.current[slide.id]?.click()}
+                              >
+                                {uploadingSlideId === slide.id ? (
+                                  <>
+                                    <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                                    <span>Uploading...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <iconify-icon icon="solar:upload-track-broken" className="fs-15"></iconify-icon>
+                                    <span>
+                                      {slide.image && !slide.image.includes('placeholder')
+                                        ? 'Change Image'
+                                        : 'Upload Slide Image'}
+                                    </span>
+                                  </>
+                                )}
+                              </button>
 
-                            <span className="text-muted font-11">
-                              Recommended: High-quality image (JPG, PNG, or WebP). Max 5MB.
+                              <span
+                                className="badge font-11 fw-bold px-2 py-1"
+                                style={{
+                                  backgroundColor: '#f1f5f9',
+                                  color: '#334155',
+                                  border: '1px solid #cbd5e1',
+                                  borderRadius: '6px',
+                                }}
+                              >
+                                Recommended: 600 × 800 px
+                              </span>
+                            </div>
+
+                            <span className="text-muted font-11" style={{ lineHeight: 1.4, maxWidth: '420px' }}>
+                              <strong className="text-dark">Dimensions:</strong> 600 × 800 px (Portrait 3:4 ratio). Any dimension image you upload will auto-fit cleanly without distortion. (JPG, PNG, WebP up to 5MB).
                             </span>
                           </div>
                         </div>
@@ -549,13 +563,13 @@ export default function LoginSetupDashboardPage() {
                       }}
                     >
                       {/* Stacked Slide Layers for preview cross-fade */}
-                      <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'hidden' }}>
+                      <div style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', overflow: 'hidden', backgroundColor: '#0f172a' }}>
                         {setupData.slides.map((slide, idx) => {
                           const isActive = idx === safePreviewIdx;
                           return (
                             <img
                               key={slide.id || idx}
-                              src={slide.image}
+                              src={slide.image || '/assets/imgs/theme/login-slider-placeholder.svg'}
                               alt="Preview"
                               style={{
                                 position: 'absolute',
@@ -563,13 +577,13 @@ export default function LoginSetupDashboardPage() {
                                 width: '100%',
                                 height: '100%',
                                 objectFit: 'cover',
-                                objectPosition: 'center top',
+                                objectPosition: 'center center',
                                 opacity: isActive ? 1 : 0,
                                 transform: isActive ? 'scale(1)' : 'scale(1.04)',
                                 transition: 'opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.8s ease',
                               }}
                               onError={(e) => {
-                                (e.target as HTMLImageElement).src = '/assets/imgs/theme/placeholder.svg';
+                                (e.target as HTMLImageElement).src = '/assets/imgs/theme/login-slider-placeholder.svg';
                               }}
                             />
                           );

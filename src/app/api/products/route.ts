@@ -157,8 +157,15 @@ export async function POST(req: Request) {
       const newId = newProductData.id || `prod-${Date.now()}`;
       const now = Date.now();
 
-      // Determine pricing & offer calculation
-      const originalPrice = Number(newProductData.originalPrice) || Number(newProductData.price?.toString().replace(/[^\d.]/g, '')) || 100;
+      // Determine pricing & offer calculation (mandatory validation)
+      const rawPrice = Number(newProductData.originalPrice) || (newProductData.price ? Number(newProductData.price.toString().replace(/[^\d.]/g, '')) : 0);
+      if (!rawPrice || isNaN(rawPrice) || rawPrice <= 0) {
+        return NextResponse.json(
+          { success: false, message: 'Actual Value / Base Price is mandatory and must be greater than 0.' },
+          { status: 400 }
+        );
+      }
+      const originalPrice = rawPrice;
       const isSpecialOffer = Boolean(newProductData.isSpecialOffer);
       const offerPercent = isSpecialOffer ? (Number(newProductData.offerPercent) || 0) : undefined;
       
@@ -273,7 +280,14 @@ export async function POST(req: Request) {
 
       const existing = products[targetIndex];
 
-      const originalPrice = Number(updateData.originalPrice) || Number(updateData.price?.toString().replace(/[^\d.]/g, '')) || existing.originalPrice || 100;
+      const rawPrice = Number(updateData.originalPrice) || (updateData.price ? Number(updateData.price.toString().replace(/[^\d.]/g, '')) : 0) || existing.originalPrice;
+      if (!rawPrice || isNaN(rawPrice) || rawPrice <= 0) {
+        return NextResponse.json(
+          { success: false, message: 'Actual Value / Base Price is mandatory and must be greater than 0.' },
+          { status: 400 }
+        );
+      }
+      const originalPrice = rawPrice;
       const isSpecialOffer = updateData.isSpecialOffer !== undefined ? Boolean(updateData.isSpecialOffer) : Boolean(existing.isSpecialOffer);
       const offerPercent = isSpecialOffer ? (Number(updateData.offerPercent) || 0) : undefined;
       const offerEndDate = isSpecialOffer ? updateData.offerEndDate : undefined;

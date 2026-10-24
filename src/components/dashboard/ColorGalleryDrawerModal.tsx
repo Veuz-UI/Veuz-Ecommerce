@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { SystemColor, SYSTEM_COLORS } from '@/data/categoryProductsData';
 import { useToast } from '@/context/ToastContext';
 import { processProductStudioPhoto } from '@/utils/productStudio';
+import FocalAdjustmentModal from './FocalAdjustmentModal';
 
 interface ColorGalleryDrawerModalProps {
   isOpen: boolean;
@@ -63,6 +64,11 @@ export default function ColorGalleryDrawerModal({
   const [autoRemoveBg, setAutoRemoveBg] = useState<boolean>(true);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadingSlot, setUploadingSlot] = useState<number | null>(null);
+  const [focalModalTarget, setFocalModalTarget] = useState<{
+    slot: number;
+    url: string;
+    label: string;
+  } | null>(null);
 
   // New color inline adder inside modal
   const [isAddingInlineColor, setIsAddingInlineColor] = useState<boolean>(false);
@@ -174,12 +180,15 @@ export default function ColorGalleryDrawerModal({
       );
 
       // Process through AI Studio pipeline (removes background + 1:1 square focus on 100% transparent canvas)
+      // Teach engine to focus on product by using the 1st photo (Cover) as color/subject profile
+      const refImg = slotIdx > 0 ? (localColorImages[activeColor]?.[0] || mainPhotos?.cover || undefined) : undefined;
       const { file: processedFile, dataUrl } = await processProductStudioPhoto(file, {
         removeBackground: autoRemoveBg,
         standardizeSize: true,
         backgroundColor: 'transparent',
         canvasSize: 1000,
         paddingPercent: 6,
+        referenceImage: refImg,
       });
 
       // Show immediate local preview
@@ -748,7 +757,7 @@ export default function ColorGalleryDrawerModal({
               {/* Requirement Alert banner if < 4 photos */}
               {!isMeetsRequirement && (
                 <div
-                  className="alert alert-warning py-2 px-3 fs-12 mb-3.5 d-flex align-items-center gap-2"
+                  className="alert alert-warning py-2 px-3 fs-12 mb-3 d-flex align-items-center gap-2"
                   style={{ borderRadius: '8px', border: '1px solid #fde68a' }}
                 >
                   <iconify-icon icon="solar:info-circle-bold" class="fs-17 text-warning flex-shrink-0"></iconify-icon>
@@ -757,6 +766,67 @@ export default function ColorGalleryDrawerModal({
                   </div>
                 </div>
               )}
+
+              {/* Product Image Quality & Compliance Guidelines Banner */}
+              <div
+                className="rounded-3 p-3 mb-3.5"
+                style={{
+                  backgroundColor: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  boxShadow: '0 1px 2px rgba(16, 24, 40, 0.03)',
+                }}
+              >
+                <div className="d-flex align-items-center justify-content-between mb-2 pb-1.5 border-bottom" style={{ borderColor: '#e2e8f0' }}>
+                  <div className="d-flex align-items-center gap-2">
+                    <iconify-icon icon="solar:camera-minimalistic-bold" class="fs-16 text-primary"></iconify-icon>
+                    <span className="fw-bold fs-12 text-dark">Product Image Guidelines &amp; Quality Standards</span>
+                  </div>
+                  <span className="badge bg-light text-muted border px-2 py-0.5" style={{ fontSize: '10px' }}>
+                    Store Requirements
+                  </span>
+                </div>
+
+                <div className="row g-2">
+                  {/* 1. White Background */}
+                  <div className="col-md-4 col-12">
+                    <div className="p-2.5 rounded-2 bg-white border h-100" style={{ borderColor: '#e2e8f0' }}>
+                      <div className="fw-bold text-dark fs-11 d-flex align-items-center gap-1.5 mb-1">
+                        <iconify-icon icon="solar:sun-2-bold" class="text-warning fs-14 flex-shrink-0"></iconify-icon>
+                        <span>White Background</span>
+                      </div>
+                      <p className="text-muted fs-10 mb-0" style={{ lineHeight: '1.45' }}>
+                        A pure white background (<code className="text-dark bg-light px-1 py-0.5 rounded">#FFFFFF</code>) is <strong>recommended</strong> for standard catalog presentation. (Toggle AI Auto-Remove BG above).
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 2. No Text / Watermarks Policy */}
+                  <div className="col-md-4 col-12">
+                    <div className="p-2.5 rounded-2 bg-white border h-100" style={{ borderColor: '#fed7aa', backgroundColor: '#fffdfa' }}>
+                      <div className="fw-bold text-dark fs-11 d-flex align-items-center gap-1.5 mb-1">
+                        <iconify-icon icon="solar:danger-triangle-bold" class="text-danger fs-14 flex-shrink-0"></iconify-icon>
+                        <span className="text-danger">No Text or Badges</span>
+                      </div>
+                      <p className="text-muted fs-10 mb-0" style={{ lineHeight: '1.45' }}>
+                        Images must be clean product photography <strong>without text, promo badges, or watermarks</strong>. System will automatically remove non-compliant images (our platform is not responsible for deleted assets).
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 3. Recommended Dimensions */}
+                  <div className="col-md-4 col-12">
+                    <div className="p-2.5 rounded-2 bg-white border h-100" style={{ borderColor: '#e2e8f0' }}>
+                      <div className="fw-bold text-dark fs-11 d-flex align-items-center gap-1.5 mb-1">
+                        <iconify-icon icon="solar:maximize-square-minimalistic-bold" class="text-primary fs-14 flex-shrink-0"></iconify-icon>
+                        <span>Recommended Size</span>
+                      </div>
+                      <p className="text-muted fs-10 mb-0" style={{ lineHeight: '1.45' }}>
+                        <strong>800 × 800 px</strong> or <strong>1000 × 1000 px</strong> (Square 1:1, Min 600×600 px). Supported formats: JPG, PNG, WEBP (Max 5MB).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {/* 5 PHOTO SLOTS CARDS */}
               <div className="row g-3">
@@ -803,18 +873,38 @@ export default function ColorGalleryDrawerModal({
                             )}
                           </div>
 
-                          {hasPhoto && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemovePhoto(slot.index)}
-                              className="btn btn-sm d-flex align-items-center gap-1 text-danger border-0 px-2 py-0.5"
-                              style={{ fontSize: '11px', borderRadius: '5px', backgroundColor: '#fef2f2', fontWeight: 500 }}
-                              title="Remove photo"
-                            >
-                              <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-13"></iconify-icon>
-                              <span>Remove</span>
-                            </button>
-                          )}
+                          <div className="d-flex align-items-center gap-1.5">
+                            {hasPhoto && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setFocalModalTarget({
+                                    slot: slot.index,
+                                    url: photoUrl,
+                                    label: `${activeLabel} - ${slot.label}`,
+                                  })
+                                }
+                                className="btn btn-sm d-flex align-items-center gap-1 text-primary border-0 px-2 py-0.5"
+                                style={{ fontSize: '11px', borderRadius: '5px', backgroundColor: '#eff6ff', fontWeight: 500 }}
+                                title="Adjust focus & zoom"
+                              >
+                                <iconify-icon icon="solar:maximize-square-3-bold" class="fs-13"></iconify-icon>
+                                <span>Adjust Focus</span>
+                              </button>
+                            )}
+                            {hasPhoto && (
+                              <button
+                                type="button"
+                                onClick={() => handleRemovePhoto(slot.index)}
+                                className="btn btn-sm d-flex align-items-center gap-1 text-danger border-0 px-2 py-0.5"
+                                style={{ fontSize: '11px', borderRadius: '5px', backgroundColor: '#fef2f2', fontWeight: 500 }}
+                                title="Remove photo"
+                              >
+                                <iconify-icon icon="solar:trash-bin-trash-bold" class="fs-13"></iconify-icon>
+                                <span>Remove</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         {/* Image Preview Area */}
@@ -854,7 +944,7 @@ export default function ColorGalleryDrawerModal({
                                 {slot.label} Placeholder
                               </span>
                               <span className="text-muted" style={{ fontSize: '9.5px' }}>
-                                {slot.required ? 'Mandatory slot' : 'Optional angle'}
+                                {slot.required ? 'Mandatory slot' : 'Optional angle'} • 800×800px
                               </span>
                             </div>
                           )}
@@ -957,6 +1047,27 @@ export default function ColorGalleryDrawerModal({
           </div>
         </div>
       </div>
+      {focalModalTarget && (
+        <FocalAdjustmentModal
+          isOpen={Boolean(focalModalTarget)}
+          onClose={() => setFocalModalTarget(null)}
+          imageUrl={focalModalTarget.url}
+          angleLabel={focalModalTarget.label}
+          onSave={(newUrl: string) => {
+            if (!activeColor) return;
+            const targetSlot = focalModalTarget.slot;
+            setLocalColorImages((prev) => {
+              const curList = [...(prev[activeColor] || ['', '', '', '', ''])];
+              while (curList.length < 5) curList.push('');
+              curList[targetSlot] = newUrl;
+              return {
+                ...prev,
+                [activeColor]: curList,
+              };
+            });
+          }}
+        />
+      )}
     </div>
   , document.body);
 }

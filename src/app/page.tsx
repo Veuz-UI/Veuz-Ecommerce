@@ -20,6 +20,7 @@ import { useStore } from '@/context/StoreContext';
 import { useToast } from '@/context/ToastContext';
 import { getDeliveryBadgeProps } from '@/utils/deliveryBadge';
 import { ProductCardSkeleton, CategorySliderSkeleton } from '@/components/ui/skeletons';
+import { computeRecommendedProducts, recordUserProductClick, USER_BEHAVIOR_EVENT } from '@/services/recommendationService';
 
 const PRODUCT_CARD_COLORS: Record<string, { hex: string; border?: string }> = {
   black: { hex: '#0f172a' },
@@ -112,12 +113,15 @@ function HomeProductCard({
   const hasOffer = prod.collectionStatus === 'offer' || isLimitedOffer || ((prod.isSpecialOffer === true || prod.badgeClass === 'hot') && Boolean(prod.discount || prod.badge));
   const isNewArrival = prod.collectionStatus === 'new' || (!hasOffer && (prod.badge === 'New Arrival' || prod.badgeClass === 'new'));
   const isTopSearched = prod.badge === 'Top Searched';
+  const isRecommended = prod.badge === 'Recommended' || prod.badgeClass === 'recommended';
   const limitedOfferDaysLeft = prod.offerEndDate
     ? Math.max(0, Math.ceil((new Date(`${prod.offerEndDate}T23:59:59`).getTime() - Date.now()) / 86400000))
     : null;
 
   let badgeText = 'New Arrival';
-  if (isTopSearched) {
+  if (isRecommended) {
+    badgeText = 'Recommended';
+  } else if (isTopSearched) {
     badgeText = 'Top Searched';
   } else if (hasOffer) {
     badgeText = prod.discount || 'Special Offer';
@@ -141,7 +145,7 @@ function HomeProductCard({
         {/* Top image wrap with Top-Left Badge & Top-Right Circular View Button */}
         <div className="product-img-action-wrap position-relative">
           {/* Top-Left Badge */}
-          <span className={`ref-card-badge ${isTopSearched ? 'ref-card-badge-top-searched' : hasOffer ? 'ref-card-badge-offer' : isNewArrival ? 'ref-card-badge-new' : ''}`}>{badgeText}</span>
+          <span className={`ref-card-badge ${isRecommended ? 'ref-card-badge-recommended' : isTopSearched ? 'ref-card-badge-top-searched' : hasOffer ? 'ref-card-badge-offer' : isNewArrival ? 'ref-card-badge-new' : ''}`}>{badgeText}</span>
 
           {/* Top-Right Circular View Button ("Eye" icon) */}
           <Link
@@ -402,13 +406,15 @@ export default function HomePage() {
   const router = useRouter();
   const { user } = useAuth();
   const { showToast } = useToast();
-  const { addToCart, toggleWishlist: storeToggleWishlist, isInWishlist } = useStore();
+  const { cart, wishlist, addToCart, toggleWishlist: storeToggleWishlist, isInWishlist } = useStore();
   const [activeSlide, setActiveSlide] = useState(0);
   const [activeSideSlide, setActiveSideSlide] = useState(0);
   const [activeCatIndex, setActiveCatIndex] = useState(0);
   const [isCatHovered, setIsCatHovered] = useState(false);
+  const [userBehaviorTick, setUserBehaviorTick] = useState(0);
   const newProdScrollRef = useRef<HTMLDivElement>(null);
   const mostSearchedScrollRef = useRef<HTMLDivElement>(null);
+  const recommendedScrollRef = useRef<HTMLDivElement>(null);
   const onsaleScrollRef = useRef<HTMLDivElement>(null);
   const browseCatScrollRef = useRef<HTMLDivElement>(null);
   const partnersScrollRef = useRef<HTMLDivElement>(null);
@@ -718,7 +724,7 @@ export default function HomePage() {
     const loadPromotions = async () => {
       try {
         const data = await fetchPromotionArea();
-        if (isMounted && data && Array.isArray(data.promotions) && data.promotions.length === 3) {
+        if (isMounted && data && Array.isArray(data.promotions) && data.promotions.length > 0) {
           setPromotions(data.promotions);
         }
       } catch (err) {
@@ -768,6 +774,19 @@ export default function HomePage() {
       ...activePartnersList.map((p, i) => ({ ...p, loopKey: `partner-s1-${p.id || i}-${i}` })),
       ...activePartnersList.map((p, i) => ({ ...p, loopKey: `partner-s2-${p.id || i}-${i}` })),
       ...activePartnersList.map((p, i) => ({ ...p, loopKey: `partner-s3-${p.id || i}-${i}` })),
+    ];
+  }, [activePartnersList]);
+
+  // Two identical sets of partner logos for seamless, infinite -50% CSS auto-sliding loop
+  const marqueePartners = useMemo(() => {
+    if (!activePartnersList || activePartnersList.length === 0) return [];
+    let baseList = [...activePartnersList];
+    while (baseList.length < 8) {
+      baseList = [...baseList, ...activePartnersList];
+    }
+    return [
+      ...baseList.map((p, i) => ({ ...p, marqueeKey: `mq1-${p.id || i}-${i}` })),
+      ...baseList.map((p, i) => ({ ...p, marqueeKey: `mq2-${p.id || i}-${i}` })),
     ];
   }, [activePartnersList]);
 
@@ -930,6 +949,50 @@ export default function HomePage() {
       };
     });
 
+  // Real-time synchronization when user searches, clicks, adds to wishlist, or adds to cart
+  useEffect(() => {
+    const handleBehavior = () => {
+      setUserBehaviorTick((prev) => prev + 1);
+    };
+    window.addEventListener(USER_BEHAVIOR_EVENT, handleBehavior);
+    window.addEventListener('storage', handleBehavior);
+    return () => {
+      window.removeEventListener(USER_BEHAVIOR_EVENT, handleBehavior);
+      window.removeEventListener('storage', handleBehavior);
+    };
+  }, []);
+
+  // 4. Recommended For You: Algorithmically personalized based on user search queries, clicks, wishlist items, & cart additions
+  const displayedRecommended = useMemo(() => {
+    const recommended = computeRecommendedProducts(catalogProducts, {
+      cart,
+      wishlist,
+    });
+
+    return recommended.map((p) => ({
+      ...p,
+      id: p.id,
+      title: p.title,
+      category: p.category || (p as any).categoryName || 'Safety Equipment',
+      colors: p.colors || [],
+      colorImages: p.colorImages || {},
+      desc: p.desc || 'Personalized workplace safety equipment recommended for you.',
+      img: p.image || (p as any).img || '/assets/imgs/shop/pr1.jpg',
+      badge: 'Recommended',
+      badgeClass: 'recommended' as const,
+      collectionStatus: p.offerEndDate ? 'limited' : p.isSpecialOffer ? 'offer' : p.isNewArrival !== false ? 'new' : undefined,
+      isSpecialOffer: p.isSpecialOffer,
+      isNewArrival: p.isNewArrival,
+      offerEndDate: p.offerEndDate,
+      price: p.price,
+      oldPrice: p.oldPrice,
+      discount: p.discount,
+      rating: p.rating ? `${p.rating}/5` : '5.0/5',
+      reviews: p.reviews ? `${p.reviews} - Reviews` : '0 - Reviews',
+      link: `/product-details?id=${p.id}`,
+    }));
+  }, [catalogProducts, cart, wishlist, userBehaviorTick]);
+
   // Triplicate shop categories for infinite continuous forward looping without reversing
   const repeatedShopCategories = useMemo(() => {
     if (!shopCategories || shopCategories.length <= 3) {
@@ -941,6 +1004,98 @@ export default function HomePage() {
       ...shopCategories.map((c, i) => ({ ...c, loopKey: `cat-s3-${c.id || i}-${i}` })),
     ];
   }, [shopCategories]);
+
+  // Category Spotlight: 1 most clicked product from each category (top 5 categories: #1 most clicked is big, 4 others in 2x2 grid)
+  const categorySpotlight = useMemo(() => {
+    if (!catalogProducts || catalogProducts.length === 0) return null;
+
+    const activeCats = (shopCategories && shopCategories.length > 0
+      ? shopCategories
+      : DEFAULT_SHOP_SETTINGS.categories
+    ).filter((c) => c.isActive !== false);
+
+    const items: Array<{
+      categoryName: string;
+      categoryLink: string;
+      image: string;
+      clicks: number;
+    }> = [];
+
+    const processedCatNames = new Set<string>();
+
+    activeCats.forEach((cat) => {
+      const catName = cat.name.trim();
+      const catNorm = catName.toLowerCase();
+      processedCatNames.add(catNorm);
+
+      // Match products in this category
+      const matched = catalogProducts.filter((p) => {
+        if (p.isActive === false) return false;
+        const pCat = (p.category || (p as any).categoryName || '').toLowerCase().trim();
+        return (
+          pCat === catNorm ||
+          pCat.includes(catNorm) ||
+          catNorm.includes(pCat) ||
+          (Array.isArray((p as any).categories) && (p as any).categories.some((c: string) => c.toLowerCase().includes(catNorm)))
+        );
+      });
+
+      if (matched.length > 0) {
+        // Sort by clicks and views
+        const topProd = [...matched].sort(
+          (a, b) => ((b.clicks || 0) * 2 + (b.views || 0)) - ((a.clicks || 0) * 2 + (a.views || 0))
+        )[0];
+
+        const prodImg = topProd.image || (topProd as any).img || cat.image || '';
+        if (prodImg && prodImg.trim()) {
+          items.push({
+            categoryName: catName,
+            categoryLink: cat.link || `/products?category=${encodeURIComponent(catName)}`,
+            image: prodImg,
+            clicks: (topProd.clicks || 0) * 2 + (topProd.views || 0),
+          });
+        }
+      } else if (cat.image && cat.image.trim()) {
+        items.push({
+          categoryName: catName,
+          categoryLink: cat.link || `/products?category=${encodeURIComponent(catName)}`,
+          image: cat.image,
+          clicks: 0,
+        });
+      }
+    });
+
+    // Also pick any other unique categories present in catalogProducts if fewer than 5
+    if (items.length < 5) {
+      const remainingProds = [...catalogProducts]
+        .filter((p) => p.isActive !== false && Boolean(p.category && (p.image || (p as any).img)))
+        .sort((a, b) => ((b.clicks || 0) * 2 + (b.views || 0)) - ((a.clicks || 0) * 2 + (a.views || 0)));
+
+      for (const p of remainingProds) {
+        const cName = (p.category || '').trim();
+        if (cName && !processedCatNames.has(cName.toLowerCase())) {
+          processedCatNames.add(cName.toLowerCase());
+          items.push({
+            categoryName: cName,
+            categoryLink: `/products?category=${encodeURIComponent(cName)}`,
+            image: p.image || (p as any).img,
+            clicks: (p.clicks || 0) * 2 + (p.views || 0),
+          });
+          if (items.length >= 5) break;
+        }
+      }
+    }
+
+    if (items.length === 0) return null;
+
+    // Sort by most clicks descending: item with most clicks is at index 0 (featured big card)
+    items.sort((a, b) => b.clicks - a.clicks);
+
+    const featured = items[0];
+    const quad = items.slice(1, 5);
+
+    return { featured, quad };
+  }, [catalogProducts, shopCategories]);
 
   const scrollBrowseCat = (direction: 'prev' | 'next') => {
     if (browseCatScrollRef.current) {
@@ -981,7 +1136,7 @@ export default function HomePage() {
   };
 
   const scrollProductSlider = (
-    sliderKey: 'newProd' | 'mostSearched' | 'onsale',
+    sliderKey: 'newProd' | 'mostSearched' | 'onsale' | 'recommended',
     direction: 'prev' | 'next'
   ) => {
     let ref: React.RefObject<HTMLDivElement | null>;
@@ -994,6 +1149,9 @@ export default function HomePage() {
         break;
       case 'onsale':
         ref = onsaleScrollRef;
+        break;
+      case 'recommended':
+        ref = recommendedScrollRef;
         break;
       default:
         return;
@@ -1029,13 +1187,15 @@ export default function HomePage() {
   // Reusable Product Section Slider with infinite continuous loop
   const renderProductSectionSlider = (
     items: any[],
-    sliderKey: 'newProd' | 'mostSearched' | 'onsale'
+    sliderKey: 'newProd' | 'mostSearched' | 'onsale' | 'recommended'
   ) => {
     const scrollRef =
       sliderKey === 'newProd'
         ? newProdScrollRef
         : sliderKey === 'mostSearched'
         ? mostSearchedScrollRef
+        : sliderKey === 'recommended'
+        ? recommendedScrollRef
         : onsaleScrollRef;
 
     return (
@@ -1044,7 +1204,13 @@ export default function HomePage() {
         scrollRef={scrollRef}
         isInWishlist={isInWishlist}
         onToggleWishlist={toggleWishlist}
-        onProductClick={recordProductClick}
+        onProductClick={(id) => {
+          recordProductClick(id);
+          const found = catalogProducts.find((p) => p.id === id);
+          if (found) {
+            recordUserProductClick(found);
+          }
+        }}
       />
     );
   };
@@ -1506,46 +1672,63 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 3. Promotional Banners (Dynamic, Zero Dummy Images) */}
-      {(() => {
-        const activePromos = promotions.filter(
-          (p) => Boolean(p.image && p.image.trim() && !p.image.includes('promo-card-'))
-        );
-        if (activePromos.length === 0) return null;
+      {/* ========================================================
+          CATEGORY SPOTLIGHT GRID (Below New Arrivals)
+          Left: #1 Most Clicked Category (Big Card)
+          Right: 4 Other Categories (2x2 Quad Grid)
+          Just image + category name with hover motion & white framed border
+         ======================================================== */}
+      {categorySpotlight && (
+        <section className="category-spotlight-section section-spacer-mb">
+          <div className="container">
+            <div className="category-spotlight-grid">
+              {/* Left: #1 Most Clicked Category (Big Card) */}
+              <div className="category-spotlight-big">
+                <Link
+                  href={categorySpotlight.featured.categoryLink}
+                  className="category-spotlight-card"
+                  title={categorySpotlight.featured.categoryName}
+                >
+                  <img
+                    src={categorySpotlight.featured.image}
+                    alt={categorySpotlight.featured.categoryName}
+                    className="category-spotlight-img"
+                  />
+                  <div className="category-spotlight-overlay" />
+                  <div className="category-spotlight-frame" />
+                  <div className="category-spotlight-badge badge-right">
+                    <span>{categorySpotlight.featured.categoryName}</span>
+                  </div>
+                </Link>
+              </div>
 
-        const colClass =
-          activePromos.length === 1
-            ? 'col-lg-4 col-md-6 col-12'
-            : activePromos.length === 2
-            ? 'col-md-6 col-12'
-            : 'col-lg-4 col-md-6';
-
-        return (
-          <section className="banners section-spacer-mb">
-            <div className="container">
-              <div className="row g-4">
-                {activePromos.map((promo, idx) => (
-                  <div key={promo.id || `promo-card-${idx}`} className={colClass}>
-                    <div className="promo-feature-card overflow-hidden">
-                      <Link
-                        href={promo.link || '/products'}
-                        onClick={() => recordPromotionClick(promo.id || `promo-card-${idx + 1}`)}
-                        className="d-block position-relative overflow-hidden w-100 h-100"
-                      >
-                        <img
-                          src={promo.image}
-                          alt={promo.title || `Promotional Banner ${idx + 1}`}
-                          className="promo-card-img"
-                        />
-                      </Link>
-                    </div>
+              {/* Right: 4 Other Categories in 2x2 Grid */}
+              <div className="category-spotlight-quad">
+                {categorySpotlight.quad.map((item, idx) => (
+                  <div key={idx} className="category-spotlight-small">
+                    <Link
+                      href={item.categoryLink}
+                      className="category-spotlight-card"
+                      title={item.categoryName}
+                    >
+                      <img
+                        src={item.image}
+                        alt={item.categoryName}
+                        className="category-spotlight-img"
+                      />
+                      <div className="category-spotlight-overlay" />
+                      <div className="category-spotlight-frame" />
+                      <div className="category-spotlight-badge badge-center">
+                        <span>{item.categoryName}</span>
+                      </div>
+                    </Link>
                   </div>
                 ))}
               </div>
             </div>
-          </section>
-        );
-      })()}
+          </div>
+        </section>
+      )}
 
       {/* Most Searched Items (Slider + View All Button Style + Arrow Keys) */}
       <section className="product-tabs section-padding position-relative section-spacer-mb">
@@ -1591,99 +1774,13 @@ export default function HomePage() {
         </div>
       </section>
 
-
-      {/* 5. BRAND & SAFETY PARTNERS BANNER WITH OVERLAPPING LOGOS SLIDER */}
-      <section className="eco-promo-section section-spacer-mb">
-        <div className="container">
-          {/* Top Vibrant Green Banner */}
-          <div className="eco-banner-wrap">
-            {/* Background Decorative SVG */}
-            <svg className="eco-banner-vector" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M100 20C50 20 20 70 20 120C20 170 70 180 120 180C170 180 180 130 180 80C180 30 150 20 100 20Z" stroke="white" strokeWidth="8" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M60 140C90 110 130 90 170 70" stroke="white" strokeWidth="6" strokeLinecap="round"/>
-              <path d="M110 110C125 95 145 85 165 75" stroke="white" strokeWidth="6" strokeLinecap="round"/>
-            </svg>
-
-            {/* Left Banner Text */}
-            <div className="eco-banner-content">
-              <h2 className="eco-banner-heading">
-                {partnersData.title || 'Our Official Brand & Safety Partners'}
-              </h2>
-              <p className="eco-banner-subtitle">
-                {partnersData.subtitle || 'Partnered with globally certified industrial safety, PPE, and equipment manufacturers.'}
-              </p>
-            </div>
-
-            {/* Right Banner Button */}
-            <div className="eco-banner-btn-wrap">
-              <Link href={partnersData.buttonLink || '/products'} className="eco-banner-pill-btn">
-                {partnersData.buttonText || 'View All Partners'}
-              </Link>
-            </div>
-          </div>
-
-          {/* Overlapping White Feature Partner Logo Cards (Slider) */}
-          <div className="partners-slider-wrapper">
-            {/* Previous Arrow Button */}
-            <button
-              type="button"
-              className="partner-nav-arrow prev"
-              onClick={() => scrollPartners('prev')}
-              aria-label="Previous Partner Logos"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
-
-            {/* Slider Scroll Track */}
-            <div
-              className="partners-slider-track"
-              ref={partnersScrollRef}
-            >
-              {repeatedPartners.map((partner, idx) => (
-                <Link
-                  key={partner.loopKey || partner.id || idx}
-                  href={partner.link || '/products'}
-                  className="partner-card-box"
-                  title={partner.name}
-                >
-                  <div className="partner-logo-frame">
-                    <img
-                      src={partner.logo}
-                      alt={partner.name}
-                      className="partner-logo-img"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = '/assets/imgs/client/partner1.svg';
-                      }}
-                    />
-                  </div>
-                </Link>
-              ))}
-            </div>
-
-            {/* Next Arrow Button */}
-            <button
-              type="button"
-              className="partner-nav-arrow next"
-              onClick={() => scrollPartners('next')}
-              aria-label="Next Partner Logos"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </section>
-
-      {/* 6. ONSALE PRODUCTS Section (Slider + View All Button Style + Arrow Keys) */}
+      {/* Special Offers Section (Placed directly below Most Searched Items) */}
       {displayedOnsale.length > 0 && (
         <section className="onsal section-spacer-mb">
           <div className="container">
             <div className="section-title wow animate__animated animate__fadeIn d-flex align-items-center justify-content-between mb-25 flex-wrap gap-3" data-wow-delay="0">
               <div className="title">
-                <h3 className="mb-0" style={{ fontSize: '24px', fontWeight: '700' }}>Special Offers & Bulk PPE Deals</h3>
+                <h3 className="mb-0" style={{ fontSize: '24px', fontWeight: '700' }}>Special Offers</h3>
               </div>
               
               <div className="d-flex align-items-center" style={{ gap: '8px' }}>
@@ -1721,6 +1818,177 @@ export default function HomePage() {
           </div>
         </section>
       )}
+
+      {/* 3. Promotional Banners (Exact Mosaic Grid Design: Tall Left + 2 Medium Top-Right + 1 Wide Bottom-Right) */}
+      {(() => {
+        const p1 = promotions[0]; // Left Tall Banner
+        const p2 = promotions[1]; // Top-Left Medium
+        const p3 = promotions[2]; // Top-Right Medium
+        const p4 = promotions[3]; // Bottom-Wide Banner
+
+        const hasAnyPromo = [p1, p2, p3, p4].some(
+          (p) => Boolean(p && p.image && p.image.trim() && !p.image.includes('promo-card-'))
+        );
+        if (!hasAnyPromo) return null;
+
+        return (
+          <section className="promo-mosaic-section section-spacer-mb">
+            <div className="container">
+              <div className="promo-mosaic-grid">
+                {/* Left Tall Banner */}
+                <div className="promo-mosaic-left">
+                  <Link
+                    href={p1?.link || '/products'}
+                    onClick={() => recordPromotionClick(p1?.id || 'promo-card-1')}
+                    className="promo-mosaic-card"
+                  >
+                    {p1?.image && (
+                      <img
+                        src={p1.image}
+                        alt={p1.title || 'Promotional Banner 1'}
+                        className="promo-mosaic-img"
+                      />
+                    )}
+                  </Link>
+                </div>
+
+                {/* Right Column Stack */}
+                <div className="promo-mosaic-right">
+                  {/* Top Row: 2 Cards */}
+                  <div className="promo-mosaic-top-row">
+                    <Link
+                      href={p2?.link || '/products'}
+                      onClick={() => recordPromotionClick(p2?.id || 'promo-card-2')}
+                      className="promo-mosaic-card"
+                    >
+                      {p2?.image && (
+                        <img
+                          src={p2.image}
+                          alt={p2.title || 'Promotional Banner 2'}
+                          className="promo-mosaic-img"
+                        />
+                      )}
+                    </Link>
+
+                    <Link
+                      href={p3?.link || '/products'}
+                      onClick={() => recordPromotionClick(p3?.id || 'promo-card-3')}
+                      className="promo-mosaic-card"
+                    >
+                      {p3?.image && (
+                        <img
+                          src={p3.image}
+                          alt={p3.title || 'Promotional Banner 3'}
+                          className="promo-mosaic-img"
+                        />
+                      )}
+                    </Link>
+                  </div>
+
+                  {/* Bottom Row: 1 Wide Card */}
+                  <div className="promo-mosaic-bottom-row">
+                    <Link
+                      href={p4?.link || '/products'}
+                      onClick={() => recordPromotionClick(p4?.id || 'promo-card-4')}
+                      className="promo-mosaic-card"
+                    >
+                      {p4?.image && (
+                        <img
+                          src={p4.image}
+                          alt={p4.title || 'Promotional Banner 4'}
+                          className="promo-mosaic-img"
+                        />
+                      )}
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        );
+      })()}
+
+      {/* 4. Recommended For You (Behavior-Based Personalized Slider: Searches, Clicks, Wishlist, Cart) */}
+      <section className="product-tabs section-padding position-relative section-spacer-mb">
+        <div className="container">
+          <div className="section-title d-flex align-items-center justify-content-between mb-25 flex-wrap gap-3">
+            <div className="section-tit">
+              <h3 className="mb-0" style={{ fontSize: '24px', fontWeight: '700' }}>Recommended For You</h3>
+            </div>
+            
+            <div className="d-flex align-items-center" style={{ gap: '8px' }}>
+              <Link className="btn-view-all-pill" href="/products">
+                View All
+              </Link>
+              
+              <div className="d-flex align-items-center" style={{ gap: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => scrollProductSlider('recommended', 'prev')}
+                  className="btn-slider-nav-pill"
+                  aria-label="Previous"
+                  title="Previous"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="15 18 9 12 15 6"></polyline>
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollProductSlider('recommended', 'next')}
+                  className="btn-slider-nav-pill"
+                  aria-label="Next"
+                  title="Next"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="9 18 15 12 9 6"></polyline>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+          
+          {renderProductSectionSlider(displayedRecommended, 'recommended')}
+        </div>
+      </section>
+
+
+      {/* 5. BRAND & SAFETY PARTNERS - CLEAN MINIMALIST AUTO-SLIDING STRIP */}
+      <section className="section-spacer-mb">
+        <div className="container">
+          <div className="partners-clean-section">
+            <h3 className="partners-clean-title">
+              {partnersData.title && partnersData.title !== 'Our Official Brand & Safety Partners'
+                ? partnersData.title
+                : 'Our Partners'}
+            </h3>
+
+            <div className="partners-marquee-container">
+              <div className="partners-marquee-track">
+                {marqueePartners.map((partner) => (
+                  <Link
+                    key={partner.marqueeKey}
+                    href={partner.link || `/products?q=${encodeURIComponent(partner.name)}`}
+                    className="partner-marquee-item"
+                    title={partner.name}
+                  >
+                    <img
+                      src={partner.logo}
+                      alt={partner.name}
+                      className="partner-marquee-logo"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = '/assets/imgs/client/partner1.svg';
+                      }}
+                    />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
     </main>
   );
 }

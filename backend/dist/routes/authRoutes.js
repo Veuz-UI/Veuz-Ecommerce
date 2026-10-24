@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { register, login, getMe, inviteAdmin, acceptAdminInvite, sendVerificationEmail, verifyEmail, forgotPassword, resetPassword, updateProfile, changePassword, deleteAccount, pingCustomerPresence, logoutCustomerPresence, } from '../controllers/authController.js';
+import { register, login, getMe, inviteAdmin, acceptAdminInvite, sendVerificationEmail, verifyEmail, forgotPassword, verifyResetOtp, resetPassword, updateProfile, changePassword, deleteAccount, pingCustomerPresence, logoutCustomerPresence, } from '../controllers/authController.js';
 import { authenticateToken, requireAdmin } from '../middleware/auth.js';
 import { authRateLimiter } from '../middleware/rateLimiter.js';
 const router = Router();
@@ -8,6 +8,7 @@ router.post('/register', authRateLimiter, register);
 router.post('/login', authRateLimiter, login);
 router.post('/accept-invite', authRateLimiter, acceptAdminInvite);
 router.post('/forgot-password', authRateLimiter, forgotPassword);
+router.post('/verify-reset-otp', authRateLimiter, verifyResetOtp);
 router.post('/reset-password', authRateLimiter, resetPassword);
 router.post('/verify-email', verifyEmail);
 router.get('/verify-email', verifyEmail);

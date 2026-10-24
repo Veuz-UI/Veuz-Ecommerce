@@ -2,21 +2,29 @@
   "promotions": [
     {
       "id": "promo-card-1",
-      "image": "/uploads/img_1792265244028_872a7c4d58a983e73dbb3607a2512324.png",
+      "image": "/uploads/img_1792857207389_b32b995e6aa3806cbabd9777a438219a.png",
       "title": "Head & Eye Protection PPE Collection",
       "link": "/products"
     },
     {
       "id": "promo-card-2",
-      "image": "/uploads/img_1792265625535_4e8f0b37bfbebd144b884e482e7a313f.png",
+      "image": "/uploads/img_1792857407520_f1a8ab763f46f49425ec1658771f9d1f.png",
       "title": "",
       "link": "/products"
     },
     {
       "id": "promo-card-3",
-      "image": "/uploads/img_1792265650727_fcc68668d53d3967244ef732217d96f1.png",
+      "image": "/uploads/img_1792857530645_b0a73d3c40c741fb8f335887a760dbaf.png",
       "title": "",
       "link": "/products"
+    },
+    {
+      "id": "promo-card-4",
+      "image": "/uploads/img_1792857557478_1b37a0d992762c844db8c67cbee32a41.png",
+      "title": "Safety Boots & Hearing Protection",
+      "link": "/products"
     }
-  ]
+  ],
+  "dailyClicks": {},
+  "clickHistory": []
 }

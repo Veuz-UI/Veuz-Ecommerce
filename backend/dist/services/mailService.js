@@ -30,6 +30,26 @@ class MailService {
         }
         return [];
     }
+    getEmailIconAttachment(iconName, cid) {
+        const candidatePaths = [
+            path.resolve(process.cwd(), `../public/assets/imgs/email/${iconName}`),
+            path.resolve(process.cwd(), `public/assets/imgs/email/${iconName}`),
+            path.resolve(__dirname, `../../../public/assets/imgs/email/${iconName}`),
+            path.resolve(__dirname, `../../public/assets/imgs/email/${iconName}`),
+        ];
+        for (const p of candidatePaths) {
+            if (fs.existsSync(p)) {
+                return [
+                    {
+                        filename: iconName,
+                        path: p,
+                        cid,
+                    },
+                ];
+            }
+        }
+        return [];
+    }
     initTransporter() {
         const user = process.env.SMTP_USER;
         const pass = process.env.SMTP_PASS;
@@ -88,7 +108,9 @@ class MailService {
             return { success: true, messageId: 'simulated-local-dispatch' };
         }
         try {
-            const attachments = this.getLogoAttachment();
+            const defaultAttachments = this.getLogoAttachment();
+            const extraAttachments = options.attachments || [];
+            const attachments = [...defaultAttachments, ...extraAttachments];
             const info = await this.transporter.sendMail({
                 from: this.getFromAddress(),
                 to: options.to,
@@ -111,11 +133,13 @@ class MailService {
     async sendWelcomeEmail(email, name) {
         const clientUrl = this.getClientUrl();
         const html = getWelcomeEmailHtml(name, clientUrl);
+        const attachments = this.getEmailIconAttachment('check.png', 'email-icon-check');
         return this.sendMail({
             to: email,
             subject: 'Account Created Successfully - Welcome to Veuz Safety! 🛡️',
             html,
             text: `Hello ${name},\n\nWelcome to Veuz Safety! Your account has been created successfully.\n\nPlease verify your email address in your profile:\n${clientUrl}/profile#basic-info\n\nVeuz Safety Team`,
+            attachments,
         });
     }
     /**
@@ -126,25 +150,30 @@ class MailService {
         const verificationLink = `${clientUrl}/api/auth/verify-email?token=${token}`;
         const displayCode = code || token;
         const html = getVerificationEmailHtml(name, verificationLink, clientUrl, displayCode);
+        const attachments = this.getEmailIconAttachment('envelope.png', 'email-icon-envelope');
         return this.sendMail({
             to: email,
             subject: `Your Verification Code: ${displayCode} - Veuz Safety`,
             html,
             text: `Hello ${name},\n\nYour 6-digit confirmation code is: ${displayCode}\n\nEnter this code on your profile, or verify directly by clicking this link:\n${verificationLink}\n\nThis verification link is valid for 24 hours.\n\nVeuz Safety Team`,
+            attachments,
         });
     }
     /**
-     * 3. Send Password Reset Link
+     * 3. Send Password Reset Link with 6-Digit OTP
      */
-    async sendPasswordResetEmail(email, name, token) {
+    async sendPasswordResetEmail(email, name, token, otp) {
         const clientUrl = this.getClientUrl();
-        const resetLink = `${clientUrl}/reset-password?token=${token}`;
-        const html = getResetPasswordEmailHtml(name, resetLink, clientUrl);
+        const displayOtp = otp || token;
+        const resetLink = `${clientUrl}/reset-password?email=${encodeURIComponent(email)}&otp=${displayOtp}`;
+        const html = getResetPasswordEmailHtml(name, resetLink, clientUrl, displayOtp);
+        const attachments = this.getEmailIconAttachment('lock.png', 'email-icon-lock');
         return this.sendMail({
             to: email,
-            subject: 'Reset your password - Veuz',
+            subject: `Your Password Reset OTP: ${displayOtp} - Veuz Safety`,
             html,
-            text: `Dear ${name || 'Customer'},\n\nAs per your request, a password reset was initiated for your account at veuz-safety.com.\n\nTo change your account password, please click on the button in the email or visit the link.\n\nPlease note that the link is only available for 24 hours.\n\nYours sincerely,\nVeuz Team`,
+            text: `Dear ${name || 'Customer'},\n\nYour 6-digit password reset OTP is: ${displayOtp}\n\nConfirm this OTP on the reset password screen, or use this direct link:\n${resetLink}\n\nThis OTP is valid for 15 minutes.\n\nYours sincerely,\nVeuz Safety Team`,
+            attachments,
         });
     }
     /**
@@ -153,11 +182,13 @@ class MailService {
     async sendPasswordResetSuccessEmail(email, name) {
         const clientUrl = this.getClientUrl();
         const html = getPasswordResetSuccessEmailHtml(name, clientUrl);
+        const attachments = this.getEmailIconAttachment('check.png', 'email-icon-check');
         return this.sendMail({
             to: email,
             subject: 'Your Password Was Changed Successfully - Veuz Safety ✅',
             html,
             text: `Hello ${name}, your Veuz account password was changed successfully. Log in at ${clientUrl}/login`,
+            attachments,
         });
     }
     /**
@@ -167,11 +198,13 @@ class MailService {
         const clientUrl = this.getClientUrl();
         const inviteLink = `${clientUrl}/admin/setup?token=${token}`;
         const html = getAdminInviteEmailHtml(email, role, inviteLink, clientUrl);
+        const attachments = this.getEmailIconAttachment('team.png', 'email-icon-team');
         return this.sendMail({
             to: email,
             subject: `You've been invited to join the Veuz Safety Team as ${role} 📋`,
             html,
             text: `Hello, you have been invited to join the Veuz Safety administration team as ${role}. Accept invitation: ${inviteLink}`,
+            attachments,
         });
     }
 }

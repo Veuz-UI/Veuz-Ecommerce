@@ -16,30 +16,32 @@ export interface LoginSetupPayload {
 
 const DATA_FILE_PATH = path.join(process.cwd(), 'src', 'data', 'login-setup-store.json');
 
+const LOGIN_SLIDER_PLACEHOLDER = '/assets/imgs/theme/login-slider-placeholder.svg';
+
 const DEFAULT_SETUP: LoginSetupPayload = {
   autoSlideInterval: 5000,
   slides: [
     {
       id: 'slide-1',
-      image: '/assets/imgs/banner/urban-login-hero.jpg',
+      image: LOGIN_SLIDER_PLACEHOLDER,
       caption: 'Veuz is an online fashion store that provides a variety of clothes, shoes, bags, and accessories for men and women.',
       isActive: true,
     },
     {
       id: 'slide-2',
-      image: '/assets/imgs/banner/urban-login-slide-2.jpg',
+      image: LOGIN_SLIDER_PLACEHOLDER,
       caption: 'Discover contemporary urban streetwear, timeless trench coats, and modern minimalist styles crafted for daily elegance.',
       isActive: true,
     },
     {
       id: 'slide-3',
-      image: '/assets/imgs/banner/urban-login-slide-3.jpg',
+      image: LOGIN_SLIDER_PLACEHOLDER,
       caption: 'Curated collections with premium materials, lightweight all-day comfort, and tailored designs for modern life.',
       isActive: true,
     },
     {
       id: 'slide-4',
-      image: '/assets/imgs/banner/urban-login-slide-4.jpg',
+      image: LOGIN_SLIDER_PLACEHOLDER,
       caption: 'Elevate your workwear and weekend wardrobe with versatile apparel, sleek footwear, and functional accessories.',
       isActive: true,
     },
@@ -52,9 +54,15 @@ function readSetup(): LoginSetupPayload {
       const raw = fs.readFileSync(DATA_FILE_PATH, 'utf-8');
       const parsed = JSON.parse(raw);
       if (parsed && Array.isArray(parsed.slides) && parsed.slides.length > 0) {
+        const sanitizedSlides = parsed.slides.slice(0, 4).map((s: LoginSlideItem) => ({
+          ...s,
+          image: s.image && !s.image.includes('/assets/imgs/banner/urban-login-')
+            ? s.image
+            : LOGIN_SLIDER_PLACEHOLDER,
+        }));
         return {
           autoSlideInterval: Number(parsed.autoSlideInterval) || 5000,
-          slides: parsed.slides.slice(0, 4), // Enforce maximum 4 slides
+          slides: sanitizedSlides, // Enforce maximum 4 slides
         };
       }
     }

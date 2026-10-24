@@ -309,11 +309,11 @@ export const deleteUser = async (req, res) => {
                 return;
             }
         }
-        // If caller is ADMIN (not SUPER_ADMIN), they cannot delete other ADMINs
-        if (targetUser.role === 'ADMIN' && caller.role !== 'SUPER_ADMIN') {
+        // Restrict deletion: only SUPER_ADMIN can delete user accounts
+        if (caller.role !== 'SUPER_ADMIN') {
             res.status(403).json({
                 success: false,
-                message: 'Only Super Administrators can delete administrator accounts.',
+                message: 'Only Super Administrators can delete user accounts.',
             });
             return;
         }

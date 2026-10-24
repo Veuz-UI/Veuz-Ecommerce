@@ -9,8 +9,9 @@
 // ========================================================
 // 1. PASSWORD RESET TEMPLATE
 // ========================================================
-export const getResetPasswordEmailHtml = (name, resetLink, clientUrl) => {
+export const getResetPasswordEmailHtml = (name, resetLink, clientUrl, otp) => {
     const recipientName = name && name.trim() ? name.trim() : 'Customer';
+    const displayOtp = otp && otp.trim() ? otp.trim() : '------';
     return `<!DOCTYPE html>
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -37,6 +38,10 @@ export const getResetPasswordEmailHtml = (name, resetLink, clientUrl) => {
       .email-card-body {
         padding: 28px 18px !important;
       }
+      .code-display {
+        font-size: 26px !important;
+        letter-spacing: 6px !important;
+      }
       .btn-cta {
         display: block !important;
         width: 100% !important;
@@ -48,7 +53,7 @@ export const getResetPasswordEmailHtml = (name, resetLink, clientUrl) => {
 </head>
 <body width="100%" style="margin: 0; padding: 0 !important; background-color: #f4f5f8;">
   <div style="display: none; font-size: 1px; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
-    As per your request, a password reset was initiated for your Veuz Safety account.
+    Your password reset OTP code is ${displayOtp}. Use this code to reset your password on Veuz Safety.
   </div>
 
   <table align="center" role="presentation" cellspacing="0" cellpadding="0" border="0" width="100%" style="background-color: #f4f5f8; margin: 0 auto; width: 100%;">
@@ -74,11 +79,8 @@ export const getResetPasswordEmailHtml = (name, resetLink, clientUrl) => {
                   <td align="center" style="padding-bottom: 18px;">
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto;">
                       <tr>
-                        <td align="center" valign="middle" style="width: 54px; height: 54px; background-color: #eff6ff; border: 1px solid #dbeafe; border-radius: 50%; text-align: center;">
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
-                            <rect width="18" height="11" x="3" y="11" rx="2" ry="2"></rect>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                          </svg>
+                        <td align="center" valign="middle" style="width: 56px; height: 56px; background-color: #eff6ff; border: 1px solid #dbeafe; border-radius: 50%; text-align: center;">
+                          <img src="cid:email-icon-lock" alt="Reset Password" width="26" height="26" style="width: 26px; height: 26px; display: block; margin: 0 auto; border: 0;" />
                         </td>
                       </tr>
                     </table>
@@ -103,15 +105,31 @@ export const getResetPasswordEmailHtml = (name, resetLink, clientUrl) => {
                   </td>
                 </tr>
 
-                <!-- Inner Card / Button Section -->
+                <!-- Inner Card / OTP Box Section -->
                 <tr>
                   <td style="padding-bottom: 24px;">
                     <table class="inner-box" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; margin: 0 auto;">
                       <tr>
                         <td style="padding: 28px 22px;" align="center">
                           
-                          <p style="margin: 0 0 18px 0; font-size: 13.5px; color: #475569; line-height: 1.5;">
-                            Click the button below to choose a new password:
+                          <!-- OTP Label -->
+                          <p style="margin: 0 0 12px 0; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.8px;">
+                            YOUR 6-DIGIT PASSWORD RESET OTP:
+                          </p>
+
+                          <!-- 6-Digit Code Box -->
+                          <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto 16px auto;">
+                            <tr>
+                              <td align="center" style="background-color: #ffffff; border: 2px dashed #0f172a; border-radius: 10px; padding: 12px 28px;">
+                                <span class="code-display" style="font-size: 32px; font-weight: 800; color: #0f172a; letter-spacing: 8px; font-family: -apple-system, BlinkMacSystemFont, 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace; display: inline-block; padding-left: 8px;">
+                                  ${displayOtp}
+                                </span>
+                              </td>
+                            </tr>
+                          </table>
+
+                          <p style="margin: 0 0 20px 0; font-size: 13.5px; color: #475569; line-height: 1.5;">
+                            Confirm this OTP code on the reset password screen to unlock and create your new password.
                           </p>
 
                           <!-- Primary CTA Button (Solid Black) -->
@@ -119,7 +137,7 @@ export const getResetPasswordEmailHtml = (name, resetLink, clientUrl) => {
                             <tr>
                               <td align="center">
                                 <a href="${resetLink}" class="btn-cta" target="_blank" style="background-color: #0f172a; color: #ffffff; display: inline-block; font-size: 14.5px; font-weight: 600; text-align: center; text-decoration: none; padding: 13px 44px; border-radius: 8px; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16); letter-spacing: 0.2px;">
-                                  Set new password
+                                  Reset Password Directly
                                 </a>
                               </td>
                             </tr>
@@ -128,14 +146,14 @@ export const getResetPasswordEmailHtml = (name, resetLink, clientUrl) => {
                           <!-- Subtle Divider -->
                           <div style="height: 1px; background-color: #e2e8f0; width: 100%; margin: 22px 0 16px 0;"></div>
 
-                          <!-- 24h Expiry Notice -->
+                          <!-- 15m Expiry Notice -->
                           <p style="margin: 0 0 8px 0; font-size: 12.5px; color: #475569; font-weight: 600;">
-                            ⏱️ This link is only valid for 24 hours.
+                            ⏱️ This OTP code is only valid for 15 minutes.
                           </p>
 
                           <!-- Security Notice -->
                           <p style="margin: 0; font-size: 11.5px; line-height: 1.55; color: #94a3b8; max-width: 420px;">
-                            If you did not request a password reset, you can safely ignore this email. Your password will not change.
+                            If you did not request a password reset, you can safely ignore this email. Your password will remain unchanged.
                           </p>
 
                         </td>
@@ -244,9 +262,13 @@ export const getWelcomeEmailHtml = (name, clientUrl) => {
                 <!-- Bulletproof Circular Success Check Badge -->
                 <tr>
                   <td align="center" style="padding-bottom: 18px;">
-                    <div style="width: 54px; height: 54px; background-color: #dcfce7; border: 1.5px solid #86efac; border-radius: 50%; display: inline-block; text-align: center; line-height: 50px; font-size: 24px; color: #16a34a; font-weight: 800;">
-                      ✓
-                    </div>
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto;">
+                      <tr>
+                        <td align="center" valign="middle" style="width: 56px; height: 56px; background-color: #dcfce7; border: 1px solid #bbf7d0; border-radius: 50%; text-align: center;">
+                          <img src="cid:email-icon-check" alt="Account Created" width="26" height="26" style="width: 26px; height: 26px; display: block; margin: 0 auto; border: 0;" />
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
 
@@ -390,11 +412,8 @@ export const getVerificationEmailHtml = (name, verificationLink, clientUrl, code
                   <td align="center" style="padding-bottom: 18px;">
                     <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto;">
                       <tr>
-                        <td align="center" valign="middle" style="width: 54px; height: 54px; background-color: #eff6ff; border: 1px solid #dbeafe; border-radius: 50%; text-align: center;">
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline-block; vertical-align: middle;">
-                            <rect width="20" height="16" x="2" y="4" rx="2"></rect>
-                            <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
-                          </svg>
+                        <td align="center" valign="middle" style="width: 56px; height: 56px; background-color: #eff6ff; border: 1px solid #dbeafe; border-radius: 50%; text-align: center;">
+                          <img src="cid:email-icon-envelope" alt="Verify Email" width="26" height="26" style="width: 26px; height: 26px; display: block; margin: 0 auto; border: 0;" />
                         </td>
                       </tr>
                     </table>
@@ -566,9 +585,13 @@ export const getPasswordResetSuccessEmailHtml = (name, clientUrl) => {
                 <!-- Bulletproof Circular Success Check Badge -->
                 <tr>
                   <td align="center" style="padding-bottom: 18px;">
-                    <div style="width: 54px; height: 54px; background-color: #dcfce7; border: 1.5px solid #86efac; border-radius: 50%; display: inline-block; text-align: center; line-height: 50px; font-size: 24px; color: #16a34a; font-weight: 800;">
-                      ✓
-                    </div>
+                    <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto;">
+                      <tr>
+                        <td align="center" valign="middle" style="width: 56px; height: 56px; background-color: #dcfce7; border: 1px solid #bbf7d0; border-radius: 50%; text-align: center;">
+                          <img src="cid:email-icon-check" alt="Password Reset Successful" width="26" height="26" style="width: 26px; height: 26px; display: block; margin: 0 auto; border: 0;" />
+                        </td>
+                      </tr>
+                    </table>
                   </td>
                 </tr>
 
@@ -675,10 +698,14 @@ export const getAdminInviteEmailHtml = (email, role, inviteLink, clientUrl) => {
 
           <!-- Team Badge Icon -->
           <tr>
-            <td align="center" style="padding-bottom:18px;">
-              <div style="width:58px; height:58px; background-color:#f8fafc; border:1.5px solid #e2e8f0; border-radius:50%; display:inline-block; text-align:center; line-height:58px; font-size:26px;">
-                👥
-              </div>
+            <td align="center" style="padding-bottom: 18px;">
+              <table role="presentation" border="0" cellpadding="0" cellspacing="0" align="center" style="margin: 0 auto;">
+                <tr>
+                  <td align="center" valign="middle" style="width: 56px; height: 56px; background-color: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 50%; text-align: center;">
+                    <img src="cid:email-icon-team" alt="Team Invitation" width="26" height="26" style="width: 26px; height: 26px; display: block; margin: 0 auto; border: 0;" />
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 

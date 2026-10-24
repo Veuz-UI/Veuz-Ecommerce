@@ -12,6 +12,219 @@ export interface StudioOptions {
   paddingPercent?: number; // default: 6% margin to focus subject prominently
   backgroundColor?: 'transparent' | 'white' | 'neutral';
   quality?: number; // 0.1 to 1.0 (default 1.0 for lossless alpha)
+  referenceImage?: string | HTMLImageElement | HTMLCanvasElement; // 1st/Primary Image to teach product focus
+  cropRect?: { x: number; y: number; width: number; height: number }; // Manual focal crop if specified
+}
+
+export interface ProductColorProfile {
+  hues: number[];
+  primaryHue: number;
+  hasDistinctColor: boolean;
+  avgSat: number;
+  avgVal: number;
+}
+
+export function rgbToHsv(r: number, g: number, b: number): { h: number; s: number; v: number } {
+  r /= 255;
+  g /= 255;
+  b /= 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  let h = 0;
+  let s = 0;
+  const v = max;
+  const d = max - min;
+  s = max === 0 ? 0 : d / max;
+  if (max !== min) {
+    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (max === g) h = (b - r) / d + 2;
+    else if (max === b) h = (r - g) / d + 4;
+    h /= 6;
+  }
+  return { h: Math.round(h * 360), s: Math.round(s * 100), v: Math.round(v * 100) };
+}
+
+/**
+ * Extracts dominant product colors from the reference (1st) image
+ */
+export function extractProductColorProfile(refSource: HTMLCanvasElement | HTMLImageElement): ProductColorProfile | null {
+  try {
+    const canvas = document.createElement('canvas');
+    const w = refSource instanceof HTMLImageElement ? (refSource.naturalWidth || refSource.width) : refSource.width;
+    const h = refSource instanceof HTMLImageElement ? (refSource.naturalHeight || refSource.height) : refSource.height;
+    if (!w || !h) return null;
+
+    const sampleSize = 250;
+    canvas.width = sampleSize;
+    canvas.height = sampleSize;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return null;
+
+    ctx.drawImage(refSource, 0, 0, sampleSize, sampleSize);
+    const imgData = ctx.getImageData(0, 0, sampleSize, sampleSize);
+    const data = imgData.data;
+
+    const hueCounts = new Array(360).fill(0);
+    let totalSaturated = 0;
+    let satSum = 0;
+    let valSum = 0;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const a = data[i + 3];
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+
+      if (a > 30 && !(r > 240 && g > 240 && b > 240)) {
+        const hsv = rgbToHsv(r, g, b);
+        if (hsv.s > 25 && hsv.v > 20) {
+          hueCounts[hsv.h]++;
+          satSum += hsv.s;
+          valSum += hsv.v;
+          totalSaturated++;
+        }
+      }
+    }
+
+    if (totalSaturated < 80) return null;
+
+    let maxCount = 0;
+    let peakHue = 0;
+    for (let h = 0; h < 360; h++) {
+      let count = 0;
+      for (let dh = -6; dh <= 6; dh++) {
+        const idx = (h + dh + 360) % 360;
+        count += hueCounts[idx];
+      }
+      if (count > maxCount) {
+        maxCount = count;
+        peakHue = h;
+      }
+    }
+
+    return {
+      hues: [peakHue],
+      primaryHue: peakHue,
+      hasDistinctColor: maxCount / totalSaturated > 0.22,
+      avgSat: Math.round(satSum / totalSaturated),
+      avgVal: Math.round(valSum / totalSaturated),
+    };
+  } catch (e) {
+    console.warn('Error extracting product color profile:', e);
+    return null;
+  }
+}
+
+/**
+ * Detects the Hero Product Subject (e.g. glove) inside an angle photo with foreign props/tools
+ */
+export function detectHeroSubjectBoundingBox(
+  canvas: HTMLCanvasElement,
+  refProfile: ProductColorProfile | null
+): { minX: number; minY: number; maxX: number; maxY: number; width: number; height: number } {
+  const fullBBox = getBoundingBox(canvas);
+  if (!refProfile || !refProfile.hasDistinctColor) {
+    return fullBBox;
+  }
+
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) return fullBBox;
+
+  const { width: w, height: h } = canvas;
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const data = imgData.data;
+
+  // 1. Locate Product Anchor Pixels (e.g. orange nitrile palm/fingers)
+  const targetHue = refProfile.primaryHue;
+  const anchorPixels: { x: number; y: number }[] = [];
+
+  for (let y = fullBBox.minY; y <= fullBBox.maxY; y += 2) {
+    for (let x = fullBBox.minX; x <= fullBBox.maxX; x += 2) {
+      const idx = (y * w + x) * 4;
+      const a = data[idx + 3];
+      if (a < 25) continue;
+
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+
+      const hsv = rgbToHsv(r, g, b);
+      const hueDiff = Math.min(Math.abs(hsv.h - targetHue), 360 - Math.abs(hsv.h - targetHue));
+
+      if (hueDiff <= 34 && hsv.s >= 22 && hsv.v >= 20) {
+        anchorPixels.push({ x, y });
+      }
+    }
+  }
+
+  // If insufficient anchor pixels detected, keep the entire foreground intact
+  if (anchorPixels.length < 50) {
+    return fullBBox;
+  }
+
+  // 2. Find Anchor Centroid and Extent
+  let sumX = 0, sumY = 0;
+  for (const pt of anchorPixels) {
+    sumX += pt.x;
+    sumY += pt.y;
+  }
+  const centerX = sumX / anchorPixels.length;
+  const centerY = sumY / anchorPixels.length;
+
+  anchorPixels.sort((a, b) => a.x - b.x);
+  const aMinX = anchorPixels[Math.floor(anchorPixels.length * 0.02)].x;
+  const aMaxX = anchorPixels[Math.floor(anchorPixels.length * 0.98)].x;
+  anchorPixels.sort((a, b) => a.y - b.y);
+  const aMinY = anchorPixels[Math.floor(anchorPixels.length * 0.02)].y;
+  const aMaxY = anchorPixels[Math.floor(anchorPixels.length * 0.98)].y;
+
+  const anchorW = aMaxX - aMinX + 1;
+  const anchorH = aMaxY - aMinY + 1;
+  const anchorSpan = Math.max(anchorW, anchorH);
+
+  // 3. Connect to the Complete Product (including White Knit Cuff/Back) & Tool in Hand!
+  // Any visible foreground pixel (alpha > 25) that is contiguous with the glove or within the hand's reach
+  // is protected and included. The white knit cuff and held tool are NEVER sliced or wiped!
+  let subMinX = aMinX;
+  let subMaxX = aMaxX;
+  let subMinY = aMinY;
+  let subMaxY = aMaxY;
+
+  // Maximum radius from product centroid to include white cuff, hand, and gripped tool
+  const maxReach = anchorSpan * 1.65;
+
+  for (let y = fullBBox.minY; y <= fullBBox.maxY; y++) {
+    for (let x = fullBBox.minX; x <= fullBBox.maxX; x++) {
+      const idx = (y * w + x) * 4;
+      const a = data[idx + 3];
+      if (a < 25) continue;
+
+      const dist = Math.hypot(x - centerX, y - centerY);
+      if (dist <= maxReach) {
+        if (x < subMinX) subMinX = x;
+        if (x > subMaxX) subMaxX = x;
+        if (y < subMinY) subMinY = y;
+        if (y > subMaxY) subMaxY = y;
+      }
+    }
+  }
+
+  // 4. Safe Context Padding so no glove seam, cuff hem, or tool edge is ever clipped
+  const pad = Math.round(Math.max(subMaxX - subMinX, subMaxY - subMinY) * 0.06);
+
+  const finalMinX = Math.max(0, subMinX - pad);
+  const finalMaxX = Math.min(w - 1, subMaxX + pad);
+  const finalMinY = Math.max(0, subMinY - pad);
+  const finalMaxY = Math.min(h - 1, subMaxY + pad);
+
+  return {
+    minX: finalMinX,
+    minY: finalMinY,
+    maxX: finalMaxX,
+    maxY: finalMaxY,
+    width: finalMaxX - finalMinX + 1,
+    height: finalMaxY - finalMinY + 1,
+  };
 }
 
 export type AnglePerspective = 'side' | 'top' | 'back' | 'detail';
@@ -109,6 +322,13 @@ export function removeBackgroundCanvas(img: HTMLImageElement, tolerance: number 
 
   const topLeft = sampleCorner(0, 0);
   const topRight = sampleCorner(Math.max(0, w - 5), 0);
+  const isCornerStudioWhite =
+    topLeft.r > 225 &&
+    topLeft.g > 225 &&
+    topLeft.b > 225 &&
+    topRight.r > 225 &&
+    topRight.g > 225 &&
+    topRight.b > 225;
 
   const isBgPixel = (idx: number): boolean => {
     const a = data[idx + 3];
@@ -117,11 +337,6 @@ export function removeBackgroundCanvas(img: HTMLImageElement, tolerance: number 
     const r = data[idx];
     const g = data[idx + 1];
     const b = data[idx + 2];
-
-    // Standard white / near-white studio background (most common)
-    if (r > 232 && g > 232 && b > 232 && Math.abs(r - g) < 25 && Math.abs(g - b) < 25) {
-      return true;
-    }
 
     // Matches top-left corner background
     const distTL = Math.sqrt(
@@ -134,6 +349,12 @@ export function removeBackgroundCanvas(img: HTMLImageElement, tolerance: number 
       Math.pow(r - topRight.r, 2) + Math.pow(g - topRight.g, 2) + Math.pow(b - topRight.b, 2)
     );
     if (distTR <= tolerance) return true;
+
+    // Only if both top corners are verified studio pure white: match near-white backdrop
+    // Stricter threshold (248) protects white knit cuffs, white cotton liners, and logos from being wiped
+    if (isCornerStudioWhite && r > 248 && g > 248 && b > 248 && Math.abs(r - g) < 8 && Math.abs(g - b) < 8) {
+      return true;
+    }
 
     return false;
   };
@@ -161,7 +382,7 @@ export function removeBackgroundCanvas(img: HTMLImageElement, tolerance: number 
 
   // If the top edge is a complex photographic scene (stairs, walls, outdoors, pillars, wallpaper),
   // DO NOT ERASE! Return original canvas intact so clothes, people, and scenery are never damaged.
-  if (checkedPixels > 0 && nonStudioCount / checkedPixels > 0.15) {
+  if (checkedPixels > 0 && nonStudioCount / checkedPixels > 0.08) {
     return canvas;
   }
 
@@ -291,7 +512,30 @@ export async function standardizeProductCanvas(
   }
 
   // Find object bounding box to crop and center accurately
-  const bbox = getBoundingBox(sourceCanvas);
+  let bbox: { minX: number; minY: number; maxX: number; maxY: number; width: number; height: number };
+
+  if (options.cropRect && options.cropRect.width > 0 && options.cropRect.height > 0) {
+    bbox = {
+      minX: options.cropRect.x,
+      minY: options.cropRect.y,
+      maxX: options.cropRect.x + options.cropRect.width - 1,
+      maxY: options.cropRect.y + options.cropRect.height - 1,
+      width: options.cropRect.width,
+      height: options.cropRect.height,
+    };
+  } else if (options.referenceImage) {
+    try {
+      const refImg = typeof options.referenceImage === 'string'
+        ? await loadImage(options.referenceImage)
+        : options.referenceImage;
+      const refProfile = extractProductColorProfile(refImg);
+      bbox = detectHeroSubjectBoundingBox(sourceCanvas, refProfile);
+    } catch {
+      bbox = getBoundingBox(sourceCanvas);
+    }
+  } else {
+    bbox = getBoundingBox(sourceCanvas);
+  }
 
   // Target 1:1 Square Canvas
   const outCanvas = document.createElement('canvas');
@@ -483,5 +727,50 @@ export async function generateSimulatedAngleCanvas(
       },
       'image/png'
     );
+  });
+}
+
+/**
+ * Takes an existing transparent cutout image URL and reframes / zooms / pans onto a chosen focal area
+ */
+export async function reframeImageCanvas(
+  imageUrl: string,
+  zoomScale: number = 1.0, // 1.0 to 3.0
+  offsetX: number = 0,     // -50 to +50 percent
+  offsetY: number = 0,     // -50 to +50 percent
+  canvasSize: number = 1000
+): Promise<File> {
+  const img = await loadImage(imageUrl);
+  const canvas = document.createElement('canvas');
+  canvas.width = canvasSize;
+  canvas.height = canvasSize;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('Could not get canvas context.');
+
+  ctx.clearRect(0, 0, canvasSize, canvasSize);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+
+  const baseW = img.naturalWidth || img.width;
+  const baseH = img.naturalHeight || img.height;
+
+  // Fit image inside canvas at zoomScale
+  const fitScale = (Math.min(canvasSize / baseW, canvasSize / baseH) * 0.88) * zoomScale;
+  const drawW = baseW * fitScale;
+  const drawH = baseH * fitScale;
+
+  const shiftX = (offsetX / 100) * (canvasSize / 2);
+  const shiftY = (offsetY / 100) * (canvasSize / 2);
+
+  const posX = (canvasSize - drawW) / 2 + shiftX;
+  const posY = (canvasSize - drawH) / 2 + shiftY;
+
+  ctx.drawImage(img, posX, posY, drawW, drawH);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (!blob) return reject(new Error('Failed to reframe image.'));
+      resolve(new File([blob], `refocused-${Date.now()}.png`, { type: 'image/png' }));
+    }, 'image/png');
   });
 }

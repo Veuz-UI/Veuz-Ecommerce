@@ -22,6 +22,7 @@ import ColorGalleryDrawerModal from '@/components/dashboard/ColorGalleryDrawerMo
 import VariantSetupModal from '@/components/dashboard/VariantSetupModal';
 import GenderSetupModal from '@/components/dashboard/GenderSetupModal';
 import DeliveryOptionSetupModal from '@/components/dashboard/DeliveryOptionSetupModal';
+import FocalAdjustmentModal from '@/components/dashboard/FocalAdjustmentModal';
 
 function ProductEditForm() {
   const router = useRouter();
@@ -52,6 +53,11 @@ function ProductEditForm() {
   const [isGeneratingAngle, setIsGeneratingAngle] = useState<boolean>(false);
   const [generatingSlot, setGeneratingSlot] = useState<string | null>(null);
   const [angleSlotTarget, setAngleSlotTarget] = useState<number | null>(null);
+  const [focalModalTarget, setFocalModalTarget] = useState<{
+    slot: number;
+    url: string;
+    label: string;
+  } | null>(null);
   const [isDeliverySetupOpen, setIsDeliverySetupOpen] = useState<boolean>(false);
   const [deliveryOptions, setDeliveryOptions] = useState<DeliveryOptionItem[]>(DEFAULT_DELIVERY_OPTIONS);
   const [deliveryOptionId, setDeliveryOptionId] = useState<string>('del-standard');
@@ -72,7 +78,7 @@ function ProductEditForm() {
   const [link, setLink] = useState<string>('/product-details');
 
   // Pricing & Special Offer
-  const [originalPrice, setOriginalPrice] = useState<number>(0);
+  const [originalPrice, setOriginalPrice] = useState<number | ''>('');
   const [isSpecialOffer, setIsSpecialOffer] = useState<boolean>(false);
   const [offerPercent, setOfferPercent] = useState<number>(15);
   const [offerEndDate, setOfferEndDate] = useState('');
@@ -165,7 +171,7 @@ function ProductEditForm() {
             setDeliveryCharge(found.deliveryCharge !== undefined ? found.deliveryCharge : 15);
             setDeliveryEstimatedDays(found.deliveryEstimatedDays || '3-5 Business Days');
 
-            const basePrice = found.originalPrice || parseFloat(found.price?.replace(/[^\d.]/g, '') || '100');
+            const basePrice = found.originalPrice || (found.price ? parseFloat(found.price.replace(/[^\d.]/g, '')) : '') || '';
             setOriginalPrice(basePrice);
             setIsSpecialOffer(Boolean(found.isSpecialOffer || found.discount));
             setOfferPercent(found.offerPercent || (found.discount ? parseInt(found.discount) : 15));
@@ -207,7 +213,7 @@ function ProductEditForm() {
     setImage('');
     setGalleryImages([]);
     setColorImages({});
-    setOriginalPrice(0);
+    setOriginalPrice('');
     setIsSpecialOffer(false);
     setOfferPercent(15);
     setOfferEndDate('');
@@ -263,10 +269,11 @@ function ProductEditForm() {
   };
 
   // Live calculation of discounted price
-  const calculatedDiscountedPrice = isSpecialOffer && offerPercent > 0
-    ? Math.round(originalPrice * (1 - offerPercent / 100))
-    : originalPrice;
-  const savings = originalPrice - calculatedDiscountedPrice;
+  const numericOriginalPrice = typeof originalPrice === 'number' ? originalPrice : Number(originalPrice) || 0;
+  const calculatedDiscountedPrice = isSpecialOffer && offerPercent > 0 && numericOriginalPrice > 0
+    ? Math.round(numericOriginalPrice * (1 - offerPercent / 100))
+    : numericOriginalPrice;
+  const savings = numericOriginalPrice - calculatedDiscountedPrice;
 
   // Handle category change
   const handleCategoryChange = (catName: string) => {
@@ -277,8 +284,8 @@ function ProductEditForm() {
     }
   };
 
-  // Studio Upload Pipeline: Validates, Auto-removes BG, Centers 1:1 & Uploads
-  const processAndUploadFile = async (file: File): Promise<string | null> => {
+  // Studio Upload Pipeline: Validates, Auto-removes BG, Centers 1:1 & Focuses on Subject
+  const processAndUploadFile = async (file: File, refImage?: string): Promise<string | null> => {
     const validation = validateImageFile(file, 5 * 1024 * 1024);
     if (!validation.valid) {
       showToast('danger', validation.error || 'Invalid image file.');
@@ -287,6 +294,7 @@ function ProductEditForm() {
 
     try {
       // 1. Process through Product Studio (Auto Background Removal + 1:1 Normalization + 100% Transparent)
+      // When refImage is provided, it teaches the AI to focus specifically on the product (e.g. glove) instead of props/tools
       const { file: processedFile, dataUrl } = await processProductStudioPhoto(file, {
         removeBackground: autoRemoveBg,
         standardizeSize: studioStandardize,
@@ -294,6 +302,7 @@ function ProductEditForm() {
         canvasSize: 1000,
         paddingPercent: 6, // Focused subject tightly
         quality: 1.0,
+        referenceImage: refImage,
       });
 
       // 2. Upload to Server
@@ -341,14 +350,16 @@ function ProductEditForm() {
     }
   };
 
-  // Additional Angle Image Upload Handler
+  // Additional Angle Image Upload Handler (Taught by 1st Cover Photo)
   const handleAngleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
     try {
-      const url = await processAndUploadFile(file);
+      // Use 1st image (Front View) as the reference teacher so the engine identifies the subject (glove)
+      const refImg = image && !image.includes('p1.jpg') ? image : undefined;
+      const url = await processAndUploadFile(file, refImg);
       if (url) {
         const targetSlot = angleSlotTarget !== null ? angleSlotTarget : 0;
         setGalleryImages((prev) => {
@@ -357,7 +368,7 @@ function ProductEditForm() {
           next[targetSlot] = url;
           return next;
         });
-        showToast('success', 'Angle photo added to gallery.', 'Angle Saved');
+        showToast('success', 'Angle photo processed & focused on product subject.', 'Angle Saved');
       }
     } finally {
       setIsUploading(false);
@@ -448,8 +459,9 @@ function ProductEditForm() {
       return false;
     }
 
-    if (originalPrice <= 0) {
-      showToast('danger', 'Please enter a valid price greater than 0.');
+    const numericBasePrice = typeof originalPrice === 'number' ? originalPrice : Number(originalPrice);
+    if (originalPrice === '' || isNaN(numericBasePrice) || numericBasePrice <= 0) {
+      showToast('danger', 'Actual Value / Base Price is mandatory. Please enter an amount greater than 0.', 'Mandatory Price');
       return false;
     }
 
@@ -521,10 +533,10 @@ function ProductEditForm() {
       images: storefrontImages,
       colorImages: colorImages,
       colorSizes: colorSizes,
-      originalPrice: originalPrice,
-      currentPrice: isSpecialOffer ? calculatedDiscountedPrice : originalPrice,
-      price: `${isSpecialOffer ? calculatedDiscountedPrice : originalPrice} SR`,
-      oldPrice: isSpecialOffer ? `${originalPrice} SR` : undefined,
+      originalPrice: Number(originalPrice),
+      currentPrice: isSpecialOffer ? calculatedDiscountedPrice : Number(originalPrice),
+      price: `${isSpecialOffer ? calculatedDiscountedPrice : Number(originalPrice)} SR`,
+      oldPrice: isSpecialOffer ? `${Number(originalPrice)} SR` : undefined,
       discount: isSpecialOffer ? `${offerPercent}% OFF` : undefined,
       isSpecialOffer: isSpecialOffer,
       offerPercent: isSpecialOffer ? offerPercent : undefined,
@@ -1321,8 +1333,11 @@ function ProductEditForm() {
                         min={1}
                         className="form-control"
                         placeholder="e.g. 160"
-                        value={originalPrice || ''}
-                        onChange={(e) => setOriginalPrice(Number(e.target.value))}
+                        value={originalPrice}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setOriginalPrice(val === '' ? '' : Number(val));
+                        }}
                         style={{ borderRadius: '0 8px 8px 0', borderColor: '#cbd5e1', fontSize: '14px', height: '42px' }}
                         required
                       />
@@ -1465,7 +1480,10 @@ function ProductEditForm() {
                       </span>
                       <div>
                         <h5 className="fs-15 fw-bold text-dark mb-0">Variants &amp; Product Images</h5>
-                        <span className="text-muted fs-11">Assign sizes and up to 5 images for every color variant.</span>
+                        <span className="text-muted fs-11 d-block">Assign sizes and up to 5 images for every color variant.</span>
+                        <span className="text-muted fs-10 d-block text-secondary mt-0.5">
+                          Recommended: 800×800px • White BG (<code className="text-dark bg-light px-1 py-0.5 rounded">#FFFFFF</code>) • Clean photos without text or watermarks.
+                        </span>
                       </div>
                     </div>
 
@@ -1618,6 +1636,24 @@ function ProductEditForm() {
                       )}
                     </div>
 
+                    {image && !image.includes('p1.jpg') && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setFocalModalTarget({
+                            slot: -1,
+                            url: image,
+                            label: 'Front View (Cover)',
+                          })
+                        }
+                        className="btn btn-sm btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-1.5 mb-2"
+                        style={{ borderRadius: '7px', fontSize: '11.5px', padding: '6px 12px' }}
+                      >
+                        <iconify-icon icon="solar:maximize-square-3-bold" class="fs-15 text-primary"></iconify-icon>
+                        <span>Adjust Focus / Zoom</span>
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
@@ -1671,22 +1707,40 @@ function ProductEditForm() {
                             </div>
 
                             {galleryImages[0] ? (
-                              <div
-                                className="rounded-2 border overflow-hidden position-relative mx-auto d-flex align-items-center justify-content-center my-1"
-                                style={{
-                                  width: '100%',
-                                  height: '92px',
-                                  backgroundColor: 'transparent',
-                                  backgroundImage: 'repeating-conic-gradient(#f1f5f9 0% 25%, #ffffff 0% 50%) 50% / 10px 10px',
-                                  borderColor: '#e2e8f0',
-                                }}
-                              >
-                                <img
-                                  src={galleryImages[0]}
-                                  alt="Side View"
-                                  style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }}
-                                />
-                              </div>
+                              <>
+                                <div
+                                  className="rounded-2 border overflow-hidden position-relative mx-auto d-flex align-items-center justify-content-center my-1"
+                                  style={{
+                                    width: '100%',
+                                    height: '92px',
+                                    backgroundColor: 'transparent',
+                                    backgroundImage: 'repeating-conic-gradient(#f1f5f9 0% 25%, #ffffff 0% 50%) 50% / 10px 10px',
+                                    borderColor: '#e2e8f0',
+                                  }}
+                                >
+                                  <img
+                                    src={galleryImages[0]}
+                                    alt="Side View"
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }}
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setFocalModalTarget({
+                                      slot: 0,
+                                      url: galleryImages[0],
+                                      label: 'Side View',
+                                    })
+                                  }
+                                  className="btn btn-sm btn-outline-primary w-100 py-0.5 mb-1 d-flex align-items-center justify-content-center gap-1"
+                                  style={{ borderRadius: '5px', fontSize: '10px' }}
+                                  title="Adjust Subject Focus & Zoom"
+                                >
+                                  <iconify-icon icon="solar:maximize-square-3-bold" class="fs-12"></iconify-icon>
+                                  <span>Adjust Focus</span>
+                                </button>
+                              </>
                             ) : (
                               <div className="text-center py-3 my-auto">
                                 <iconify-icon icon="solar:box-minimalistic-bold" class="fs-22 text-muted mb-1"></iconify-icon>
@@ -1758,22 +1812,40 @@ function ProductEditForm() {
                             </div>
 
                             {galleryImages[1] ? (
-                              <div
-                                className="rounded-2 border overflow-hidden position-relative mx-auto d-flex align-items-center justify-content-center my-1"
-                                style={{
-                                  width: '100%',
-                                  height: '92px',
-                                  backgroundColor: 'transparent',
-                                  backgroundImage: 'repeating-conic-gradient(#f1f5f9 0% 25%, #ffffff 0% 50%) 50% / 10px 10px',
-                                  borderColor: '#e2e8f0',
-                                }}
-                              >
-                                <img
-                                  src={galleryImages[1]}
-                                  alt="Top View"
-                                  style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }}
-                                />
-                              </div>
+                              <>
+                                <div
+                                  className="rounded-2 border overflow-hidden position-relative mx-auto d-flex align-items-center justify-content-center my-1"
+                                  style={{
+                                    width: '100%',
+                                    height: '92px',
+                                    backgroundColor: 'transparent',
+                                    backgroundImage: 'repeating-conic-gradient(#f1f5f9 0% 25%, #ffffff 0% 50%) 50% / 10px 10px',
+                                    borderColor: '#e2e8f0',
+                                  }}
+                                >
+                                  <img
+                                    src={galleryImages[1]}
+                                    alt="Top View"
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }}
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setFocalModalTarget({
+                                      slot: 1,
+                                      url: galleryImages[1],
+                                      label: 'Top View',
+                                    })
+                                  }
+                                  className="btn btn-sm btn-outline-primary w-100 py-0.5 mb-1 d-flex align-items-center justify-content-center gap-1"
+                                  style={{ borderRadius: '5px', fontSize: '10px' }}
+                                  title="Adjust Subject Focus & Zoom"
+                                >
+                                  <iconify-icon icon="solar:maximize-square-3-bold" class="fs-12"></iconify-icon>
+                                  <span>Adjust Focus</span>
+                                </button>
+                              </>
                             ) : (
                               <div className="text-center py-3 my-auto">
                                 <iconify-icon icon="solar:align-top-bold" class="fs-22 text-muted mb-1"></iconify-icon>
@@ -1845,22 +1917,40 @@ function ProductEditForm() {
                             </div>
 
                             {galleryImages[2] ? (
-                              <div
-                                className="rounded-2 border overflow-hidden position-relative mx-auto d-flex align-items-center justify-content-center my-1"
-                                style={{
-                                  width: '100%',
-                                  height: '92px',
-                                  backgroundColor: 'transparent',
-                                  backgroundImage: 'repeating-conic-gradient(#f1f5f9 0% 25%, #ffffff 0% 50%) 50% / 10px 10px',
-                                  borderColor: '#e2e8f0',
-                                }}
-                              >
-                                <img
-                                  src={galleryImages[2]}
-                                  alt="Back View"
-                                  style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }}
-                                />
-                              </div>
+                              <>
+                                <div
+                                  className="rounded-2 border overflow-hidden position-relative mx-auto d-flex align-items-center justify-content-center my-1"
+                                  style={{
+                                    width: '100%',
+                                    height: '92px',
+                                    backgroundColor: 'transparent',
+                                    backgroundImage: 'repeating-conic-gradient(#f1f5f9 0% 25%, #ffffff 0% 50%) 50% / 10px 10px',
+                                    borderColor: '#e2e8f0',
+                                  }}
+                                >
+                                  <img
+                                    src={galleryImages[2]}
+                                    alt="Back View"
+                                    style={{ width: '100%', height: '100%', objectFit: 'contain', padding: '4px' }}
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setFocalModalTarget({
+                                      slot: 2,
+                                      url: galleryImages[2],
+                                      label: 'Back View',
+                                    })
+                                  }
+                                  className="btn btn-sm btn-outline-primary w-100 py-0.5 mb-1 d-flex align-items-center justify-content-center gap-1"
+                                  style={{ borderRadius: '5px', fontSize: '10px' }}
+                                  title="Adjust Subject Focus & Zoom"
+                                >
+                                  <iconify-icon icon="solar:maximize-square-3-bold" class="fs-12"></iconify-icon>
+                                  <span>Adjust Focus</span>
+                                </button>
+                              </>
                             ) : (
                               <div className="text-center py-3 my-auto">
                                 <iconify-icon icon="solar:refresh-square-bold" class="fs-22 text-muted mb-1"></iconify-icon>
@@ -1942,6 +2032,27 @@ function ProductEditForm() {
             }}
             onClose={() => setIsDeliverySetupOpen(false)}
           />
+          {focalModalTarget && (
+            <FocalAdjustmentModal
+              isOpen={Boolean(focalModalTarget)}
+              onClose={() => setFocalModalTarget(null)}
+              imageUrl={focalModalTarget.url}
+              angleLabel={focalModalTarget.label}
+              onSave={(newUrl: string) => {
+                if (focalModalTarget.slot === -1) {
+                  setImage(newUrl);
+                } else {
+                  const targetSlot = focalModalTarget.slot;
+                  setGalleryImages((prev) => {
+                    const next = [...prev];
+                    while (next.length <= targetSlot) next.push('');
+                    next[targetSlot] = newUrl;
+                    return next;
+                  });
+                }
+              }}
+            />
+          )}
           </form>
         </div>
       </div>

@@ -1145,13 +1145,32 @@ function ProductDetailsContent() {
                   </span>
                 )}
                 {statusLabel && (
-                  <span className="badge px-2.5 py-1.5 px-md-3 py-md-2 fw-bold" style={{ ...statusStyle, fontSize: '12px', borderRadius: '5px', lineHeight: 1 }}>
+                  <span
+                    className="badge fw-bold d-inline-flex align-items-center justify-content-center"
+                    style={{
+                      ...statusStyle,
+                      fontSize: '13px',
+                      padding: '7px 14px',
+                      borderRadius: '6px',
+                      lineHeight: 1,
+                      letterSpacing: '0.3px',
+                    }}
+                  >
                     {statusLabel}
                   </span>
                 )}
-                {hasOffer && product.discount && (
-                  <span className="badge bg-dark text-white px-2 py-1 fw-bold" style={{ fontSize: '11px', borderRadius: '4px' }}>
-                    {product.discount}
+                {hasOffer && (product.discount || (product.offerPercent ? `${product.offerPercent}% OFF` : '')) && (
+                  <span
+                    className="badge bg-dark text-white fw-bold d-inline-flex align-items-center justify-content-center"
+                    style={{
+                      fontSize: '13px',
+                      padding: '7px 14px',
+                      borderRadius: '6px',
+                      lineHeight: 1,
+                      letterSpacing: '0.3px',
+                    }}
+                  >
+                    {product.discount || `${product.offerPercent}% OFF`}
                   </span>
                 )}
               </div>

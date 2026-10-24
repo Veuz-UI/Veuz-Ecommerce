@@ -71,8 +71,14 @@ const forgotPasswordSchema = z.object({
   email: z.string().trim().email('Invalid email address'),
 });
 
+const verifyResetOtpSchema = z.object({
+  email: z.string().trim().email('Invalid email address'),
+  otp: z.string().trim().min(4, 'Invalid OTP code').max(10, 'Invalid OTP code'),
+});
+
 const resetPasswordSchema = z.object({
-  token: z.string().min(10, 'Invalid reset token'),
+  token: z.string().min(6, 'Invalid reset token or OTP code'),
+  email: z.string().trim().email('Invalid email address').optional(),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters')
@@ -103,6 +109,19 @@ const generateUniqueVerifyCode = async (): Promise<string> => {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     const existing = await prisma.user.findFirst({
       where: { verifyToken: code },
+      select: { id: true },
+    });
+    if (!existing) return code;
+  }
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+// Helper: Generate collision-free 6-digit numeric password reset OTP
+const generateUniqueResetOtp = async (): Promise<string> => {
+  for (let i = 0; i < 20; i++) {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const existing = await prisma.passwordReset.findFirst({
+      where: { token: code, isUsed: false, expiresAt: { gt: new Date() } },
       select: { id: true },
     });
     if (!existing) return code;
@@ -634,28 +653,36 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
       return;
     }
 
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // 30 minutes
+    // Clean up any old or expired reset tokens for this email
+    await prisma.passwordReset.deleteMany({
+      where: { email },
+    }).catch(() => {});
+
+    // Generate collision-free 6-digit OTP code
+    const otp = await generateUniqueResetOtp();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
 
     await prisma.passwordReset.create({
       data: {
         email,
-        token,
+        token: otp,
         expiresAt,
       },
     });
 
-    const resetLink = `${process.env.CLIENT_URL || 'http://localhost:3000'}/reset-password?token=${token}`;
+    const resetLink = `${process.env.CLIENT_URL || 'http://localhost:3000'}/reset-password?email=${encodeURIComponent(email)}&otp=${otp}`;
 
-    // Dispatch Password Reset Email
-    mailService.sendPasswordResetEmail(user.email, user.name, token).catch((mailErr) => {
+    // Dispatch Password Reset Email with OTP
+    mailService.sendPasswordResetEmail(user.email, user.name, otp, otp).catch((mailErr) => {
       console.error('Failed to dispatch password reset email:', mailErr);
     });
 
     res.status(200).json({
       success: true,
-      message: 'If an account exists with this email, a secure reset link has been dispatched to your inbox.',
+      message: `A 6-digit OTP code has been sent to ${user.email}. Please verify it to proceed.`,
+      email: user.email,
       resetLink: process.env.NODE_ENV !== 'production' ? resetLink : undefined,
+      otp: process.env.NODE_ENV !== 'production' ? otp : undefined,
     });
   } catch (error: any) {
     if (error instanceof z.ZodError) {
@@ -667,18 +694,61 @@ export const forgotPassword = async (req: Request, res: Response): Promise<void>
   }
 };
 
+export const verifyResetOtp = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const validatedData = verifyResetOtpSchema.parse(req.body);
+    const email = validatedData.email.toLowerCase().trim();
+    const otp = validatedData.otp.trim();
+
+    const resetRecord = await prisma.passwordReset.findFirst({
+      where: {
+        email,
+        token: otp,
+        isUsed: false,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (!resetRecord) {
+      res.status(400).json({
+        success: false,
+        message: 'Invalid or expired OTP code. Please check your email and try again.',
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'OTP confirmed successfully! Please set your new password below.',
+      resetToken: resetRecord.token,
+    });
+  } catch (error: any) {
+    if (error instanceof z.ZodError) {
+      res.status(400).json({ success: false, message: error.errors[0]?.message });
+      return;
+    }
+    console.error('Verify Reset OTP Error:', error);
+    res.status(500).json({ success: false, message: 'Internal server error.' });
+  }
+};
+
 export const resetPassword = async (req: Request, res: Response): Promise<void> => {
   try {
     const validatedData = resetPasswordSchema.parse(req.body);
+    const token = validatedData.token.trim();
+    const email = validatedData.email ? validatedData.email.toLowerCase().trim() : undefined;
 
-    const resetRecord = await prisma.passwordReset.findUnique({
-      where: { token: validatedData.token },
+    const resetRecord = await prisma.passwordReset.findFirst({
+      where: {
+        token,
+        ...(email ? { email } : {}),
+      },
     });
 
     if (!resetRecord || resetRecord.isUsed) {
       res.status(400).json({
         success: false,
-        message: 'This password reset link is invalid or has already been used.',
+        message: 'This password reset code is invalid or has already been used.',
       });
       return;
     }
@@ -686,7 +756,7 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     if (new Date() > resetRecord.expiresAt) {
       res.status(400).json({
         success: false,
-        message: 'This password reset link has expired.',
+        message: 'This password reset OTP has expired. Please request a new one.',
       });
       return;
     }
@@ -707,9 +777,12 @@ export const resetPassword = async (req: Request, res: Response): Promise<void> 
     });
 
     // Dispatch Password Reset Success Confirmation Email
-    mailService.sendPasswordResetSuccessEmail(updatedUser.email, updatedUser.name).catch((mailErr) => {
-      console.error('Failed to dispatch password reset success email:', mailErr);
-    });
+    try {
+      await mailService.sendPasswordResetSuccessEmail(updatedUser.email, updatedUser.name);
+      console.log(`✅ [PasswordReset] Confirmation email dispatched successfully to ${updatedUser.email}`);
+    } catch (mailErr: any) {
+      console.error('⚠️ Failed to dispatch password reset success email:', mailErr?.message || mailErr);
+    }
 
     res.status(200).json({
       success: true,

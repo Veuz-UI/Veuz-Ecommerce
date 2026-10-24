@@ -59,7 +59,7 @@ export const AppLayoutShell: React.FC<AppLayoutShellProps> = ({ children }) => {
 
   // Pages that must NOT have the storefront Header and Footer (isolated dashboard & auth)
   const isDashboardRoute = pathname?.startsWith('/dashboard');
-  const isAuthRoute = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password';
+  const isAuthRoute = pathname === '/login' || pathname === '/register' || pathname === '/forgot-password' || pathname === '/reset-password';
 
   return (
     <AuthProvider>
@@ -76,7 +76,7 @@ export const AppLayoutShell: React.FC<AppLayoutShellProps> = ({ children }) => {
               <StorefrontStyles />
               <ScrollRevealInit />
               <Header />
-              <div key={pathname} className="veuz-page-transition" style={{ minHeight: 'calc(100vh - 160px)', width: '100%' }}>
+              <div key={pathname} className="veuz-page-transition" style={{ minHeight: 'calc(100vh - 160px)', width: '100%', backgroundColor: '#ffffff' }}>
                 {children}
               </div>
               <Footer />

@@ -8,6 +8,20 @@ const BACKEND_INTERNAL_URL = (
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ['192.168.1.106', 'localhost:3000'],
+  async redirects() {
+    return [
+      {
+        source: '/faq',
+        destination: '/contact',
+        permanent: true,
+      },
+      {
+        source: '/help-center',
+        destination: '/contact',
+        permanent: true,
+      },
+    ];
+  },
   async rewrites() {
     return [
       {

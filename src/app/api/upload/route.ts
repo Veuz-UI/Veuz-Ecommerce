@@ -141,10 +141,26 @@ export async function POST(req: NextRequest) {
       fs.mkdirSync(uploadsDir, { recursive: true });
     }
 
-    // Generate non-guessable, cryptographically secure random filename
     const safeExtension = MIME_TO_EXT[verifiedMime];
+    const uploadType = formData.get('type');
+    let finalBuffer: Buffer = buffer;
+    let finalExtension = safeExtension;
+
+    // If uploading a partner/brand logo, automatically strip background and optically normalize
+    if (uploadType === 'partner') {
+      try {
+        const { normalizePartnerLogoBuffer } = await import('@/utils/partnerLogoProcessor');
+        const procBuf = await normalizePartnerLogoBuffer(buffer);
+        finalBuffer = Buffer.from(procBuf);
+        finalExtension = '.png';
+      } catch (err) {
+        console.warn('Server partner logo normalization fallback:', err);
+      }
+    }
+
+    // Generate non-guessable, cryptographically secure random filename
     const randomHash = crypto.randomBytes(16).toString('hex');
-    const safeFileName = `img_${Date.now()}_${randomHash}${safeExtension}`;
+    const safeFileName = `img_${Date.now()}_${randomHash}${finalExtension}`;
     const destinationPath = path.resolve(uploadsDir, safeFileName);
 
     // Double check path traversal safety
@@ -156,7 +172,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Write securely to disk
-    fs.writeFileSync(destinationPath, buffer);
+    fs.writeFileSync(destinationPath, finalBuffer);
 
     const publicUrl = `/uploads/${safeFileName}`;
     return NextResponse.json({

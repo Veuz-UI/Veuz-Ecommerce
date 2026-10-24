@@ -1,6 +1,7 @@
 'use client';
 
 import { ProductItem, CATEGORY_PRODUCTS_DATA } from '@/data/categoryProductsData';
+import { recordUserProductClick } from './recommendationService';
 
 const STORAGE_KEY = 'veuz_products_cache';
 export const PRODUCTS_EVENT = 'veuz:products-updated';
@@ -214,7 +215,20 @@ export async function recordProductClick(id: string): Promise<void> {
   try {
     if (typeof window === 'undefined') return;
 
-    // 1. Without any logged-in user click -> do not count
+    // Track for personalized recommendation algorithm
+    try {
+      let prodCategory = '';
+      let prodTitle = '';
+      const cached = getClientCachedProducts() || getCachedProducts();
+      const match = cached.find((p) => p.id === id);
+      if (match) {
+        prodCategory = match.category || (match as any).categoryName || '';
+        prodTitle = match.title || '';
+      }
+      recordUserProductClick({ id, category: prodCategory, title: prodTitle });
+    } catch (e) {}
+
+    // 1. Without any logged-in user click -> do not count for backend stats
     const savedUserStr = localStorage.getItem('veuz_user');
     if (!savedUserStr) {
       return;

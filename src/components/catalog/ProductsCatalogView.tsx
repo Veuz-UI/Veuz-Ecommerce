@@ -14,8 +14,9 @@ import { useStore } from '@/context/StoreContext';
 import { ProductCardImageSlider } from '@/components/common/ProductCardImageSlider';
 import { getDeliveryBadgeProps } from '@/utils/deliveryBadge';
 import { ProductCardSkeleton, CatalogSkeleton } from '@/components/ui/skeletons';
+import { recordUserSearch, recordUserProductClick, getTrendingKeywords, getTrySearchingSuggestions } from '@/services/recommendationService';
 
-export type CatalogPageMode = 'category' | 'products' | 'offers' | 'limited-offers' | 'most-searched';
+export type CatalogPageMode = 'category' | 'products' | 'offers' | 'limited-offers' | 'most-searched' | 'search';
 type CollectionFilter = 'all' | 'new-arrival' | 'most-searched' | 'special-offers' | 'limited-offers';
 type SortOption = 'newest' | 'popular' | 'price-asc' | 'price-desc' | 'discount';
 
@@ -449,6 +450,66 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     }
   }, [urlCategoryParam]);
 
+  // Record user search query into behavior recommendation model
+  useEffect(() => {
+    if (urlSearchQuery && urlSearchQuery.trim()) {
+      recordUserSearch(urlSearchQuery.trim());
+    }
+  }, [urlSearchQuery]);
+
+  // Derived Try Searching suggestions (strictly maximum 6, changes based on trend)
+  const trySearchingItems = useMemo(() => {
+    return getTrySearchingSuggestions(products, 6);
+  }, [products]);
+
+  // Derived Trending Keywords based on user most searched keys (strictly maximum 18 tags)
+  const trendingKeywords = useMemo(() => {
+    return getTrendingKeywords(products, 18);
+  }, [products]);
+
+  // Lock body & html scroll on mobile/tablet when filter drawer is open
+  useEffect(() => {
+    if (!isSidebarOpen) return;
+
+    const checkIsMobile = () => typeof window !== 'undefined' && window.innerWidth < 992;
+    if (!checkIsMobile()) return;
+
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    const originalBodyTouchAction = document.body.style.touchAction;
+
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+    document.body.classList.add('mobile-filter-open');
+
+    // Block touch scrolling on outside/backdrop
+    const handleTouchMove = (e: TouchEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (!target || !target.closest('.filter-sidebar-wrapper')) {
+        e.preventDefault();
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    document.addEventListener('touchmove', handleTouchMove, { passive: false });
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.touchAction = originalBodyTouchAction;
+      document.body.classList.remove('mobile-filter-open');
+      document.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isSidebarOpen]);
+
   // Load shop categories & products with real-time listeners
   useEffect(() => {
     let isMounted = true;
@@ -575,6 +636,10 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
       return [...list].sort(
         (a, b) => ((b.clicks || 0) + (b.views || 0)) - ((a.clicks || 0) + (a.views || 0))
       );
+    }
+
+    if (pageMode === 'search') {
+      return active;
     }
 
     if (pageMode === 'products') {
@@ -910,85 +975,86 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     // Optional URL search query filter (?q=...)
     if (urlSearchQuery) {
       const q = urlSearchQuery.toLowerCase().trim();
-      result = result.filter(
-        (p) =>
-          p.title?.toLowerCase().includes(q) ||
-          p.desc?.toLowerCase().includes(q) ||
-          p.category?.toLowerCase().includes(q) ||
-          p.standard?.toLowerCase().includes(q)
-      );
-    }
-
-    // 1. Collection filter inside page mode
-    if (activeCollection === 'new-arrival') {
-      result = result.filter(
-        (p) =>
-          (p.isNewArrival !== false || p.badgeClass === 'new') &&
-          !p.discount &&
-          !p.offerPercent &&
-          !p.isSpecialOffer &&
-          (!p.oldPrice || p.oldPrice === p.price)
-      );
-    } else if (activeCollection === 'most-searched') {
-      result = result.filter(
-        (p) =>
-          p.isMostSearched === true ||
-          (p.clicks || 0) + (p.views || 0) > 0 ||
-          p.badgeClass === 'hot' ||
-          p.badge === 'Top Searched' ||
-          p.badge === 'Best Seller'
-      );
-      result.sort((a, b) => ((b.clicks || 0) + (b.views || 0)) - ((a.clicks || 0) + (a.views || 0)));
-    } else if (activeCollection === 'special-offers') {
-      result = result.filter((p) => !p.offerEndDate && (
-        p.isSpecialOffer === true || Boolean(p.discount) || (p.offerPercent && p.offerPercent > 0) ||
-        (Boolean(p.oldPrice) && p.oldPrice !== p.price)
-      ));
-    } else if (activeCollection === 'limited-offers') {
-      const today = new Date().toISOString().slice(0, 10);
-      result = result.filter((p) => p.isSpecialOffer === true && Boolean(p.offerEndDate) && p.offerEndDate! >= today);
-    }
-
-    // 2. Category filter (multiple selection)
-    if (selectedCategories.length > 0) {
-      result = result.filter((p) =>
-        selectedCategories.some((sel) =>
-          matchesCategory(p.category, p.categoryId, sel, displayCategories)
-        )
-      );
-    }
-
-    // 3. Size Filter
-    if (selectedSizes.length > 0) {
+      const qTokens = q.split(/\s+/).filter(Boolean);
       result = result.filter((p) => {
-        if (!p.sizes || p.sizes.length === 0) return false;
-        return selectedSizes.some((sz) => p.sizes?.includes(sz));
+        const fullText = `${p.title || ''} ${p.desc || ''} ${p.category || ''} ${p.standard || ''} ${p.badge || ''}`.toLowerCase();
+        return fullText.includes(q) || (qTokens.length > 0 && qTokens.every((tok) => fullText.includes(tok)));
       });
     }
 
-    // 4. Color Filter
-    if (selectedColors.length > 0) {
-      result = result.filter((p) => {
-        if (!p.colors || p.colors.length === 0) return false;
-        return selectedColors.some((col) =>
-          p.colors?.some((c) => {
-            const cLow = c.toLowerCase().trim();
-            const colLow = col.toLowerCase().trim();
-            return cLow === colLow || cLow.includes(colLow) || colLow.includes(cLow);
-          })
+    // Filters are applied only when NOT in dedicated search mode (search queries look across all items)
+    if (pageMode !== 'search') {
+      // 1. Collection filter inside page mode
+      if (activeCollection === 'new-arrival') {
+        result = result.filter(
+          (p) =>
+            (p.isNewArrival !== false || p.badgeClass === 'new') &&
+            !p.discount &&
+            !p.offerPercent &&
+            !p.isSpecialOffer &&
+            (!p.oldPrice || p.oldPrice === p.price)
         );
+      } else if (activeCollection === 'most-searched') {
+        result = result.filter(
+          (p) =>
+            p.isMostSearched === true ||
+            (p.clicks || 0) + (p.views || 0) > 0 ||
+            p.badgeClass === 'hot' ||
+            p.badge === 'Top Searched' ||
+            p.badge === 'Best Seller'
+        );
+        result.sort((a, b) => ((b.clicks || 0) + (b.views || 0)) - ((a.clicks || 0) + (a.views || 0)));
+      } else if (activeCollection === 'special-offers') {
+        result = result.filter((p) => !p.offerEndDate && (
+          p.isSpecialOffer === true || Boolean(p.discount) || (p.offerPercent && p.offerPercent > 0) ||
+          (Boolean(p.oldPrice) && p.oldPrice !== p.price)
+        ));
+      } else if (activeCollection === 'limited-offers') {
+        const today = new Date().toISOString().slice(0, 10);
+        result = result.filter((p) => p.isSpecialOffer === true && Boolean(p.offerEndDate) && p.offerEndDate! >= today);
+      }
+
+      // 2. Category filter (multiple selection)
+      if (selectedCategories.length > 0) {
+        result = result.filter((p) =>
+          selectedCategories.some((sel) =>
+            matchesCategory(p.category, p.categoryId, sel, displayCategories)
+          )
+        );
+      }
+
+      // 3. Size Filter
+      if (selectedSizes.length > 0) {
+        result = result.filter((p) => {
+          if (!p.sizes || p.sizes.length === 0) return false;
+          return selectedSizes.some((sz) => p.sizes?.includes(sz));
+        });
+      }
+
+      // 4. Color Filter
+      if (selectedColors.length > 0) {
+        result = result.filter((p) => {
+          if (!p.colors || p.colors.length === 0) return false;
+          return selectedColors.some((col) =>
+            p.colors?.some((c) => {
+              const cLow = c.toLowerCase().trim();
+              const colLow = col.toLowerCase().trim();
+              return cLow === colLow || cLow.includes(colLow) || colLow.includes(cLow);
+            })
+          );
+        });
+      }
+
+      // 5. Price Range Filter
+      result = result.filter((p) => {
+        const pNum = Number(p.currentPrice || parseFloat(p.price?.replace(/[^\d.]/g, '') || '0'));
+        return pNum >= priceRange[0] && pNum <= priceRange[1];
       });
-    }
 
-    // 5. Price Range Filter
-    result = result.filter((p) => {
-      const pNum = Number(p.currentPrice || parseFloat(p.price?.replace(/[^\d.]/g, '') || '0'));
-      return pNum >= priceRange[0] && pNum <= priceRange[1];
-    });
-
-    // 6. Standard / Certification Filter
-    if (selectedStandard !== 'all') {
-      result = result.filter((p) => p.standard?.toLowerCase().includes(selectedStandard.toLowerCase()));
+      // 6. Standard / Certification Filter
+      if (selectedStandard !== 'all') {
+        result = result.filter((p) => p.standard?.toLowerCase().includes(selectedStandard.toLowerCase()));
+      }
     }
 
     // 7. Sorting
@@ -1006,7 +1072,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     });
 
     return result;
-  }, [baseScopedProducts, urlSearchQuery, activeCollection, selectedCategories, selectedSizes, selectedColors, priceRange, selectedStandard, sortBy, displayCategories]);
+  }, [baseScopedProducts, urlSearchQuery, pageMode, activeCollection, selectedCategories, selectedSizes, selectedColors, priceRange, selectedStandard, sortBy, displayCategories]);
 
   // Is filter currently active?
   const isAnyFilterActive =
@@ -1030,11 +1096,17 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     if (pageMode === 'products') {
       return { label: 'New Arrival Products', link: '/new-arrival-products' };
     }
+    if (pageMode === 'search') {
+      return { label: 'Search Results', link: '/search' };
+    }
     return { label: 'All Categories Products', link: '/all-categories-products' };
   }, [pageMode]);
 
   // Section title calculation
   const pageTitle = useMemo(() => {
+    if (pageMode === 'search') {
+      return urlSearchQuery ? `Search Results for "${urlSearchQuery}"` : 'Search Results';
+    }
     if (selectedCategories.length === 1) {
       const match = displayCategories.find((c) =>
         matchesCategory(c.name, c.id, selectedCategories[0], displayCategories)
@@ -1059,7 +1131,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     if (activeCollection === 'most-searched') return 'Most Searched Products';
     if (activeCollection === 'special-offers') return 'Offer Products';
     return 'All Categories Products';
-  }, [pageMode, activeCollection, selectedCategories, displayCategories]);
+  }, [pageMode, urlSearchQuery, activeCollection, selectedCategories, displayCategories]);
 
   // Page description calculation
   const pageDescription = useMemo(() => {
@@ -1073,8 +1145,13 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     if (pageMode === 'products') {
       return `Showing newly released industrial protective equipment and certified safety gear (${filteredAndSortedProducts.length} items).`;
     }
+    if (pageMode === 'search') {
+      return urlSearchQuery
+        ? `Showing ${filteredAndSortedProducts.length} safety products matching "${urlSearchQuery}".`
+        : `Showing ${filteredAndSortedProducts.length} search results.`;
+    }
     return `Showing certified industrial safety equipment adhering to OSHA, EN, and ANSI standards (${filteredAndSortedProducts.length} items).`;
-  }, [pageMode, filteredAndSortedProducts.length]);
+  }, [pageMode, urlSearchQuery, filteredAndSortedProducts.length]);
 
   return (
     <main className="main py-4 py-md-5" style={{ backgroundColor: '#ffffff', minHeight: '85vh' }}>
@@ -1092,7 +1169,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
               <Link href={breadcrumbInfo.link} className="text-muted text-decoration-none hover-green">
                 {breadcrumbInfo.label}
               </Link>
-              {selectedCategories.length === 1 && (
+              {pageMode !== 'search' && selectedCategories.length === 1 && (
                 <>
                   <span>/</span>
                   <span className="text-dark fw-bold text-capitalize">
@@ -1101,148 +1178,174 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                 </>
               )}
             </div>
-            <h1 className="fw-bold text-dark mb-1 catalog-page-title" style={{ letterSpacing: '-0.5px' }}>
-              {pageTitle}
-            </h1>
-            <p className="text-muted fs-14 mb-0 catalog-page-desc">
-              {pageDescription}
-            </p>
+            {pageMode !== 'search' && (
+              <>
+                <h1 className="fw-bold text-dark mb-1 catalog-page-title" style={{ letterSpacing: '-0.5px' }}>
+                  {pageTitle}
+                </h1>
+                <p className="text-muted fs-14 mb-0 catalog-page-desc">
+                  {pageDescription}
+                </p>
+              </>
+            )}
           </div>
         </div>
 
         {/* ========================================================
-            2. TOP CATEGORIES HORIZONTAL SLIDER (Left & Right Arrows + Centered Categories)
+            2. TOP CATEGORIES HORIZONTAL SLIDER (Hidden on Search Results Page)
            ======================================================== */}
-        {/* ========================================================
-            2. TOP CATEGORIES HORIZONTAL SLIDER (Left & Right Arrows + Centered Categories)
-           ======================================================== */}
-        <div className="card border-0 mb-4 overflow-hidden category-slider-card-wrap">
-          <div
-            className="d-flex align-items-center w-100 position-relative"
-            style={{ gap: '12px' }}
-          >
-            {/* Left arrow button */}
-            <button
-              type="button"
-              onClick={() => scrollSlider('left')}
-              className="btn-category-slider-arrow flex-shrink-0"
-              aria-label="Previous Categories"
-              title="Previous Categories"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6"></polyline>
-              </svg>
-            </button>
-
-            {/* Draggable & Touch-Scrollable Category Slider Track */}
+        {pageMode !== 'search' && (
+          <div className="card border-0 mb-4 overflow-hidden category-slider-card-wrap">
             <div
-              ref={sliderRef}
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-              onTouchStart={handleTouchStart}
-              onTouchMove={handleTouchMove}
-              onTouchEnd={handleTouchEnd}
-              className="category-slider-track flex-grow-1"
+              className="d-flex align-items-center w-100 position-relative"
+              style={{ gap: '12px' }}
             >
-              {repeatedCategorySliderItems.map((item) => {
-                const isSelected = item.isAll
-                  ? selectedCategories.length === 0
-                  : selectedCategories.some((c) =>
-                      matchesCategory(item.name, item.id, c, displayCategories)
-                    );
+              {/* Left arrow button */}
+              <button
+                type="button"
+                onClick={() => scrollSlider('left')}
+                className="btn-category-slider-arrow flex-shrink-0"
+                aria-label="Previous Categories"
+                title="Previous Categories"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
 
-                return (
-                  <div
-                    key={item.uniqueKey}
-                    onClick={() => {
-                      if (dragDistanceRef.current < 6) {
-                        handleCategorySelectFromSlider(item.isAll ? 'all' : item.name, item.id);
-                      }
-                    }}
-                    className={`category-pill-card ${isSelected ? 'active-cat-pill' : ''}`}
-                  >
+              {/* Draggable & Touch-Scrollable Category Slider Track */}
+              <div
+                ref={sliderRef}
+                onMouseDown={handleMouseDown}
+                onMouseMove={handleMouseMove}
+                onMouseUp={handleMouseUp}
+                onMouseLeave={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                className="category-slider-track flex-grow-1"
+              >
+                {repeatedCategorySliderItems.map((item) => {
+                  const isSelected = item.isAll
+                    ? selectedCategories.length === 0
+                    : selectedCategories.some((c) =>
+                        matchesCategory(item.name, item.id, c, displayCategories)
+                      );
+
+                  return (
                     <div
-                      className="category-icon-box border overflow-hidden flex-shrink-0 d-flex align-items-center justify-content-center"
-                      style={{
-                        width: '42px',
-                        height: '42px',
-                        minWidth: '42px',
-                        borderRadius: '8px',
-                        backgroundColor: isSelected ? '#ffffff' : '#f8fafc',
-                        borderColor: isSelected ? '#86efac' : '#e9e9e9',
-                        pointerEvents: 'none',
-                        transition: 'all 0.2s ease',
+                      key={item.uniqueKey}
+                      onClick={() => {
+                        if (dragDistanceRef.current < 6) {
+                          handleCategorySelectFromSlider(item.isAll ? 'all' : item.name, item.id);
+                        }
                       }}
+                      className={`category-pill-card ${isSelected ? 'active-cat-pill' : ''}`}
                     >
-                      {item.isAll ? (
-                        <svg
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="#16a34a"
-                          strokeWidth="2.2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                        >
-                          <rect x="3" y="3" width="7" height="7"></rect>
-                          <rect x="14" y="3" width="7" height="7"></rect>
-                          <rect x="14" y="14" width="7" height="7"></rect>
-                          <rect x="3" y="14" width="7" height="7"></rect>
-                        </svg>
-                      ) : (
-                        <img
-                          src={item.image || '/assets/imgs/theme/icons/category-1.svg'}
-                          alt={item.name}
-                          style={{
-                            width: '28px',
-                            height: '28px',
-                            objectFit: 'contain',
-                          }}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = '/assets/imgs/theme/icons/category-1.svg';
-                          }}
-                        />
-                      )}
-                    </div>
-                    <div className="overflow-hidden" style={{ pointerEvents: 'none' }}>
                       <div
-                        className="category-pill-title fw-bold fs-14 text-truncate"
-                        style={{ color: isSelected ? '#16a34a' : '#0f172a' }}
+                        className="category-icon-box border overflow-hidden flex-shrink-0 d-flex align-items-center justify-content-center"
+                        style={{
+                          width: '42px',
+                          height: '42px',
+                          minWidth: '42px',
+                          borderRadius: '8px',
+                          backgroundColor: isSelected ? '#ffffff' : '#f8fafc',
+                          borderColor: isSelected ? '#86efac' : '#e9e9e9',
+                          pointerEvents: 'none',
+                          transition: 'all 0.2s ease',
+                        }}
                       >
-                        {item.name}
+                        {item.isAll ? (
+                          <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="#16a34a"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                          </svg>
+                        ) : (
+                          <img
+                            src={item.image || '/assets/imgs/theme/icons/category-1.svg'}
+                            alt={item.name}
+                            style={{
+                              width: '28px',
+                              height: '28px',
+                              objectFit: 'contain',
+                            }}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = '/assets/imgs/theme/icons/category-1.svg';
+                            }}
+                          />
+                        )}
                       </div>
-                      <div className="category-pill-count text-muted fs-12">{item.count} Products</div>
+                      <div className="overflow-hidden" style={{ pointerEvents: 'none' }}>
+                        <div
+                          className="category-pill-title fw-bold fs-14 text-truncate"
+                          style={{ color: isSelected ? '#16a34a' : '#0f172a' }}
+                        >
+                          {item.name}
+                        </div>
+                        <div className="category-pill-count text-muted fs-12">{item.count} Products</div>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
 
-            {/* Right arrow button */}
-            <button
-              type="button"
-              onClick={() => scrollSlider('right')}
-              className="btn-category-slider-arrow flex-shrink-0"
-              aria-label="Next Categories"
-              title="Next Categories"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6"></polyline>
-              </svg>
-            </button>
+              {/* Right arrow button */}
+              <button
+                type="button"
+                onClick={() => scrollSlider('right')}
+                className="btn-category-slider-arrow flex-shrink-0"
+                aria-label="Next Categories"
+                title="Next Categories"
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ========================================================
             3. MAIN CATALOG LAYOUT (Left Sticky Sidebar + Right Grid)
            ======================================================== */}
+        {/* Mobile Filter Backdrop Overlay (Closes drawer on outside click & dims page) */}
+        {pageMode !== 'search' && isSidebarOpen && (
+          <div
+            className="filter-mobile-backdrop d-lg-none"
+            onClick={() => setIsSidebarOpen(false)}
+            aria-label="Close filters"
+            style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(15, 23, 42, 0.55)',
+              backdropFilter: 'blur(3px)',
+              WebkitBackdropFilter: 'blur(3px)',
+              zIndex: 100040,
+              cursor: 'pointer',
+            }}
+          />
+        )}
+
         <div
           className="d-flex flex-column flex-lg-row pt-2 position-relative"
           style={{
-            gap: isSidebarOpen ? '28px' : '0px',
+            gap: pageMode !== 'search' && isSidebarOpen ? '28px' : '0px',
             transition: 'gap 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
             alignItems: 'flex-start',
           }}
@@ -1250,8 +1353,9 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
           {/* --------------------------------------------------------
               LEFT SIDEBAR: FILTERS (Sticky on Scroll & Smoothly Collapsible)
              -------------------------------------------------------- */}
-          <aside
-            className="filter-sidebar-wrapper"
+          {pageMode !== 'search' && (
+            <aside
+              className="filter-sidebar-wrapper"
             style={{
               flex: isSidebarOpen ? '0 0 300px' : '0 0 0px',
               width: isSidebarOpen ? '300px' : '0px',
@@ -1276,7 +1380,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
             >
               {/* Top Header Card: Filters Title + Clear All Button + Collapse Button */}
               <div
-                className="d-flex align-items-center justify-content-between mb-3 bg-white rounded-3 border"
+                className="filters-sidebar-header-card d-flex align-items-center justify-content-between mb-3 bg-white rounded-3 border"
                 style={{
                   padding: '14px 16px',
                   borderColor: '#e2e8f0',
@@ -1296,54 +1400,87 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                 </div>
 
                 <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                  {isAnyFilterActive && <button
+                  {isAnyFilterActive && (
+                    <button
+                      type="button"
+                      onClick={handleClearAllFilters}
+                      style={{
+                        height: '34px',
+                        width: '34px',
+                        padding: 0,
+                        borderRadius: '7px',
+                        backgroundColor: '#dc2626',
+                        color: '#ffffff',
+                        border: '1px solid #b91c1c',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        boxShadow: '0 2px 8px rgba(220, 38, 38, 0.28)',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = '#b91c1c';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = '#dc2626';
+                      }}
+                      title="Clear all filters"
+                      aria-label="Clear all filters"
+                    >
+                      <svg
+                        width="15"
+                        height="15"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#ffffff"
+                        strokeWidth="2.3"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                        <path d="M3 3v5h5"></path>
+                      </svg>
+                    </button>
+                  )}
+                  <button
                     type="button"
-                    onClick={handleClearAllFilters}
+                    onClick={() => setIsSidebarOpen(false)}
+                    title="Close filters"
+                    aria-label="Close filters"
                     style={{
-                      height: '34px',
-                      width: '34px',
-                      padding: 0,
-                      borderRadius: '7px',
-                      backgroundColor: '#dc2626',
-                      color: '#ffffff',
-                      border: '1px solid #b91c1c',
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      cursor: 'pointer',
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      border: '1px solid #cbd5e1',
+                      backgroundColor: '#f8fafc',
+                      color: '#0f172a',
                       display: 'inline-flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: '6px',
-                      boxShadow: '0 2px 8px rgba(220, 38, 38, 0.28)',
-                      transition: 'all 0.2s ease',
+                      padding: 0,
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#b91c1c';
+                      e.currentTarget.style.backgroundColor = '#0f172a';
+                      e.currentTarget.style.color = '#ffffff';
+                      e.currentTarget.style.borderColor = '#0f172a';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#dc2626';
+                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                      e.currentTarget.style.color = '#0f172a';
+                      e.currentTarget.style.borderColor = '#cbd5e1';
                     }}
-                    title="Clear all filters"
-                    aria-label="Clear all filters"
                   >
-                    <svg
-                      width="15"
-                      height="15"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#ffffff"
-                      strokeWidth="2.3"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                      <path d="M3 3v5h5"></path>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
                     </svg>
-                  </button>}
-                  <button type="button" onClick={() => setIsSidebarOpen(false)} title="Close filters" aria-label="Close filters" style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #cbd5e1', backgroundColor: '#ffffff', color: '#334155', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: 0, cursor: 'pointer' }}>
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
                   </button>
-
                 </div>
               </div>
 
@@ -1864,6 +2001,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
               </div>
             </div>
           </aside>
+        )}
 
           {/* --------------------------------------------------------
               RIGHT CONTENT: SORTING & PRODUCTS GRID (Smoothly Expands Full Width)
@@ -1877,101 +2015,137 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
             }}
           >
             {/* Top Bar: Hamburger Sidebar Toggle + Results Count & Sort Dropdown */}
-            <div className="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom flex-wrap gap-3">
-              <div className="d-flex align-items-center gap-3">
-                {/* Modern Hamburger Filter Toggle Button */}
-                {!isSidebarOpen && <button
-                  type="button"
-                  onClick={() => setIsSidebarOpen((prev) => !prev)}
-                  style={{
-                    height: '38px',
-                    padding: '0 15px',
-                    borderRadius: '8px',
-                    backgroundColor: isSidebarOpen ? '#ffffff' : '#0f172a',
-                    color: isSidebarOpen ? '#0f172a' : '#ffffff',
-                    border: isSidebarOpen ? '1.5px solid #d1d5db' : '1.5px solid #0f172a',
-                    boxShadow: isSidebarOpen ? '0 1px 3px rgba(0,0,0,0.05)' : '0 2px 6px rgba(15, 23, 42, 0.2)',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    cursor: 'pointer',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (isSidebarOpen) {
-                      e.currentTarget.style.backgroundColor = '#f8fafc';
-                      e.currentTarget.style.borderColor = '#94a3b8';
-                    } else {
-                      e.currentTarget.style.backgroundColor = '#1e293b';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (isSidebarOpen) {
-                      e.currentTarget.style.backgroundColor = '#ffffff';
-                      e.currentTarget.style.borderColor = '#d1d5db';
-                    } else {
-                      e.currentTarget.style.backgroundColor = '#0f172a';
-                    }
-                  }}
-                  title={isSidebarOpen ? 'Hide Filters (Full Width View)' : 'Show Filters Sidebar'}
-                  aria-label={isSidebarOpen ? 'Hide Filters' : 'Show Filters'}
-                >
-                  <svg
-                    width="17"
-                    height="17"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke={isSidebarOpen ? '#0f172a' : '#ffffff'}
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <line x1="3" y1="6" x2="21" y2="6"></line>
-                    <line x1="3" y1="12" x2="21" y2="12"></line>
-                    <line x1="3" y1="18" x2="21" y2="18"></line>
-                  </svg>
-                  <span>Show Filters</span>
-                  {isAnyFilterActive && (
-                    <span
-                      className={`badge rounded-pill ${isSidebarOpen ? 'bg-dark text-white' : 'bg-danger text-white'}`}
-                      style={{ fontSize: '10.5px', padding: '2px 7px' }}
-                    >
-                      Active
+            {pageMode === 'search' ? (
+              filteredAndSortedProducts.length > 0 && (
+                <div className="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom flex-wrap gap-3">
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="text-muted fs-14">
+                      Showing <strong className="text-dark">{filteredAndSortedProducts.length}</strong> {filteredAndSortedProducts.length === 1 ? 'product' : 'products'} matching &ldquo;<span className="text-dark fw-semibold">{urlSearchQuery}</span>&rdquo;
                     </span>
-                  )}
-                </button>}
+                  </div>
 
-                <span className="text-muted fs-13 d-none d-sm-inline">
-                  Showing <strong className="text-dark">{filteredAndSortedProducts.length}</strong> of {baseScopedProducts.length} items
-                </span>
-              </div>
+                  <div className="d-flex align-items-center gap-2 ms-auto">
+                    <label className="text-muted fs-13 text-nowrap mb-0 d-none d-sm-inline">Sort by:</label>
+                    <select
+                      className="form-select form-select-sm"
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value as SortOption)}
+                      style={{
+                        height: '38px',
+                        borderRadius: '8px',
+                        borderColor: '#cbd5e1',
+                        fontSize: '13px',
+                        minWidth: '170px',
+                        backgroundColor: '#ffffff',
+                        fontWeight: 500,
+                      }}
+                    >
+                      <option value="newest">Featured / Newest</option>
+                      <option value="popular">Most Popular</option>
+                      <option value="price-asc">Price: Low to High</option>
+                      <option value="price-desc">Price: High to Low</option>
+                      <option value="discount">Highest Discount</option>
+                    </select>
+                  </div>
+                </div>
+              )
+            ) : (
+              <div className="d-flex align-items-center justify-content-between mb-4 pb-3 border-bottom flex-wrap gap-3">
+                <div className="d-flex align-items-center gap-3">
+                  {/* Modern Hamburger Filter Toggle Button */}
+                  {!isSidebarOpen && <button
+                    type="button"
+                    onClick={() => setIsSidebarOpen((prev) => !prev)}
+                    style={{
+                      height: '38px',
+                      padding: '0 15px',
+                      borderRadius: '8px',
+                      backgroundColor: isSidebarOpen ? '#ffffff' : '#0f172a',
+                      color: isSidebarOpen ? '#0f172a' : '#ffffff',
+                      border: isSidebarOpen ? '1.5px solid #d1d5db' : '1.5px solid #0f172a',
+                      boxShadow: isSidebarOpen ? '0 1px 3px rgba(0,0,0,0.05)' : '0 2px 6px rgba(15, 23, 42, 0.2)',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (isSidebarOpen) {
+                        e.currentTarget.style.backgroundColor = '#f8fafc';
+                        e.currentTarget.style.borderColor = '#94a3b8';
+                      } else {
+                        e.currentTarget.style.backgroundColor = '#1e293b';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (isSidebarOpen) {
+                        e.currentTarget.style.backgroundColor = '#ffffff';
+                        e.currentTarget.style.borderColor = '#d1d5db';
+                      } else {
+                        e.currentTarget.style.backgroundColor = '#0f172a';
+                      }
+                    }}
+                    title={isSidebarOpen ? 'Hide Filters (Full Width View)' : 'Show Filters Sidebar'}
+                    aria-label={isSidebarOpen ? 'Hide Filters' : 'Show Filters'}
+                  >
+                    <svg
+                      width="17"
+                      height="17"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke={isSidebarOpen ? '#0f172a' : '#ffffff'}
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <line x1="3" y1="6" x2="21" y2="6"></line>
+                      <line x1="3" y1="12" x2="21" y2="12"></line>
+                      <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                    <span>Show Filters</span>
+                    {isAnyFilterActive && (
+                      <span
+                        className={`badge rounded-pill ${isSidebarOpen ? 'bg-dark text-white' : 'bg-danger text-white'}`}
+                        style={{ fontSize: '10.5px', padding: '2px 7px' }}
+                      >
+                        Active
+                      </span>
+                    )}
+                  </button>}
 
-              <div className="d-flex align-items-center gap-2">
-                <label className="text-muted fs-13 text-nowrap mb-0 d-none d-sm-inline">Sort by:</label>
-                <select
-                  className="form-select form-select-sm"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  style={{
-                    height: '38px',
-                    borderRadius: '8px',
-                    borderColor: '#cbd5e1',
-                    fontSize: '13px',
-                    minWidth: '170px',
-                    backgroundColor: '#ffffff',
-                    fontWeight: 500,
-                  }}
-                >
-                  <option value="newest">Featured / Newest</option>
-                  <option value="popular">Most Popular</option>
-                  <option value="price-asc">Price: Low to High</option>
-                  <option value="price-desc">Price: High to Low</option>
-                  <option value="discount">Highest Discount</option>
-                </select>
+                  <span className="text-muted fs-13 d-none d-sm-inline">
+                    Showing <strong className="text-dark">{filteredAndSortedProducts.length}</strong> of {baseScopedProducts.length} items
+                  </span>
+                </div>
+
+                <div className="d-flex align-items-center gap-2">
+                  <label className="text-muted fs-13 text-nowrap mb-0 d-none d-sm-inline">Sort by:</label>
+                  <select
+                    className="form-select form-select-sm"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                    style={{
+                      height: '38px',
+                      borderRadius: '8px',
+                      borderColor: '#cbd5e1',
+                      fontSize: '13px',
+                      minWidth: '170px',
+                      backgroundColor: '#ffffff',
+                      fontWeight: 500,
+                    }}
+                  >
+                    <option value="newest">Featured / Newest</option>
+                    <option value="popular">Most Popular</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="discount">Highest Discount</option>
+                  </select>
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Products Grid */}
             {forceSkeleton || isLoading ? (
@@ -1985,30 +2159,145 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
               </div>
             ) : filteredAndSortedProducts.length === 0 ? (
               <div
-                className="text-center py-5 bg-white rounded-4 border"
-                style={{ borderColor: '#e2e8f0', minHeight: '360px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+                className="py-4 w-100"
+                style={{ minHeight: '400px' }}
               >
-                <div
-                  className="rounded-circle d-flex align-items-center justify-content-center mb-3"
-                  style={{ width: '64px', height: '64px', backgroundColor: '#f1f5f9' }}
-                >
-                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                  </svg>
+                {/* 1. Header (Centered Icon, Title & Friendly Note) */}
+                <div className="text-center mx-auto mb-5" style={{ maxWidth: '680px' }}>
+                  <div
+                    className="rounded-circle d-flex align-items-center justify-content-center mx-auto mb-3"
+                    style={{ width: '64px', height: '64px', backgroundColor: '#f1f5f9' }}
+                  >
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                  </div>
+                  <h3 className="fw-bold text-dark mb-2" style={{ fontSize: '26px' }}>
+                    {urlSearchQuery ? `No results found for "${urlSearchQuery}"` : 'No products found'}
+                  </h3>
+                  <p className="text-muted fs-14 mb-0">
+                    We couldn&rsquo;t find any items matching your search. Try searching for other keywords, categories, or check our recommendations below.
+                  </p>
                 </div>
-                <h4 className="fw-bold text-dark mb-1">No products match your criteria</h4>
-                <p className="text-muted fs-14 mb-4" style={{ maxWidth: '420px' }}>
-                  Try resetting some filters, selecting a different category, or broadening your price range.
-                </p>
-                <button
-                  type="button"
-                  onClick={handleClearAllFilters}
-                  className="btn btn-dark btn-sm px-4 py-2 rounded-3"
-                  style={{ fontWeight: 600 }}
-                >
-                  Clear All Filters
-                </button>
+
+                <div className="w-100">
+                  {/* 2. TRY SEARCHING Section (Always Maximum 6 Cards, Full Container Width) */}
+                  <div className="mb-5">
+                    <div
+                      style={{
+                        fontSize: '11.5px',
+                        fontWeight: '700',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        color: '#94a3b8',
+                        marginBottom: '14px',
+                      }}
+                    >
+                      TRY SEARCHING
+                    </div>
+                    <div
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
+                        gap: '14px',
+                      }}
+                    >
+                      {trySearchingItems.map((item) => (
+                        <div
+                          key={item.id}
+                          onClick={() => {
+                            recordUserSearch(item.query);
+                            router.push(`/search?q=${encodeURIComponent(item.query)}`);
+                          }}
+                          className="search-try-card"
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '14px',
+                            backgroundColor: '#ffffff',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '12px',
+                            padding: '16px 20px',
+                            cursor: 'pointer',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                            transition: 'all 0.18s ease',
+                          }}
+                        >
+                          <div style={{ color: '#94a3b8', display: 'flex', alignItems: 'center' }}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="11" cy="11" r="8"></circle>
+                              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                          </div>
+                          <div style={{ minWidth: 0, flex: 1 }}>
+                            <div style={{ fontSize: '14px', fontWeight: '700', color: '#0f172a' }}>
+                              {item.title}
+                            </div>
+                            <div style={{ fontSize: '12px', color: '#64748b', marginTop: '2px' }}>
+                              {item.subtitle}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* 3. TRENDING Section (User Most Searched Keys, Strictly Maximum 18 Pills) */}
+                  <div className="pt-2">
+                    <div
+                      style={{
+                        fontSize: '11.5px',
+                        fontWeight: '700',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.08em',
+                        color: '#94a3b8',
+                        marginBottom: '14px',
+                      }}
+                    >
+                      TRENDING
+                    </div>
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: '10px',
+                      }}
+                    >
+                      {trendingKeywords.map((item, idx) => (
+                        <button
+                          key={`trend-${item.tag}-${idx}`}
+                          type="button"
+                          onClick={() => {
+                            recordUserSearch(item.query);
+                            router.push(`/search?q=${encodeURIComponent(item.query)}`);
+                          }}
+                          className="search-trending-pill"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            backgroundColor: '#f8fafc',
+                            border: '1px solid #e2e8f0',
+                            borderRadius: '9999px',
+                            padding: '7px 16px',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            transition: 'all 0.15s ease',
+                            outline: 'none',
+                          }}
+                        >
+                          <span style={{ fontWeight: '600', color: '#334155' }}>
+                            #{item.tag}
+                          </span>
+                          <span style={{ fontSize: '11.5px', color: '#94a3b8', fontWeight: '500' }}>
+                            {item.count}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="row g-3 g-lg-4 skeleton-fade-in">
@@ -2016,7 +2305,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
                   <CatalogProductCardItem
                     key={prod.id}
                     prod={prod}
-                    isSidebarOpen={isSidebarOpen}
+                    isSidebarOpen={pageMode === 'search' ? false : isSidebarOpen}
                     pageMode={pageMode}
                     isWishlisted={isInWishlist(Number(prod.id.replace(/[^\d]/g, '')) || 1)}
                     onToggleWishlist={toggleWishlist}

@@ -10,8 +10,15 @@ function readStoredPromotions(): PromotionAreaData {
     if (fs.existsSync(DATA_FILE_PATH)) {
       const content = fs.readFileSync(DATA_FILE_PATH, 'utf-8');
       const parsed = JSON.parse(content);
-      if (parsed && Array.isArray(parsed.promotions) && parsed.promotions.length === 3) {
-        return parsed;
+      if (parsed && Array.isArray(parsed.promotions) && parsed.promotions.length > 0) {
+        const promos = [...parsed.promotions];
+        while (promos.length < 4) {
+          promos.push({ id: `promo-card-${promos.length + 1}`, image: '', title: '', link: '/products' });
+        }
+        return {
+          ...parsed,
+          promotions: promos.slice(0, 4),
+        };
       }
     }
   } catch (error) {
@@ -102,9 +109,9 @@ export async function POST(req: Request) {
     }
 
     // 2. Normal Admin Promotion Card Save
-    if (!body || !Array.isArray(body.promotions) || body.promotions.length !== 3) {
+    if (!body || !Array.isArray(body.promotions) || (body.promotions.length !== 4 && body.promotions.length !== 3)) {
       return NextResponse.json(
-        { success: false, message: 'Invalid promotion payload. Exactly 3 promotions are required.' },
+        { success: false, message: 'Invalid promotion payload. 4 promotions are required.' },
         { status: 400 }
       );
     }

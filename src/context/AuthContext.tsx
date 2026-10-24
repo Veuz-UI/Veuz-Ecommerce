@@ -230,6 +230,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem('veuz_user', JSON.stringify(data.user));
       broadcastAuthLogin(data.user, data.token);
 
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('veuz_realtime_customer_registered', String(Date.now()));
+        window.dispatchEvent(new CustomEvent('veuz:dashboard-notifications-updated'));
+      }
+
       return { success: true, user: data.user };
     } catch (error: any) {
       console.error('Registration failed:', error);

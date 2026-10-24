@@ -7,12 +7,21 @@ export const PROMOTION_AREA_EVENT = 'veuz:promotions-updated';
 
 function sanitizePromotions(items: any[]): PromotionCardItem[] {
   if (!Array.isArray(items)) return [];
-  return items.map((p, idx) => ({
+  const mapped = items.map((p, idx) => ({
     id: p?.id || `promo-card-${idx + 1}`,
     image: (typeof p?.image === 'string' && !p.image.includes('promo-card-')) ? p.image.trim() : '',
     title: typeof p?.title === 'string' ? p.title.trim() : '',
     link: typeof p?.link === 'string' && p.link.trim() ? p.link.trim() : '/products',
   }));
+  while (mapped.length < 4) {
+    mapped.push({
+      id: `promo-card-${mapped.length + 1}`,
+      image: '',
+      title: '',
+      link: '/products',
+    });
+  }
+  return mapped.slice(0, 4);
 }
 
 // Returns synchronous baseline for SSR and initial hydration pass (guaranteeing 0 mismatch)

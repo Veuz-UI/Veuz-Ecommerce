@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { Product, FEATURED_PRODUCTS } from '@/data/mockData';
 import { triggerGlobalToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
+import { recordUserCartAddition } from '@/services/recommendationService';
 
 export interface CartItem {
   product: Product;
@@ -221,6 +222,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const addToCart = (product: Product, quantity = 1, selectedColor?: string, selectedSize?: string) => {
     isUserCartActionRef.current = true;
+    if (userId && typeof window !== 'undefined') {
+      const timeKey = `veuz_cart_first_added_${userId}`;
+      if (!localStorage.getItem(timeKey)) {
+        localStorage.setItem(timeKey, String(Date.now()));
+      }
+    }
     setCart((prev) => {
       const existing = prev.find(
         (item) =>
@@ -235,19 +242,32 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       }
       return [...prev, { product, quantity, selectedColor, selectedSize }];
     });
+
+    try {
+      recordUserCartAddition({
+        id: product.id,
+        category: (product as any).category || '',
+        title: product.name,
+      });
+    } catch (e) {}
+
     triggerGlobalToast('success', `"${product.name}" added to your cart.`, 'Added to Cart');
   };
 
   const removeFromCart = (productId: number, selectedColor?: string, selectedSize?: string) => {
     isUserCartActionRef.current = true;
-    setCart((prev) =>
-      prev.filter((item) => {
+    setCart((prev) => {
+      const updated = prev.filter((item) => {
         if (item.product.id !== productId) return true;
         if (selectedColor && item.selectedColor !== selectedColor) return true;
         if (selectedSize && item.selectedSize !== selectedSize) return true;
         return false;
-      })
-    );
+      });
+      if (updated.length === 0 && userId && typeof window !== 'undefined') {
+        localStorage.removeItem(`veuz_cart_first_added_${userId}`);
+      }
+      return updated;
+    });
     triggerGlobalToast('danger', 'Item removed from your shopping cart.', 'Cart Updated');
   };
 
@@ -275,6 +295,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => {
     isUserCartActionRef.current = true;
+    if (userId && typeof window !== 'undefined') {
+      localStorage.removeItem(`veuz_cart_first_added_${userId}`);
+    }
     setCart([]);
     triggerGlobalToast('info', 'Your shopping cart has been cleared.', 'Cart Cleared');
   };

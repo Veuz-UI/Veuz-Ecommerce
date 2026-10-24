@@ -7,6 +7,12 @@ import { useAuth } from '@/context/AuthContext';
 import { useStore } from '@/context/StoreContext';
 import { ShopSettingsData, ShopCategory, MainMenuItem } from '@/data/defaultShopSettings';
 import { fetchShopSettings, getCachedShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsService';
+import { StoreNotificationDropdown } from '@/components/notifications/StoreNotificationDropdown';
+import { getUserNotifications, NOTIFICATIONS_UPDATED_EVENT } from '@/services/storeNotificationService';
+import { recordUserSearch } from '@/services/recommendationService';
+import { HeaderSearchDropdown } from './HeaderSearchDropdown';
+import { fetchProducts, getCachedProducts, getClientCachedProducts, PRODUCTS_EVENT } from '@/services/productsService';
+import { ProductItem } from '@/data/categoryProductsData';
 
 const formatNavigationLabel = (label: string) =>
   label.toLocaleLowerCase().replace(/\b\w/g, (letter) => letter.toLocaleUpperCase());
@@ -119,6 +125,10 @@ export const Header: React.FC = () => {
   const [searchCatOpen, setSearchCatOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('All Categories');
   const [searchInput, setSearchInput] = useState('');
+  const [catalogProducts, setCatalogProducts] = useState<ProductItem[]>(() => getCachedProducts());
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+  const mobileSearchContainerRef = useRef<HTMLDivElement>(null);
   const [shopCatOpen, setShopCatOpen] = useState(false);
   const [hoveredCategory, setHoveredCategory] = useState<ShopCategory | null>(null);
   const shopCatTimerRef = React.useRef<NodeJS.Timeout | null>(null);
@@ -148,6 +158,89 @@ export const Header: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState('Khobar Shamaliya');
   const [accountOpen, setAccountOpen] = useState(false);
   const accountTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Store Notifications State & Real-Time Sync (Strictly Profile / User-Scoped)
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [mobileNotificationsOpen, setMobileNotificationsOpen] = useState(false);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
+  const notifTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const mobileNotifTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
+  // Sticky Navbar State on Scroll
+  const [isSticky, setIsSticky] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let ticking = false;
+
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const currentScrollY = window.scrollY || window.pageYOffset || 0;
+          if (currentScrollY > 150) {
+            setIsSticky(true);
+          } else if (currentScrollY < 100) {
+            setIsSticky(false);
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleNotifMouseEnter = () => {
+    if (notifTimerRef.current) {
+      clearTimeout(notifTimerRef.current);
+      notifTimerRef.current = null;
+    }
+    setNotificationsOpen(true);
+  };
+
+  const handleNotifMouseLeave = () => {
+    notifTimerRef.current = setTimeout(() => {
+      setNotificationsOpen(false);
+    }, 280);
+  };
+
+  const handleMobileNotifMouseEnter = () => {
+    if (mobileNotifTimerRef.current) {
+      clearTimeout(mobileNotifTimerRef.current);
+      mobileNotifTimerRef.current = null;
+    }
+    setMobileNotificationsOpen(true);
+  };
+
+  const handleMobileNotifMouseLeave = () => {
+    mobileNotifTimerRef.current = setTimeout(() => {
+      setMobileNotificationsOpen(false);
+    }, 280);
+  };
+
+  useEffect(() => {
+    if (!user) {
+      setUnreadNotifCount(0);
+      setNotificationsOpen(false);
+      setMobileNotificationsOpen(false);
+      return;
+    }
+
+    const updateCount = (e?: any) => {
+      if (e?.detail && String(e.detail.userId) !== String(user.id)) return;
+      const list = getUserNotifications(user.id, user.name);
+      setUnreadNotifCount(list.filter((n) => !n.isRead).length);
+    };
+    updateCount();
+    window.addEventListener(NOTIFICATIONS_UPDATED_EVENT, updateCount);
+    return () => {
+      window.removeEventListener(NOTIFICATIONS_UPDATED_EVENT, updateCount);
+    };
+  }, [user]);
 
   const handleAccountMouseEnter = () => {
     if (accountTimerRef.current) {
@@ -216,6 +309,13 @@ export const Header: React.FC = () => {
         setShopCatOpen(false);
         setHoveredCategory(null);
       }
+      if (
+        searchContainerRef.current &&
+        !searchContainerRef.current.contains(event.target as Node) &&
+        (!mobileSearchContainerRef.current || !mobileSearchContainerRef.current.contains(event.target as Node))
+      ) {
+        setIsSearchFocused(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
@@ -283,6 +383,59 @@ export const Header: React.FC = () => {
     };
   }, []);
 
+  // Fetch catalog products and subscribe to real-time updates for live search keywords
+  useEffect(() => {
+    let isMounted = true;
+    const clientProds = getClientCachedProducts();
+    if (clientProds && clientProds.length > 0) {
+      setCatalogProducts(clientProds);
+    }
+    fetchProducts()
+      .then((data) => {
+        if (isMounted && Array.isArray(data) && data.length > 0) {
+          setCatalogProducts(data);
+        }
+      })
+      .catch(() => {});
+
+    const handleProductsUpdated = (e: Event) => {
+      const customEvt = e as CustomEvent;
+      if (customEvt.detail && Array.isArray(customEvt.detail)) {
+        setCatalogProducts(customEvt.detail);
+      }
+    };
+    window.addEventListener(PRODUCTS_EVENT, handleProductsUpdated);
+    return () => {
+      isMounted = false;
+      window.removeEventListener(PRODUCTS_EVENT, handleProductsUpdated);
+    };
+  }, []);
+
+  const handleSelectKeyword = (keyword: string) => {
+    setSearchInput(keyword);
+    setIsSearchFocused(false);
+    recordUserSearch(keyword);
+    const params = new URLSearchParams();
+    params.set('q', keyword);
+    if (selectedCategory && selectedCategory !== 'All Categories') {
+      params.set('category', selectedCategory);
+    }
+    router.push(`/search?${params.toString()}`);
+  };
+
+  const handleSelectCategory = (catName: string) => {
+    setSelectedCategory(catName);
+    setSearchInput('');
+    setIsSearchFocused(false);
+    recordUserSearch(catName);
+    router.push(`/products?category=${encodeURIComponent(catName)}`);
+  };
+
+  const handleSelectProduct = (prodId: string) => {
+    setIsSearchFocused(false);
+    router.push(`/product-details?id=${prodId}`);
+  };
+
   const categories = shopCategories.filter((c) => c.isActive !== false);
 
   const locations = [
@@ -318,7 +471,10 @@ export const Header: React.FC = () => {
         {/* ========================================================
             MAIN HEADER (Logo Left Corner, Search Bar, Location & Language, Action Icons)
            ======================================================== */}
-        <div className="header-middle header-middle-ptb-1" style={{ padding: '16px 0', backgroundColor: '#ffffff', position: 'relative', zIndex: 1060 }}>
+        <div
+          className={`header-middle header-middle-ptb-1 ${isSticky ? 'mobile-header-sticky-active' : ''}`}
+          style={{ padding: '16px 0', backgroundColor: '#ffffff', position: 'relative', zIndex: 1060 }}
+        >
           <div className="container">
             <div className="header-wrap d-flex align-items-center justify-content-between gap-3">
               
@@ -331,20 +487,22 @@ export const Header: React.FC = () => {
 
               {/* Center: Search Bar with Category Selector & Yellow Search Button (Desktop & Tablet) */}
               <div className="header-right d-none d-xl-flex flex-grow-1 justify-content-center" style={{ maxWidth: '880px', width: '100%' }}>
-                <div className="search-style-2 w-100">
+                <div ref={searchContainerRef} className="search-style-2 w-100 position-relative">
                   <form
                     action="#"
                     className="custom-header-search-form"
                     onSubmit={(e) => {
                       e.preventDefault();
+                      setIsSearchFocused(false);
                       const params = new URLSearchParams();
                       if (searchInput.trim()) {
+                        recordUserSearch(searchInput.trim());
                         params.set('q', searchInput.trim());
                       }
                       if (selectedCategory && selectedCategory !== 'All Categories') {
                         params.set('category', selectedCategory);
                       }
-                      router.push(`/products${params.toString() ? `?${params.toString()}` : ''}`);
+                      router.push(`/search${params.toString() ? `?${params.toString()}` : ''}`);
                     }}
                     style={{
                       display: 'flex',
@@ -503,7 +661,14 @@ export const Header: React.FC = () => {
                       id="searchInput"
                       placeholder="Search"
                       value={searchInput}
-                      onChange={(e) => setSearchInput(e.target.value)}
+                      onFocus={() => setIsSearchFocused(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') setIsSearchFocused(false);
+                      }}
+                      onChange={(e) => {
+                        setSearchInput(e.target.value);
+                        if (!isSearchFocused) setIsSearchFocused(true);
+                      }}
                       style={{
                         flex: 1,
                         height: '38px',
@@ -558,6 +723,18 @@ export const Header: React.FC = () => {
                       </svg>
                     </button>
                   </form>
+
+                  {/* Desktop Live Keywords, Categories & Products Search Suggestions Dropdown */}
+                  <HeaderSearchDropdown
+                    isOpen={isSearchFocused}
+                    query={searchInput}
+                    onClose={() => setIsSearchFocused(false)}
+                    onSelectKeyword={handleSelectKeyword}
+                    onSelectCategory={handleSelectCategory}
+                    onSelectProduct={handleSelectProduct}
+                    catalogProducts={catalogProducts}
+                    shopCategories={shopCategories}
+                  />
                 </div>
               </div>
 
@@ -808,9 +985,71 @@ export const Header: React.FC = () => {
                   )}
                 </div>
 
-                {/* Mobile/Tablet Action Icons: Wishlist, Cart, Profile & Hamburger */}
+                {/* Mobile/Tablet Action Icons: Notifications, Wishlist, Cart, Profile & Hamburger */}
                 <div className="header-action-2 d-flex d-xl-none align-items-center" style={{ gap: '14px' }}>
                   
+                  {/* Mobile Notification Bell + Badge (Only for logged in users) */}
+                  {user && (
+                    <div
+                      className="header-action-icon-2 d-inline-flex align-items-center"
+                      style={{ position: 'relative' }}
+                      onMouseEnter={handleMobileNotifMouseEnter}
+                      onMouseLeave={handleMobileNotifMouseLeave}
+                    >
+                      <button
+                        type="button"
+                        className="header-notif-bell-btn"
+                        onClick={() => setMobileNotificationsOpen((prev) => !prev)}
+                        title="Notifications"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: '4px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#1e293b',
+                          cursor: 'pointer',
+                          outline: 'none',
+                        }}
+                      >
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                            <line x1="10" y1="20" x2="14" y2="20" />
+                          </svg>
+                          {unreadNotifCount > 0 && (
+                            <span
+                              className="notif-active-dot"
+                              style={{
+                                position: 'absolute',
+                                bottom: '-7px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                width: '5px',
+                                height: '5px',
+                                backgroundColor: '#dc2626',
+                                borderRadius: '50%',
+                                display: 'block',
+                              }}
+                            />
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Storefront Notifications Dropdown Panel (Mobile) */}
+                      <div className="d-xl-none">
+                        <StoreNotificationDropdown
+                          isOpen={mobileNotificationsOpen}
+                          onClose={() => setMobileNotificationsOpen(false)}
+                          onMouseEnter={handleMobileNotifMouseEnter}
+                          onMouseLeave={handleMobileNotifMouseLeave}
+                          alignRight={true}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Wishlist Heart Icon + Red Dot */}
                   <div className="header-action-icon-2 d-inline-flex align-items-center">
                     <Link
@@ -1115,13 +1354,15 @@ export const Header: React.FC = () => {
 
             {/* Mobile-only Search Bar: Matching reference style */}
             <div className="d-block d-xl-none mt-3 pt-1">
-              <div className="search-style-2 w-100">
+              <div ref={mobileSearchContainerRef} className="search-style-2 w-100 position-relative">
                 <form
                   action="#"
                   onSubmit={(e) => {
                     e.preventDefault();
+                    setIsSearchFocused(false);
                     if (searchInput.trim()) {
-                      router.push(`/products?q=${encodeURIComponent(searchInput.trim())}`);
+                      recordUserSearch(searchInput.trim());
+                      router.push(`/search?q=${encodeURIComponent(searchInput.trim())}`);
                     }
                   }}
                   style={{
@@ -1140,7 +1381,14 @@ export const Header: React.FC = () => {
                     type="text"
                     placeholder="Search"
                     value={searchInput}
-                    onChange={(e) => setSearchInput(e.target.value)}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Escape') setIsSearchFocused(false);
+                    }}
+                    onChange={(e) => {
+                      setSearchInput(e.target.value);
+                      if (!isSearchFocused) setIsSearchFocused(true);
+                    }}
                     style={{
                       flex: 1,
                       height: '100%',
@@ -1191,6 +1439,18 @@ export const Header: React.FC = () => {
                     </svg>
                   </button>
                 </form>
+
+                {/* Mobile Live Keywords, Categories & Products Search Suggestions Dropdown */}
+                <HeaderSearchDropdown
+                  isOpen={isSearchFocused}
+                  query={searchInput}
+                  onClose={() => setIsSearchFocused(false)}
+                  onSelectKeyword={handleSelectKeyword}
+                  onSelectCategory={handleSelectCategory}
+                  onSelectProduct={handleSelectProduct}
+                  catalogProducts={catalogProducts}
+                  shopCategories={shopCategories}
+                />
               </div>
             </div>
 
@@ -1200,12 +1460,49 @@ export const Header: React.FC = () => {
         {/* ========================================================
             3. DESKTOP & LAPTOP NAVIGATION BAR (header-bottom)
            ======================================================== */}
-        <div className="header-bottom header-bottom-bg-color sticky-bar d-none d-xl-block" style={{ backgroundColor: '#ffffff', position: 'relative', zIndex: 1045 }}>
-          <div className="container">
-            <div className="header-wrap header-space-between position-relative">
-              
-              {/* Desktop Nav Items */}
-              <div className="header-nav d-flex align-items-center">
+        <div
+          className="header-bottom-placeholder d-none d-xl-block"
+          style={{
+            height: isSticky ? '58px' : 'auto',
+          }}
+        >
+          <div
+            className={`header-bottom header-bottom-bg-color d-none d-xl-block ${isSticky ? 'sticky-navbar-active' : ''}`}
+            style={{
+              backgroundColor: '#ffffff',
+              position: isSticky ? 'fixed' : 'relative',
+              top: isSticky ? 0 : 'auto',
+              left: isSticky ? 0 : 'auto',
+              right: isSticky ? 0 : 'auto',
+              width: '100%',
+              zIndex: 1045,
+            }}
+          >
+            <div className="container">
+              <div className="header-wrap header-space-between position-relative">
+                
+                {/* Desktop Nav Items */}
+                <div className="header-nav d-flex align-items-center">
+                  
+                  {/* Sticky Mini Brand Logo (Fades in when navbar sticks) */}
+                  {isSticky && (
+                    <Link
+                      href="/"
+                      className="sticky-nav-brand-logo d-flex align-items-center"
+                      style={{
+                        marginRight: '20px',
+                        textDecoration: 'none',
+                        flexShrink: 0,
+                      }}
+                      title="Home"
+                    >
+                      <img
+                        src="/assets/imgs/theme/logo.jpg"
+                        alt="logo"
+                        style={{ height: '32px', width: 'auto', objectFit: 'contain' }}
+                      />
+                    </Link>
+                  )}
                 
                 {/* All Categories Trigger & Dropdown */}
                 <div
@@ -1523,19 +1820,67 @@ export const Header: React.FC = () => {
               <div className="icns">
                 <div className="header-action-2" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   
-                  {/* 1. Notification Bell */}
-                  <div className="header-action-icon-2">
-                    <Link
-                      href={user ? (isAdmin ? "/dashboard" : "/profile?tab=account-settings#notifications") : "/login?redirect=/profile"}
-                      title="Notifications"
-                      style={{ display: 'flex', alignItems: 'center', color: '#1e293b', fontSize: '25px', transition: 'color 0.2s' }}
+                  {/* 1. Notification Bell & Dropdown (Only for logged in users) */}
+                  {user && (
+                    <div
+                      className="header-action-icon-2"
+                      style={{ position: 'relative' }}
+                      onMouseEnter={handleNotifMouseEnter}
+                      onMouseLeave={handleNotifMouseLeave}
                     >
-                      <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                        <line x1="10" y1="20" x2="14" y2="20" />
-                      </svg>
-                    </Link>
-                  </div>
+                      <button
+                        type="button"
+                        className="header-notif-bell-btn"
+                        onClick={() => setNotificationsOpen((prev) => !prev)}
+                        title="Notifications"
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          padding: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          color: '#1e293b',
+                          cursor: 'pointer',
+                          outline: 'none',
+                          transition: 'opacity 0.15s ease',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
+                        onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                      >
+                        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                          <svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                            <line x1="10" y1="20" x2="14" y2="20" />
+                          </svg>
+                          {unreadNotifCount > 0 && (
+                            <span
+                              className="notif-active-dot"
+                              style={{
+                                position: 'absolute',
+                                bottom: '-7px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                width: '5px',
+                                height: '5px',
+                                backgroundColor: '#dc2626',
+                                borderRadius: '50%',
+                                display: 'block',
+                              }}
+                            />
+                          )}
+                        </div>
+                      </button>
+
+                      {/* Storefront Notifications Dropdown Panel (Desktop) */}
+                      <StoreNotificationDropdown
+                        isOpen={notificationsOpen}
+                        onClose={() => setNotificationsOpen(false)}
+                        onMouseEnter={handleNotifMouseEnter}
+                        onMouseLeave={handleNotifMouseLeave}
+                        alignRight={true}
+                      />
+                    </div>
+                  )}
 
                   {/* 2. Wishlist Heart + Red Dot when has items */}
                   <div className="header-action-icon-2">
@@ -1814,6 +2159,7 @@ export const Header: React.FC = () => {
             </div>
           </div>
         </div>
+      </div>
 
       </header>
 
@@ -1973,7 +2319,8 @@ export const Header: React.FC = () => {
               onSubmit={(e) => {
                 e.preventDefault();
                 if (searchInput.trim()) {
-                  router.push(`/products?q=${encodeURIComponent(searchInput.trim())}`);
+                  recordUserSearch(searchInput.trim());
+                  router.push(`/search?q=${encodeURIComponent(searchInput.trim())}`);
                   setMobileMenuOpen(false);
                 }
               }}
@@ -2258,31 +2605,58 @@ export const Header: React.FC = () => {
                 <span>My Wishlist</span>
               </Link>
 
-              <Link
-                href={user ? (isAdmin ? "/dashboard" : "/profile?tab=account-settings#notifications") : "/login?redirect=/profile"}
-                onClick={() => setMobileMenuOpen(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '10px 14px',
-                  borderRadius: '10px',
-                  textDecoration: 'none',
-                  color: '#1e293b',
-                  fontSize: '14.5px',
-                  fontWeight: '600',
-                  backgroundColor: '#f8fafc',
-                  transition: 'all 0.15s ease',
-                }}
-              >
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
-                    <line x1="10" y1="20" x2="14" y2="20" />
-                  </svg>
-                </div>
-                <span>Notifications</span>
-              </Link>
+              {user && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setNotificationsOpen(true);
+                  }}
+                  style={{
+                    width: '100%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    padding: '10px 14px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    color: '#1e293b',
+                    fontSize: '14.5px',
+                    fontWeight: '600',
+                    backgroundColor: '#f8fafc',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#e0e7ff', color: '#4f46e5', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                      <line x1="10" y1="20" x2="14" y2="20" />
+                    </svg>
+                    {unreadNotifCount > 0 && (
+                      <span
+                        style={{
+                          position: 'absolute',
+                          top: '-2px',
+                          right: '-2px',
+                          width: '8px',
+                          height: '8px',
+                          backgroundColor: '#10b981',
+                          borderRadius: '50%',
+                          border: '1.5px solid #ffffff',
+                        }}
+                      />
+                    )}
+                  </div>
+                  <span>Notifications</span>
+                  {unreadNotifCount > 0 && (
+                    <span className="badge rounded-pill bg-success ms-auto fs-11 fw-bold">
+                      {unreadNotifCount}
+                    </span>
+                  )}
+                </button>
+              )}
             </div>
           </div>
 
