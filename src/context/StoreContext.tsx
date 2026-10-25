@@ -61,54 +61,33 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const getCartKey = (uid: number | string | null) => (uid ? `veuz_cart_user_${uid}` : 'veuz_cart_guest');
   const getWishlistKey = (uid: number | string | null) => (uid ? `veuz_wishlist_user_${uid}` : 'veuz_wishlist_guest');
 
-  // Helper to fetch server cart for logged in user
+  const getEffectiveUserId = (): number | string | null => {
+    if (userId) return userId;
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('veuz_user');
+        if (saved) {
+          const u = JSON.parse(saved);
+          if (u?.id) return u.id;
+        }
+      } catch (e) {}
+    }
+    return null;
+  };
+
+  // Helper to fetch server cart for logged in user (Server is single source of truth)
   const fetchServerCart = async (uid: number | string) => {
     try {
       const res = await fetch(`/api/cart?userId=${uid}`);
       const data = await res.json();
       if (data?.success) {
         if (Array.isArray(data.cart)) {
-          if (data.cart.length > 0) {
-            setCart(data.cart);
-            localStorage.setItem(getCartKey(uid), JSON.stringify(data.cart));
-          } else {
-            // Server cart is empty for this user. Check if local storage has existing items to push
-            const localRaw = localStorage.getItem(getCartKey(uid));
-            if (localRaw) {
-              try {
-                const parsed = JSON.parse(localRaw);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                  setCart(parsed);
-                  fetch('/api/cart', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: uid, cart: parsed }),
-                  }).catch(() => {});
-                }
-              } catch (e) {}
-            }
-          }
+          setCart(data.cart);
+          localStorage.setItem(getCartKey(uid), JSON.stringify(data.cart));
         }
         if (Array.isArray(data.wishlist)) {
-          if (data.wishlist.length > 0) {
-            setWishlist(data.wishlist);
-            localStorage.setItem(getWishlistKey(uid), JSON.stringify(data.wishlist));
-          } else {
-            const localRaw = localStorage.getItem(getWishlistKey(uid));
-            if (localRaw) {
-              try {
-                const parsed = JSON.parse(localRaw);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                  setWishlist(parsed);
-                  fetch('/api/cart', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: uid, wishlist: parsed }),
-                  }).catch(() => {});
-                }
-              } catch (e) {}
-            }
-          }
+          setWishlist(data.wishlist);
+          localStorage.setItem(getWishlistKey(uid), JSON.stringify(data.wishlist));
         }
       }
     } catch (e) {
@@ -256,15 +235,36 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const removeFromCart = (productId: number, selectedColor?: string, selectedSize?: string) => {
     isUserCartActionRef.current = true;
+    const effectiveUid = getEffectiveUserId();
+
     setCart((prev) => {
       const updated = prev.filter((item) => {
-        if (item.product.id !== productId) return true;
-        if (selectedColor && item.selectedColor !== selectedColor) return true;
-        if (selectedSize && item.selectedSize !== selectedSize) return true;
+        const idMatches = String(item.product.id) === String(productId);
+        if (!idMatches) return true;
+        if (selectedColor && item.selectedColor && item.selectedColor.trim().toLowerCase() !== selectedColor.trim().toLowerCase()) {
+          return true;
+        }
+        if (selectedSize && item.selectedSize && item.selectedSize.trim().toLowerCase() !== selectedSize.trim().toLowerCase()) {
+          return true;
+        }
         return false;
       });
-      if (updated.length === 0 && userId && typeof window !== 'undefined') {
-        localStorage.removeItem(`veuz_cart_first_added_${userId}`);
+
+      if (updated.length === 0 && effectiveUid && typeof window !== 'undefined') {
+        localStorage.removeItem(`veuz_cart_first_added_${effectiveUid}`);
+      }
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem(getCartKey(effectiveUid), JSON.stringify(updated));
+        } catch (e) {}
+      }
+      if (effectiveUid) {
+        fetch('/api/cart', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          keepalive: true,
+          body: JSON.stringify({ userId: effectiveUid, cart: updated }),
+        }).catch(() => {});
       }
       return updated;
     });
@@ -295,8 +295,23 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const clearCart = () => {
     isUserCartActionRef.current = true;
-    if (userId && typeof window !== 'undefined') {
-      localStorage.removeItem(`veuz_cart_first_added_${userId}`);
+    const effectiveUid = getEffectiveUserId();
+
+    if (effectiveUid && typeof window !== 'undefined') {
+      localStorage.removeItem(`veuz_cart_first_added_${effectiveUid}`);
+    }
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(getCartKey(effectiveUid), '[]');
+      } catch (e) {}
+    }
+    if (effectiveUid) {
+      fetch('/api/cart', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body: JSON.stringify({ userId: effectiveUid, cart: [] }),
+      }).catch(() => {});
     }
     setCart([]);
     triggerGlobalToast('info', 'Your shopping cart has been cleared.', 'Cart Cleared');

@@ -10,6 +10,7 @@ import { StoreProvider } from '@/context/StoreContext';
 import { StorefrontStyles } from '@/components/layout/StorefrontStyles';
 import { ScrollRevealInit } from '@/components/common/ScrollRevealInit';
 import { ScrollToTopButton } from '@/components/common/ScrollToTopButton';
+import { CookieConsentBanner } from '@/components/common/CookieConsentBanner';
 
 interface AppLayoutShellProps {
   children: React.ReactNode;
@@ -81,6 +82,7 @@ export const AppLayoutShell: React.FC<AppLayoutShellProps> = ({ children }) => {
               </div>
               <Footer />
               <ScrollToTopButton />
+              <CookieConsentBanner />
             </>
           )}
         </StoreProvider>

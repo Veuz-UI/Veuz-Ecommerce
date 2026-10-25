@@ -375,9 +375,8 @@ function ProductSectionSliderTrack({
           className="desktop-prod-slider-track hide-scrollbar"
           style={{
             scrollBehavior: 'smooth',
-            touchAction: 'pan-x',
-            overflowY: 'hidden',
-            overscrollBehaviorY: 'none',
+            touchAction: 'pan-y',
+            overscrollBehaviorY: 'auto',
           }}
         >
           {repeatedItems.map((prod, idx) => (
@@ -1594,9 +1593,8 @@ export default function HomePage() {
               ref={browseCatScrollRef}
               className="browse-cat-track-container"
               style={{
-                touchAction: 'pan-x',
-                overflowY: 'hidden',
-                overscrollBehaviorY: 'none',
+                touchAction: 'pan-y',
+                overscrollBehaviorY: 'auto',
               }}
             >
               {repeatedShopCategories.length === 0 ? (

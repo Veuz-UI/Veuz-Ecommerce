@@ -1,37 +1,13 @@
 {
   "3": {
-    "cart": [
-      {
-        "product": {
-          "id": 1792058077081,
-          "name": "DMG Anti Fog Safety Glasses, 3 Pcs Safety Goggles over Eyeglasses, Anti Dust Impact, Scratch Resistant Splash Proof Chemical Clear Lens Wrap Around, Eye Protection, for Nurses Workers Architect Etc",
-          "price": 120,
-          "image": "/uploads/img_1792058231896_da3210dddefa74a8f78ea344ea88ec6e.png",
-          "category": "Safety Goggles"
-        },
-        "quantity": 1,
-        "selectedColor": "",
-        "selectedSize": "Regular Size"
-      }
-    ],
+    "cart": [],
     "wishlist": [],
-    "updatedAt": "2026-10-23T13:15:29.493Z"
+    "updatedAt": "2026-10-25T18:40:07.699Z"
   },
   "4": {
-    "cart": [
-      {
-        "product": {
-          "id": 1792064578945,
-          "name": "Gorilla Grip A1 Precision Grip, Cut Resistant Work Gloves",
-          "price": 80,
-          "image": "/uploads/img_1792064654826_ffde93b8bf82dbad1ca6b2f03d029888.png",
-          "category": "Cut Gloves"
-        },
-        "quantity": 1
-      }
-    ],
+    "cart": [],
     "wishlist": [],
-    "updatedAt": "2026-10-23T14:05:24.309Z"
+    "updatedAt": "2026-10-25T18:34:17.182Z"
   },
   "5": {
     "cart": [],

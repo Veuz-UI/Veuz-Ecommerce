@@ -16,6 +16,13 @@ import {
   validateEmailAddress,
 } from '@/utils/securityValidation';
 import { ProfileSkeleton } from '@/components/ui/skeletons';
+import {
+  UserAddress,
+  getUserAddresses,
+  setSelectedLocation,
+  ADDRESS_UPDATED_EVENT,
+  LOCATION_CHANGED_EVENT,
+} from '@/services/locationService';
 
 const COUNTRIES = [
   { name: 'Saudi Arabia', flag: '🇸🇦' },
@@ -94,8 +101,8 @@ export default function ProfilePage() {
   const isSuperAdminRole = user?.role === 'SUPER_ADMIN';
   const isEmailReadOnly = (isAdminRole && !isSuperAdminRole) || !!user?.isEmailVerified;
 
-  // Tab State: basic-info | password-change | address-setup | account-settings | delete-account
-  const [activeTab, setActiveTab] = useState<'basic-info' | 'password-change' | 'address-setup' | 'account-settings' | 'delete-account'>('basic-info');
+  // Tab State: basic-info | password-change | address-book | account-settings | delete-account
+  const [activeTab, setActiveTab] = useState<'basic-info' | 'password-change' | 'address-book' | 'account-settings' | 'delete-account'>('basic-info');
   const tabListRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll the active tab smoothly into view on mobile
@@ -130,10 +137,8 @@ export default function ProfilePage() {
         setActiveTab('account-settings');
       } else if (target === 'password' || target === 'password-change' || target === 'security') {
         setActiveTab('password-change');
-      } else if (target === 'address' || target === 'address-setup' || target === 'location') {
-        if (!isAdminRole && !isSuperAdminRole) {
-          setActiveTab('address-setup');
-        }
+      } else if (target === 'address' || target === 'address-setup' || target === 'address-book' || target === 'location') {
+        setActiveTab('address-book');
       } else if (target === 'basic' || target === 'basic-info' || target === 'profile') {
         setActiveTab('basic-info');
       } else if (target === 'delete' || target === 'delete-account') {
@@ -153,9 +158,9 @@ export default function ProfilePage() {
     };
   }, [isAdminRole, isSuperAdminRole]);
 
-  // Admin and Super Admin do not need Location (Address Setup) or Delete Account
+  // Admin and Super Admin cannot delete account
   useEffect(() => {
-    if ((isAdminRole || isSuperAdminRole) && (activeTab === 'address-setup' || activeTab === 'delete-account')) {
+    if ((isAdminRole || isSuperAdminRole) && activeTab === 'delete-account') {
       setActiveTab('basic-info');
     }
   }, [isAdminRole, isSuperAdminRole, activeTab]);
@@ -188,21 +193,37 @@ export default function ProfilePage() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Address Setup State
-  const [country, setCountry] = useState('');
-  const [countryDropdownOpen, setCountryDropdownOpen] = useState(false);
-  const countryDropdownRef = useRef<HTMLDivElement>(null);
-  const [city, setCity] = useState('');
-  const [streetAddress, setStreetAddress] = useState('');
-  const [zipCode, setZipCode] = useState('');
-  const [buildingNo, setBuildingNo] = useState('');
-  const [isDefaultAddress, setIsDefaultAddress] = useState(true);
-  const [isGeolocating, setIsGeolocating] = useState(false);
-  const [geoError, setGeoError] = useState<string | null>(null);
+  // User Addresses State & Management
+  const [userAddresses, setUserAddresses] = useState<UserAddress[]>([]);
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [modalAddressId, setModalAddressId] = useState<string | null>(null);
+  const [modalName, setModalName] = useState('');
+  const [modalCountry, setModalCountry] = useState('Saudi Arabia');
+  const [modalCountryDropdownOpen, setModalCountryDropdownOpen] = useState(false);
+  const modalCountryDropdownRef = useRef<HTMLDivElement>(null);
+  const [modalCity, setModalCity] = useState('');
+  const [modalStreet, setModalStreet] = useState('');
+  const [modalBuilding, setModalBuilding] = useState('');
+  const [modalZip, setModalZip] = useState('');
+  const [modalPhone, setModalPhone] = useState('');
+  const [modalIsDefault, setModalIsDefault] = useState(false);
+  const [modalIsGeolocating, setModalIsGeolocating] = useState(false);
+  const [modalGeoError, setModalGeoError] = useState<string | null>(null);
+  const [isSavingAddressModal, setIsSavingAddressModal] = useState(false);
+
+  // Close modal country dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (modalCountryDropdownRef.current && !modalCountryDropdownRef.current.contains(e.target as Node)) {
+        setModalCountryDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   // Account Settings State
   const [language, setLanguage] = useState('English (US)');
-  const [timezone, setTimezone] = useState('GMT+03:00 (Riyadh, Saudi Arabia)');
   const [emailNotif, setEmailNotif] = useState(true);
   const [smsNotif, setSmsNotif] = useState(true);
   const [promoNotif, setPromoNotif] = useState(false);
@@ -237,25 +258,40 @@ export default function ProfilePage() {
     }, 280);
   };
 
-  // Lock body scroll when verification modal is open (covers header and prevents background scroll)
+  // Lock body scroll when verification modal or address modal is open
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (showVerifyModal) {
-      const originalOverflow = document.body.style.overflow;
-      const originalPaddingRight = document.body.style.paddingRight;
-      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    if (showVerifyModal || showAddressModal) {
+      const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+      const originalBodyOverflow = document.body.style.overflow;
+      const originalHtmlOverflow = document.documentElement.style.overflow;
+      const originalBodyPosition = document.body.style.position;
+      const originalBodyTop = document.body.style.top;
+      const originalBodyWidth = document.body.style.width;
+      const originalTouchAction = document.body.style.touchAction;
 
+      document.documentElement.classList.add('lightbox-open');
+      document.body.classList.add('lightbox-open');
+      document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
-      if (scrollbarWidth > 0) {
-        document.body.style.paddingRight = `${scrollbarWidth}px`;
-      }
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+      document.body.style.touchAction = 'none';
 
       return () => {
-        document.body.style.overflow = originalOverflow;
-        document.body.style.paddingRight = originalPaddingRight;
+        document.documentElement.classList.remove('lightbox-open');
+        document.body.classList.remove('lightbox-open');
+        document.documentElement.style.overflow = originalHtmlOverflow;
+        document.body.style.overflow = originalBodyOverflow;
+        document.body.style.position = originalBodyPosition;
+        document.body.style.top = originalBodyTop;
+        document.body.style.width = originalBodyWidth;
+        document.body.style.touchAction = originalTouchAction;
+        window.scrollTo(0, scrollY);
       };
     }
-  }, [showVerifyModal]);
+  }, [showVerifyModal, showAddressModal]);
 
   // Focus first OTP box whenever modal opens
   useEffect(() => {
@@ -331,16 +367,6 @@ export default function ProfilePage() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Close country dropdown on click outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (countryDropdownRef.current && !countryDropdownRef.current.contains(event.target as Node)) {
-        setCountryDropdownOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // Populate form with current user details
   useEffect(() => {
@@ -357,23 +383,31 @@ export default function ProfilePage() {
         : `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name || 'User')}`;
       setAvatarPreview(safeAvatar);
 
-      if (user.address) {
-        setCountry(user.address.country || '');
-        setCity(user.address.city || '');
-        setStreetAddress(user.address.streetAddress || '');
-        setZipCode(user.address.zipCode || '');
-        setBuildingNo(user.address.buildingNo || '');
-      }
+      const loadedAddrs = getUserAddresses(user);
+      setUserAddresses(loadedAddrs);
 
       if (user.settings) {
         setLanguage(user.settings.language || 'English (US)');
-        setTimezone(user.settings.timezone || 'GMT+03:00 (Riyadh, Saudi Arabia)');
         if (user.settings.emailNotif !== undefined) setEmailNotif(user.settings.emailNotif);
         if (user.settings.smsNotif !== undefined) setSmsNotif(user.settings.smsNotif);
         if (user.settings.promoNotif !== undefined) setPromoNotif(user.settings.promoNotif);
       }
     }
   }, [user]);
+
+  useEffect(() => {
+    const handleAddressUpdated = () => {
+      if (user) {
+        setUserAddresses(getUserAddresses(user));
+      }
+    };
+    window.addEventListener(ADDRESS_UPDATED_EVENT, handleAddressUpdated);
+    return () => window.removeEventListener(ADDRESS_UPDATED_EVENT, handleAddressUpdated);
+  }, [user]);
+
+  const defaultAddress = useMemo(() => {
+    return userAddresses.find((a) => a.isDefault) || userAddresses[0] || null;
+  }, [userAddresses]);
 
 
   useEffect(() => {
@@ -389,91 +423,6 @@ export default function ProfilePage() {
     }
   }, []);
 
-  // Auto-detect country from IP when address tab opens (if no saved address)
-  useEffect(() => {
-    if (activeTab !== 'address-setup') return;
-    if (user?.address?.country) return; // already have saved address
-    if (country) return; // already set
-
-    const detectCountryFromIP = async () => {
-      try {
-        const res = await fetch('https://ipapi.co/json/', { signal: AbortSignal.timeout(5000) });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.country_name) {
-          setCountry(data.country_name);
-        }
-        if (data.city && !city) {
-          setCity(data.city);
-        }
-      } catch {
-        // Silently fail — user can still manually set or use GPS button
-      }
-    };
-
-    detectCountryFromIP();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab]);
-
-  // Use GPS + Nominatim reverse geocoding
-  const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      setGeoError('Geolocation is not supported by your browser.');
-      return;
-    }
-
-    setIsGeolocating(true);
-    setGeoError(null);
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        try {
-          const res = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
-            { headers: { 'Accept-Language': 'en' } }
-          );
-          if (!res.ok) throw new Error('Geocoding failed');
-          const data = await res.json();
-          const addr = data.address || {};
-
-          // Country
-          if (addr.country) setCountry(addr.country);
-
-          // City: try multiple fields Nominatim can return
-          const detectedCity =
-            addr.city || addr.town || addr.village || addr.county || addr.state_district || addr.state || '';
-          if (detectedCity) setCity(detectedCity);
-
-          // Street Address
-          const streetParts = [
-            addr.road || addr.pedestrian || addr.footway || '',
-            addr.house_number || '',
-            addr.suburb || addr.neighbourhood || '',
-          ].filter(Boolean);
-          if (streetParts.length > 0) setStreetAddress(streetParts.join(', '));
-
-          // ZIP
-          if (addr.postcode) setZipCode(addr.postcode);
-
-          showToast('success', 'Location detected and address filled successfully!', 'Location Detected');
-        } catch {
-          setGeoError('Could not fetch address details. Please fill in manually.');
-        } finally {
-          setIsGeolocating(false);
-        }
-      },
-      (err) => {
-        setIsGeolocating(false);
-        if (err.code === err.PERMISSION_DENIED) {
-          setGeoError('Location access denied. Please allow location permission in your browser.');
-        } else {
-          setGeoError('Unable to retrieve your location. Please enter address manually.');
-        }
-      },
-      { timeout: 10000, maximumAge: 60000 }
-    );
-  };
 
   // Profile Photo Upload & Delete (Validated & Canvas Compressed)
   const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -670,30 +619,227 @@ export default function ProfilePage() {
     }
   };
 
-  // Save Address Setup
-  const handleSaveAddress = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSaving(true);
-    const addressData = {
-      country,
-      city: city.trim(),
-      streetAddress: streetAddress.trim(),
-      zipCode: zipCode.trim(),
-      buildingNo: buildingNo.trim(),
-      isDefault: isDefaultAddress,
-    };
+  // Open Address Modal for adding or editing
+  const handleOpenAddressModal = (addrToEdit?: UserAddress) => {
+    if (addrToEdit) {
+      setModalAddressId(addrToEdit.id);
+      setModalName(addrToEdit.name || user?.name || '');
+      setModalCountry(addrToEdit.country || 'Saudi Arabia');
+      setModalCity(addrToEdit.city || '');
+      setModalStreet(addrToEdit.streetAddress || '');
+      setModalBuilding(addrToEdit.buildingNo || '');
+      setModalZip(addrToEdit.zipCode || '');
+      setModalPhone(addrToEdit.phone || user?.phone || user?.mobile || '');
+      setModalIsDefault(addrToEdit.isDefault ?? false);
+    } else {
+      setModalAddressId(null);
+      setModalName(user?.name || '');
+      setModalCountry('Saudi Arabia');
+      setModalCity('');
+      setModalStreet('');
+      setModalBuilding('');
+      setModalZip('');
+      setModalPhone(user?.phone || user?.mobile || '');
+      setModalIsDefault(userAddresses.length === 0);
+    }
+    setModalGeoError(null);
+    setShowAddressModal(true);
+  };
 
+  // Close Address Modal
+  const handleCloseAddressModal = () => {
+    setShowAddressModal(false);
+    setModalAddressId(null);
+    setModalPhone('');
+    setModalGeoError(null);
+  };
+
+  // GPS for Modal
+  const handleModalUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setModalGeoError('Geolocation is not supported by your browser.');
+      return;
+    }
+    setModalIsGeolocating(true);
+    setModalGeoError(null);
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
+            { headers: { 'Accept-Language': 'en' } }
+          );
+          if (!res.ok) throw new Error('Geocoding failed');
+          const data = await res.json();
+          const addr = data.address || {};
+
+          if (addr.country) setModalCountry(addr.country);
+          const detectedCity =
+            addr.city || addr.town || addr.village || addr.county || addr.state_district || addr.state || '';
+          if (detectedCity) setModalCity(detectedCity);
+
+          const streetParts = [
+            addr.road || addr.pedestrian || addr.footway || '',
+            addr.house_number || '',
+            addr.suburb || addr.neighbourhood || '',
+          ].filter(Boolean);
+          if (streetParts.length > 0) setModalStreet(streetParts.join(', '));
+          if (addr.postcode) {
+            const numZip = String(addr.postcode).replace(/\D/g, '').slice(0, 10);
+            if (numZip) setModalZip(numZip);
+          }
+
+          showToast('Location detected and address filled!', 'success');
+        } catch {
+          setModalGeoError('Could not fetch address details. Please fill in manually.');
+        } finally {
+          setModalIsGeolocating(false);
+        }
+      },
+      (err) => {
+        setModalIsGeolocating(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setModalGeoError('Location permission denied. Please enter address manually.');
+        } else {
+          setModalGeoError('Unable to detect location. Please enter address manually.');
+        }
+      },
+      { timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
+  // Save Address from Modal
+  const handleSaveAddressModal = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!modalName.trim() || modalName.trim().length < 2) {
+      showToast('Full Name is mandatory. Please enter recipient name.', 'error');
+      return;
+    }
+
+    if (!modalCity.trim() || modalCity.trim().length < 2) {
+      showToast('City is mandatory. Please enter your delivery city.', 'error');
+      return;
+    }
+
+    if (!modalStreet.trim() || modalStreet.trim().length < 3) {
+      showToast('Street / Location is mandatory. Please enter your street address.', 'error');
+      return;
+    }
+
+    const cleanZip = modalZip.trim().replace(/\D/g, '');
+    if (!cleanZip || cleanZip.length < 4 || cleanZip.length > 10) {
+      showToast('Please enter a valid numeric ZIP / Postal Code (4-10 digits). Letters are not allowed.', 'error');
+      return;
+    }
+
+    const cleanPhone = modalPhone.trim().replace(/[^\d+]/g, '');
+    const phoneDigits = cleanPhone.replace(/\D/g, '');
+    if (!phoneDigits || phoneDigits.length < 7 || phoneDigits.length > 15) {
+      showToast('Please enter a valid Phone Number (7-15 digits). Letters are not allowed.', 'error');
+      return;
+    }
+
+    setIsSavingAddressModal(true);
     try {
-      const res = await updateUserProfile({ address: addressData });
-      if (res.success) {
-        showToast('Shipping address saved successfully!');
+      const isDefault = modalIsDefault || userAddresses.length === 0;
+      const newAddr: UserAddress = {
+        id: modalAddressId || `addr-${Date.now()}`,
+        name: modalName.trim() || user?.name || 'Recipient',
+        country: modalCountry.trim() || 'Saudi Arabia',
+        city: modalCity.trim(),
+        streetAddress: modalStreet.trim(),
+        buildingNo: modalBuilding.trim(),
+        zipCode: cleanZip,
+        phone: cleanPhone,
+        isDefault,
+      };
+
+      let updated: UserAddress[];
+      if (modalAddressId) {
+        updated = userAddresses.map((a) => {
+          if (a.id === modalAddressId) return newAddr;
+          return isDefault ? { ...a, isDefault: false } : a;
+        });
       } else {
-        showToast(res.message || 'Failed to save address.', 'error');
+        if (isDefault) {
+          updated = [...userAddresses.map((a) => ({ ...a, isDefault: false })), newAddr];
+        } else {
+          updated = [...userAddresses, newAddr];
+        }
       }
+
+      const primary = updated.find((a) => a.isDefault) || updated[0];
+
+      await updateUserProfile({
+        addresses: updated,
+        address: primary,
+      } as any);
+
+      setUserAddresses(updated);
+
+      if (primary?.city) {
+        setSelectedLocation(primary.city);
+      }
+
+      window.dispatchEvent(new CustomEvent(ADDRESS_UPDATED_EVENT));
+
+      showToast(modalAddressId ? 'Address updated successfully!' : 'New address added successfully!', 'success');
+      setShowAddressModal(false);
     } catch (err: any) {
       showToast(err.message || 'Error saving address.', 'error');
     } finally {
-      setIsSaving(false);
+      setIsSavingAddressModal(false);
+    }
+  };
+
+  // Set Address as default
+  const handleSetDefaultAddress = async (addrId: string) => {
+    const updated = userAddresses.map((a) => ({
+      ...a,
+      isDefault: a.id === addrId,
+    }));
+    const primary = updated.find((a) => a.id === addrId) || updated[0];
+
+    try {
+      await updateUserProfile({
+        addresses: updated,
+        address: primary,
+      } as any);
+      setUserAddresses(updated);
+      if (primary?.city) {
+        setSelectedLocation(primary.city);
+      }
+      window.dispatchEvent(new CustomEvent(ADDRESS_UPDATED_EVENT));
+      showToast('Default delivery address updated.', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to set default address.', 'error');
+    }
+  };
+
+  // Delete Address
+  const handleDeleteAddress = async (addrId: string) => {
+    const updated = userAddresses.filter((a) => a.id !== addrId);
+    if (updated.length > 0 && !updated.some((a) => a.isDefault)) {
+      updated[0].isDefault = true;
+    }
+    const primary = updated.find((a) => a.isDefault) || updated[0] || null;
+
+    try {
+      await updateUserProfile({
+        addresses: updated,
+        address: primary,
+      } as any);
+      setUserAddresses(updated);
+      if (primary?.city) {
+        setSelectedLocation(primary.city);
+      }
+      window.dispatchEvent(new CustomEvent(ADDRESS_UPDATED_EVENT));
+      showToast('Address deleted successfully.', 'success');
+    } catch (err: any) {
+      showToast(err.message || 'Failed to delete address.', 'error');
     }
   };
 
@@ -703,7 +849,6 @@ export default function ProfilePage() {
     setIsSaving(true);
     const settingsData = {
       language,
-      timezone,
       emailNotif,
       smsNotif,
       promoNotif,
@@ -1009,19 +1154,17 @@ export default function ProfilePage() {
             >
               <i className="fi fi-rs-lock"></i> Password Change
             </button>
-            {/* Address Setup (Location) - Customers only (hidden for Admin & Super Admin) */}
-            {!isAdminRole && !isSuperAdminRole && (
-              <button
-                type="button"
-                className={`profile-tab-btn ${activeTab === 'address-setup' ? 'active' : ''}`}
-                onClick={(e) => {
-                  setActiveTab('address-setup');
-                  e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-                }}
-              >
-                <i className="fi fi-rs-marker"></i> Address Setup
-              </button>
-            )}
+            {/* Address Book */}
+            <button
+              type="button"
+              className={`profile-tab-btn ${activeTab === 'address-book' ? 'active' : ''}`}
+              onClick={(e) => {
+                setActiveTab('address-book');
+                e.currentTarget.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+              }}
+            >
+              <i className="fi fi-rs-marker"></i> Address Book
+            </button>
             <button
               type="button"
               className={`profile-tab-btn ${activeTab === 'account-settings' ? 'active' : ''}`}
@@ -1562,261 +1705,234 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* TAB 3: ADDRESS SETUP (Shipping & Billing) - Customers Only */}
-          {activeTab === 'address-setup' && !isAdminRole && !isSuperAdminRole && (
+          {/* TAB 3: ADDRESS BOOK */}
+          {activeTab === 'address-book' && (
             <div>
               <div className="mb-4">
-                <div className="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-1">
-                  <div>
-                    <h5 style={{ fontWeight: '700', color: '#0f172a', marginBottom: '4px' }}>Shipping Address Setup</h5>
-                    <p style={{ color: '#64748b', fontSize: '13.5px', margin: 0 }}>
-                      Provide your primary delivery destination for fast checkout and package tracking.
-                    </p>
-                  </div>
-
-                  {/* Use Current Location Button */}
-                  <button
-                    type="button"
-                    onClick={handleUseCurrentLocation}
-                    disabled={isGeolocating}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      padding: '9px 16px',
-                      borderRadius: '9px',
-                      border: '1.5px solid #0f172a',
-                      backgroundColor: isGeolocating ? '#f1f5f9' : '#ffffff',
-                      color: '#0f172a',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      cursor: isGeolocating ? 'not-allowed' : 'pointer',
-                      transition: 'all 0.15s ease',
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {isGeolocating ? (
-                      <>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            width: '14px',
-                            height: '14px',
-                            border: '2px solid #e2e8f0',
-                            borderTopColor: '#0f172a',
-                            borderRadius: '50%',
-                            animation: 'profileSpin 0.7s linear infinite',
-                          }}
-                        />
-                        Detecting location...
-                      </>
-                    ) : (
-                      <>
-                        <i className="fi fi-rs-marker" style={{ fontSize: '15px' }}></i>
-                        Use Current Location
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {/* Geo Error */}
-                {geoError && (
-                  <div
-                    style={{
-                      marginTop: '10px',
-                      padding: '10px 14px',
-                      backgroundColor: '#fef2f2',
-                      border: '1px solid #fecaca',
-                      borderRadius: '8px',
-                      color: '#b91c1c',
-                      fontSize: '13px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                    }}
-                  >
-                    <i className="fi fi-rs-exclamation" style={{ flexShrink: 0 }}></i>
-                    {geoError}
-                    <button
-                      type="button"
-                      onClick={() => setGeoError(null)}
-                      style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#b91c1c', cursor: 'pointer', fontSize: '14px', padding: 0 }}
-                    >
-                      ✕
-                    </button>
-                  </div>
-                )}
+                <h5 style={{ fontWeight: '700', color: '#0f172a', marginBottom: '4px' }}>Your Addresses</h5>
+                <p style={{ color: '#64748b', fontSize: '13.5px', margin: 0 }}>
+                  Manage your delivery destinations and preferences.
+                </p>
               </div>
 
-              <form onSubmit={handleSaveAddress}>
-                <div className="row g-3 g-md-4">
-                  {/* Country */}
-                  <div className="col-md-6" ref={countryDropdownRef} style={{ position: 'relative' }}>
-                    <label className="profile-input-label">Country / Region</label>
-                    <button
-                      type="button"
-                      onClick={() => setCountryDropdownOpen((prev) => !prev)}
-                      className={`profile-country-trigger ${countryDropdownOpen ? 'is-open' : ''}`}
-                    >
-                      <span style={{ color: country ? '#0f172a' : '#94a3b8', fontWeight: country ? 500 : 400 }}>
-                        {(() => {
-                          const selected = COUNTRIES.find((c) => c.name.toLowerCase() === (country || '').toLowerCase());
-                          return selected ? `${selected.flag}  ${selected.name}` : country || '— Select Country —';
-                        })()}
-                      </span>
-                      <svg
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#64748b"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        style={{
-                          transform: countryDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-                          transition: 'transform 0.2s ease',
-                          flexShrink: 0,
-                        }}
-                      >
-                        <polyline points="6 9 12 15 18 9" />
-                      </svg>
-                    </button>
-
-                    {/* Dropdown Menu: shows 5 items, rest in scroller */}
-                    {countryDropdownOpen && (
-                      <div className="profile-country-menu">
-                        {COUNTRIES.map((c) => {
-                          const isSelected = country.toLowerCase() === c.name.toLowerCase();
-                          return (
-                            <button
-                              key={c.name}
-                              type="button"
-                              onClick={() => {
-                                setCountry(c.name);
-                                setCountryDropdownOpen(false);
-                              }}
-                              className={`profile-country-item ${isSelected ? 'is-selected' : ''}`}
-                            >
-                              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <span style={{ fontSize: '16px' }}>{c.flag}</span>
-                                <span>{c.name}</span>
-                              </span>
-                              {isSelected && (
-                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                  <polyline points="20 6 9 17 4 12" />
-                                </svg>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {country && (
-                      <div style={{ marginTop: '6px', fontSize: '12px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                        <span style={{ color: '#16a34a', fontWeight: 600 }}>✓</span>
-                        Selected: <strong style={{ color: '#0f172a' }}>{country}</strong>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* City */}
-                  <div className="col-md-6">
-                    <label className="profile-input-label">City</label>
-                    <input
-                      type="text"
-                      className="profile-input-field"
-                      placeholder="e.g. Riyadh, Jeddah, Dammam"
-                      value={city}
-                      onChange={(e) => setCity(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  {/* Street Address / Location */}
-                  <div className="col-md-6">
-                    <label className="profile-input-label">Street / Location</label>
-                    <input
-                      type="text"
-                      className="profile-input-field"
-                      placeholder="e.g. King Fahd Road, Plaza del Rey No. 1"
-                      value={streetAddress}
-                      onChange={(e) => setStreetAddress(e.target.value)}
-                      required
-                    />
-                  </div>
-
-                  {/* ZIP / Postal Code */}
-                  <div className="col-md-6">
-                    <label className="profile-input-label">ZIP / Postal Code</label>
-                    <input
-                      type="text"
-                      className="profile-input-field"
-                      placeholder="e.g. 11564 or 28004"
-                      value={zipCode}
-                      onChange={(e) => setZipCode(e.target.value)}
-                    />
-                  </div>
-
-                  {/* Building / Flat No */}
-                  <div className="col-md-6">
-                    <label className="profile-input-label">Building / Villa / Office No.</label>
-                    <input
-                      type="text"
-                      className="profile-input-field"
-                      placeholder="e.g. Villa 24B, Tower 2, Floor 5"
-                      value={buildingNo}
-                      onChange={(e) => setBuildingNo(e.target.value)}
-                    />
-                  </div>
-
-                  {/* Default Address Checkbox */}
-                  <div className="col-12">
-                    <div className="form-check mt-2">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id="defaultAddressCheck"
-                        checked={isDefaultAddress}
-                        onChange={(e) => setIsDefaultAddress(e.target.checked)}
-                      />
-                      <label className="form-check-label" htmlFor="defaultAddressCheck" style={{ fontSize: '13.5px', color: '#334155' }}>
-                        Set as primary default address for one-click checkout
-                      </label>
+              <div className="row g-3 g-md-4">
+                {/* 1. Add Address Card (matches image left side) */}
+                <div className="col-12 col-md-6 col-lg-4">
+                  <div
+                    onClick={() => handleOpenAddressModal()}
+                    style={{
+                      height: '100%',
+                      minHeight: '260px',
+                      border: '2px dashed #cbd5e1',
+                      borderRadius: '8px',
+                      backgroundColor: '#ffffff',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      padding: '24px',
+                      transition: 'all 0.15s ease',
+                      boxSizing: 'border-box',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = '#64748b';
+                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = '#cbd5e1';
+                      e.currentTarget.style.backgroundColor = '#ffffff';
+                    }}
+                  >
+                    <div style={{ fontSize: '46px', color: '#cbd5e1', lineHeight: 1, marginBottom: '10px', fontWeight: 300 }}>
+                      +
+                    </div>
+                    <div style={{ fontSize: '18px', fontWeight: '700', color: '#475569' }}>
+                      Add Address
                     </div>
                   </div>
                 </div>
 
-                {/* Bottom Actions */}
-                <div className="profile-form-actions mt-4 pt-2">
-                  <button
-                    type="submit"
-                    className="profile-btn-primary"
-                    disabled={isSaving}
-                  >
-                    <i className="fi fi-rs-check"></i> {isSaving ? 'Saving...' : 'Save Address'}
-                  </button>
-                  <button
-                    type="button"
-                    className="profile-btn-cancel"
-                    onClick={() => router.push('/')}
-                  >
-                    <i className="fi fi-rs-cross-circle"></i> Cancel
-                  </button>
-                </div>
-              </form>
+                {/* 2. Existing Address Cards (matches image middle and right sides) */}
+                {userAddresses.map((addr, idx) => (
+                  <div key={addr.id || idx} className="col-12 col-md-6 col-lg-4">
+                    <div
+                      style={{
+                        height: '100%',
+                        minHeight: '260px',
+                        backgroundColor: '#ffffff',
+                        borderRadius: '8px',
+                        border: '1px solid #d5d9d9',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                        overflow: 'hidden',
+                        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.04)',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <div>
+                        {/* Top Bar for Default Address */}
+                        {addr.isDefault && (
+                          <div
+                            style={{
+                              padding: '8px 16px',
+                              borderBottom: '1px solid #d5d9d9',
+                              fontSize: '12px',
+                              color: '#565959',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              backgroundColor: '#ffffff',
+                            }}
+                          >
+                            <span style={{ fontWeight: '700', color: '#0f172a' }}>Default:</span>
+                          </div>
+                        )}
+
+                        <div style={{ padding: '16px 18px 8px 18px' }}>
+                          <div style={{ fontWeight: '700', fontSize: '14.5px', color: '#0f172a', marginBottom: '5px' }}>
+                            {addr.name || user?.name}
+                          </div>
+                          <div style={{ fontSize: '13px', color: '#0f172a', lineHeight: '1.45' }}>
+                            {addr.buildingNo ? `${addr.buildingNo}, ` : ''}
+                            {addr.streetAddress}
+                          </div>
+                          <div style={{ fontSize: '13px', color: '#0f172a', lineHeight: '1.45' }}>
+                            {addr.city}
+                            {addr.zipCode ? ` ${addr.zipCode}` : ''}
+                          </div>
+                          <div style={{ fontSize: '13px', color: '#0f172a', lineHeight: '1.45' }}>
+                            {addr.country}
+                          </div>
+                          <div style={{ fontSize: '13px', color: '#0f172a', marginTop: '6px', lineHeight: '1.45' }}>
+                            Phone number: {addr.phone || user?.phone || user?.mobile || '—'}
+                          </div>
+
+                          <div style={{ marginTop: '8px' }}>
+                            <a
+                              href="#"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                handleOpenAddressModal(addr);
+                              }}
+                              style={{
+                                color: '#007185',
+                                fontSize: '13px',
+                                textDecoration: 'none',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.textDecoration = 'underline';
+                                e.currentTarget.style.color = '#c45500';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.textDecoration = 'none';
+                                e.currentTarget.style.color = '#007185';
+                              }}
+                            >
+                              Add delivery instructions
+                            </a>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bottom Action Links matching image */}
+                      <div
+                        style={{
+                          padding: '12px 18px 16px 18px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAddressModal(addr)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            color: '#007185',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.textDecoration = 'underline';
+                            e.currentTarget.style.color = '#c45500';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.textDecoration = 'none';
+                            e.currentTarget.style.color = '#007185';
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <span style={{ color: '#565959', fontSize: '12px' }}>|</span>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteAddress(addr.id)}
+                          style={{
+                            background: 'none',
+                            border: 'none',
+                            padding: 0,
+                            color: '#007185',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.textDecoration = 'underline';
+                            e.currentTarget.style.color = '#c45500';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.textDecoration = 'none';
+                            e.currentTarget.style.color = '#007185';
+                          }}
+                        >
+                          Remove
+                        </button>
+                        {!addr.isDefault && (
+                          <>
+                            <span style={{ color: '#565959', fontSize: '12px' }}>|</span>
+                            <button
+                              type="button"
+                              onClick={() => handleSetDefaultAddress(addr.id)}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                padding: 0,
+                                color: '#007185',
+                                fontSize: '13px',
+                                cursor: 'pointer',
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.textDecoration = 'underline';
+                                e.currentTarget.style.color = '#c45500';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.textDecoration = 'none';
+                                e.currentTarget.style.color = '#007185';
+                              }}
+                            >
+                              Set as Default
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* TAB 4: ACCOUNT SETTINGS (Language, Timezone & Notifications) */}
+          {/* TAB 4: ACCOUNT SETTINGS (Language & Preferences) */}
           {activeTab === 'account-settings' && (
             <div>
               <div className="mb-4">
                 <h5 style={{ fontWeight: '700', color: '#0f172a', marginBottom: '4px' }}>Account Settings & Preferences</h5>
                 <p style={{ color: '#64748b', fontSize: '13.5px' }}>
-                  Customize your language, regional timezone, and notification channels.
+                  Customize your language and regional preferences.
                 </p>
               </div>
 
@@ -1834,72 +1950,7 @@ export default function ProfilePage() {
                       <option value="Arabic (العربية)">العربية (Saudi Arabia)</option>
                     </select>
                   </div>
-
-                  {/* Timezone Selection */}
-                  <div className="col-md-6">
-                    <label className="profile-input-label">Select Timezone</label>
-                    <select
-                      className="profile-input-field"
-                      value={timezone}
-                      onChange={(e) => setTimezone(e.target.value)}
-                    >
-                      <option value="GMT+03:00 (Riyadh, Saudi Arabia)">GMT+03:00 (Riyadh, Saudi Arabia)</option>
-                      <option value="GMT+04:00 (Dubai, UAE)">GMT+04:00 (Dubai, UAE)</option>
-                      <option value="GMT+00:00 (UTC / London)">GMT+00:00 (UTC / London)</option>
-                      <option value="GMT+07:00 (Bangkok, Jakarta)">GMT+07:00 (Bangkok, Jakarta)</option>
-                    </select>
-                  </div>
                 </div>
-
-                {/* Communication & Alerts (Hidden for now as requested) */}
-                {false && (
-                  <>
-                    <hr style={{ borderColor: '#f1f5f9', margin: '28px 0' }} />
-                    <h6 style={{ fontWeight: '700', color: '#0f172a', marginBottom: '14px', fontSize: '14.5px' }}>
-                      Communication & Alerts
-                    </h6>
-                    <div className="d-flex flex-column gap-3 mb-4">
-                      <div className="form-check form-switch">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          id="emailNotifSwitch"
-                          checked={emailNotif}
-                          onChange={(e) => setEmailNotif(e.target.checked)}
-                        />
-                        <label className="form-check-label" htmlFor="emailNotifSwitch" style={{ fontSize: '13.5px', color: '#334155' }}>
-                          Email notifications for order confirmations and dispatch tracking
-                        </label>
-                      </div>
-
-                      <div className="form-check form-switch">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          id="smsNotifSwitch"
-                          checked={smsNotif}
-                          onChange={(e) => setSmsNotif(e.target.checked)}
-                        />
-                        <label className="form-check-label" htmlFor="smsNotifSwitch" style={{ fontSize: '13.5px', color: '#334155' }}>
-                          SMS alerts for instant delivery updates and OTP security
-                        </label>
-                      </div>
-
-                      <div className="form-check form-switch">
-                        <input
-                          className="form-check-input"
-                          type="checkbox"
-                          id="promoNotifSwitch"
-                          checked={promoNotif}
-                          onChange={(e) => setPromoNotif(e.target.checked)}
-                        />
-                        <label className="form-check-label" htmlFor="promoNotifSwitch" style={{ fontSize: '13.5px', color: '#334155' }}>
-                          Promotional discounts, safety equipment offers, and quarterly catalogs
-                        </label>
-                      </div>
-                    </div>
-                  </>
-                )}
 
                 {/* Bottom Actions */}
                 <div className="profile-form-actions mt-4 pt-2">
@@ -2310,6 +2361,404 @@ export default function ProfilePage() {
                 </button>
               </>
             )}
+          </div>
+        </div>,
+        document.body
+      )}
+      {/* ADD / EDIT ADDRESS MODAL */}
+      {showAddressModal && typeof document !== 'undefined' && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100dvh',
+            zIndex: 1000000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            backgroundColor: 'rgba(15, 23, 42, 0.65)',
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+            touchAction: 'none',
+            overscrollBehavior: 'none',
+          }}
+          onClick={handleCloseAddressModal}
+        >
+          <div
+            style={{
+              width: '100%',
+              maxWidth: '520px',
+              backgroundColor: '#ffffff',
+              borderRadius: '14px',
+              boxShadow: '0 20px 45px rgba(0, 0, 0, 0.22), 0 4px 12px rgba(0, 0, 0, 0.08)',
+              border: '1px solid #e2e8f0',
+              overflow: 'hidden',
+              position: 'relative',
+              maxHeight: '90dvh',
+              display: 'flex',
+              flexDirection: 'column',
+              animation: 'locationModalPopIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '16px 20px',
+                borderBottom: '1px solid #f1f5f9',
+                backgroundColor: '#ffffff',
+                flexShrink: 0,
+              }}
+            >
+              <h5
+                style={{
+                  margin: 0,
+                  fontSize: '16.5px',
+                  fontWeight: '700',
+                  color: '#0f172a',
+                }}
+              >
+                {modalAddressId ? 'Edit Delivery Address' : 'Add New Delivery Address'}
+              </h5>
+              <button
+                type="button"
+                onClick={handleCloseAddressModal}
+                aria-label="Close modal"
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderRadius: '8px',
+                  border: '1px solid #cbd5e1',
+                  backgroundColor: '#f8fafc',
+                  color: '#334155',
+                  cursor: 'pointer',
+                  padding: 0,
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#e2e8f0';
+                  e.currentTarget.style.color = '#0f172a';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f8fafc';
+                  e.currentTarget.style.color = '#334155';
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Modal Body (Scrollable if screen is small) */}
+            <form onSubmit={handleSaveAddressModal} style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: 1 }}>
+              <div style={{ padding: '20px', overflowY: 'auto', flex: 1 }}>
+                {/* Use Current Location Button */}
+                <div style={{ marginBottom: '16px' }}>
+                  <button
+                    type="button"
+                    onClick={handleModalUseCurrentLocation}
+                    disabled={modalIsGeolocating}
+                    style={{
+                      width: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: '1.5px solid #0f172a',
+                      backgroundColor: modalIsGeolocating ? '#f1f5f9' : '#ffffff',
+                      color: '#0f172a',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      cursor: modalIsGeolocating ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.15s ease',
+                    }}
+                  >
+                    {modalIsGeolocating ? (
+                      <>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            width: '14px',
+                            height: '14px',
+                            border: '2px solid #e2e8f0',
+                            borderTopColor: '#0f172a',
+                            borderRadius: '50%',
+                            animation: 'profileSpin 0.7s linear infinite',
+                          }}
+                        />
+                        Detecting location...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fi fi-rs-marker" style={{ fontSize: '14px' }}></i>
+                        Auto-Fill with Current Location (GPS)
+                      </>
+                    )}
+                  </button>
+
+                  {modalGeoError && (
+                    <div
+                      style={{
+                        marginTop: '8px',
+                        padding: '8px 12px',
+                        backgroundColor: '#fef2f2',
+                        border: '1px solid #fecaca',
+                        borderRadius: '6px',
+                        color: '#b91c1c',
+                        fontSize: '12px',
+                      }}
+                    >
+                      {modalGeoError}
+                    </div>
+                  )}
+                </div>
+
+                <div className="row g-3">
+                  {/* Recipient Name */}
+                  <div className="col-12">
+                    <label className="profile-input-label">
+                      Full Name / Recipient <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="profile-input-field"
+                      placeholder="e.g. Nabeel Mohammed"
+                      value={modalName}
+                      onChange={(e) => setModalName(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  {/* Country / Region */}
+                  <div className="col-md-6" ref={modalCountryDropdownRef} style={{ position: 'relative' }}>
+                    <label className="profile-input-label">Country / Region</label>
+                    <button
+                      type="button"
+                      onClick={() => setModalCountryDropdownOpen((prev) => !prev)}
+                      className={`profile-country-trigger ${modalCountryDropdownOpen ? 'is-open' : ''}`}
+                    >
+                      <span style={{ color: modalCountry ? '#0f172a' : '#94a3b8', fontWeight: modalCountry ? 500 : 400 }}>
+                        {(() => {
+                          const selected = COUNTRIES.find((c) => c.name.toLowerCase() === (modalCountry || '').toLowerCase());
+                          return selected ? `${selected.flag}  ${selected.name}` : modalCountry || '— Select Country —';
+                        })()}
+                      </span>
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="#64748b"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={{
+                          transform: modalCountryDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+                          transition: 'transform 0.2s ease',
+                          flexShrink: 0,
+                        }}
+                      >
+                        <polyline points="6 9 12 15 18 9" />
+                      </svg>
+                    </button>
+
+                    {modalCountryDropdownOpen && (
+                      <div className="profile-country-menu" style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                        {COUNTRIES.map((c) => {
+                          const isSelected = modalCountry.toLowerCase() === c.name.toLowerCase();
+                          return (
+                            <button
+                              key={c.name}
+                              type="button"
+                              onClick={() => {
+                                setModalCountry(c.name);
+                                setModalCountryDropdownOpen(false);
+                              }}
+                              className={`profile-country-item ${isSelected ? 'is-selected' : ''}`}
+                            >
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span style={{ fontSize: '15px' }}>{c.flag}</span>
+                                <span>{c.name}</span>
+                              </span>
+                              {isSelected && (
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0f172a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <polyline points="20 6 9 17 4 12" />
+                                </svg>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* City */}
+                  <div className="col-md-6">
+                    <label className="profile-input-label">
+                      City <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="profile-input-field"
+                      placeholder="e.g. Al Khobar, Riyadh, Jeddah"
+                      value={modalCity}
+                      onChange={(e) => setModalCity(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  {/* Street Address */}
+                  <div className="col-12">
+                    <label className="profile-input-label">
+                      Street / Location <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="profile-input-field"
+                      placeholder="e.g. King Fahad Bin Abdul Aziz Street 6712"
+                      value={modalStreet}
+                      onChange={(e) => setModalStreet(e.target.value)}
+                      required
+                    />
+                  </div>
+
+                  {/* Building / Flat No */}
+                  <div className="col-md-6">
+                    <label className="profile-input-label">Building / Villa / Office No.</label>
+                    <input
+                      type="text"
+                      className="profile-input-field"
+                      placeholder="e.g. Villa 24B, Tower 2, Floor 5"
+                      value={modalBuilding}
+                      onChange={(e) => setModalBuilding(e.target.value)}
+                    />
+                  </div>
+
+                  {/* ZIP / Postal Code (Numbers Only) */}
+                  <div className="col-md-6">
+                    <label className="profile-input-label">
+                      ZIP / Postal Code <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      className="profile-input-field"
+                      placeholder="e.g. 673631 (numbers only)"
+                      value={modalZip}
+                      onChange={(e) => {
+                        const numericOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setModalZip(numericOnly);
+                      }}
+                      required
+                    />
+                  </div>
+
+                  {/* Phone Number (Numbers with optional + only) */}
+                  <div className="col-md-6">
+                    <label className="profile-input-label">
+                      Phone Number <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      className="profile-input-field"
+                      placeholder="e.g. +966554606349 (numbers only)"
+                      value={modalPhone}
+                      onChange={(e) => {
+                        let cleaned = e.target.value.replace(/[^\d+]/g, '');
+                        if (cleaned.startsWith('+')) {
+                          cleaned = '+' + cleaned.slice(1).replace(/\+/g, '');
+                        } else {
+                          cleaned = cleaned.replace(/\+/g, '');
+                        }
+                        setModalPhone(cleaned.slice(0, 16));
+                      }}
+                      required
+                    />
+                  </div>
+
+                  {/* Default Address Checkbox */}
+                  <div className="col-12">
+                    <div className="form-check mt-1">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id="modalDefaultAddressCheck"
+                        checked={modalIsDefault}
+                        onChange={(e) => setModalIsDefault(e.target.checked)}
+                      />
+                      <label className="form-check-label" htmlFor="modalDefaultAddressCheck" style={{ fontSize: '13px', color: '#334155' }}>
+                        Set as primary default address for one-click checkout
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div
+                style={{
+                  padding: '14px 20px',
+                  borderTop: '1px solid #f1f5f9',
+                  backgroundColor: '#f8fafc',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  gap: '10px',
+                  flexShrink: 0,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={handleCloseAddressModal}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    backgroundColor: '#ffffff',
+                    color: '#475569',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingAddressModal}
+                  style={{
+                    padding: '8px 20px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: '#0f172a',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    cursor: isSavingAddressModal ? 'not-allowed' : 'pointer',
+                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.2)',
+                  }}
+                >
+                  {isSavingAddressModal ? 'Saving...' : 'Save Address'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>,
         document.body

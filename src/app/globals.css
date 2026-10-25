@@ -1158,6 +1158,17 @@ body.mobile-filter-open .veuz-page-transition {
   }
 }
 
+@keyframes locationModalPopIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
 .product-lightbox-modal {
   width: min(880px, 92vw);
   height: min(640px, 80vh);
@@ -1511,9 +1522,9 @@ iconify-icon {
   flex-wrap: nowrap !important;
   overflow-x: auto !important;
   overflow-y: hidden !important;
-  touch-action: pan-x !important;
+  touch-action: pan-y !important;
   overscroll-behavior-x: contain !important;
-  overscroll-behavior-y: none !important;
+  overscroll-behavior-y: auto !important;
   scroll-behavior: smooth;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -1570,8 +1581,8 @@ iconify-icon {
     gap: 16px !important;
     padding: 8px 4px 16px 4px !important;
     overflow-y: hidden !important;
-    touch-action: pan-x !important;
-    overscroll-behavior-y: none !important;
+    touch-action: pan-y !important;
+    overscroll-behavior-y: auto !important;
     overscroll-behavior-x: contain !important;
   }
   .browse-cat-card-wrapper {
@@ -1586,8 +1597,8 @@ iconify-icon {
     gap: 14px !important;
     padding: 6px 2px 14px 2px !important;
     overflow-y: hidden !important;
-    touch-action: pan-x !important;
-    overscroll-behavior-y: none !important;
+    touch-action: pan-y !important;
+    overscroll-behavior-y: auto !important;
     overscroll-behavior-x: contain !important;
   }
   .browse-cat-card-wrapper {
@@ -1951,9 +1962,9 @@ hr::before {
   align-items: stretch !important;
   overflow-x: auto !important;
   overflow-y: hidden !important;
-  touch-action: pan-x !important;
+  touch-action: pan-y !important;
   overscroll-behavior-x: contain !important;
-  overscroll-behavior-y: none !important;
+  overscroll-behavior-y: auto !important;
   scroll-behavior: smooth !important;
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;

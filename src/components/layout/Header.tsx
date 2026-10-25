@@ -13,6 +13,15 @@ import { recordUserSearch } from '@/services/recommendationService';
 import { HeaderSearchDropdown } from './HeaderSearchDropdown';
 import { fetchProducts, getCachedProducts, getClientCachedProducts, PRODUCTS_EVENT } from '@/services/productsService';
 import { ProductItem } from '@/data/categoryProductsData';
+import { ChooseDeliveryLocationModal } from '@/components/common/ChooseDeliveryLocationModal';
+import {
+  getSelectedLocation,
+  setSelectedLocation,
+  getUserAddresses,
+  LOCATION_CHANGED_EVENT,
+  ADDRESS_UPDATED_EVENT,
+  autoDetectGuestRealTimeLocation,
+} from '@/services/locationService';
 
 const formatNavigationLabel = (label: string) =>
   label.toLocaleLowerCase().replace(/\b\w/g, (letter) => letter.toLocaleUpperCase());
@@ -156,6 +165,39 @@ export const Header: React.FC = () => {
   const [locationOpen, setLocationOpen] = useState(false);
   const [mobileLocOpen, setMobileLocOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState('Khobar Shamaliya');
+  const [chooseLocationModalOpen, setChooseLocationModalOpen] = useState(false);
+
+  useEffect(() => {
+    // 1. Initial location read
+    setSelectedLocation(getSelectedLocation());
+
+    // 2. Logged-in user: use their own selected/default address
+    if (user) {
+      const addresses = getUserAddresses(user);
+      const defaultAddr = addresses.find((a) => a.isDefault) || addresses[0];
+      if (defaultAddr?.city) {
+        setSelectedLocation(defaultAddr.city);
+      }
+    } else {
+      // 3. Guest (not logged in): automatically detect real-time location from browser (Google Location Services)
+      autoDetectGuestRealTimeLocation();
+    }
+
+    const handleLocChanged = (e: any) => {
+      if (e?.detail) {
+        setSelectedLocation(e.detail);
+      } else {
+        setSelectedLocation(getSelectedLocation());
+      }
+    };
+
+    window.addEventListener(LOCATION_CHANGED_EVENT, handleLocChanged);
+    window.addEventListener(ADDRESS_UPDATED_EVENT, handleLocChanged);
+    return () => {
+      window.removeEventListener(LOCATION_CHANGED_EVENT, handleLocChanged);
+      window.removeEventListener(ADDRESS_UPDATED_EVENT, handleLocChanged);
+    };
+  }, [user]);
   const [accountOpen, setAccountOpen] = useState(false);
   const accountTimerRef = React.useRef<NodeJS.Timeout | null>(null);
 
@@ -896,93 +938,80 @@ export const Header: React.FC = () => {
                   )}
                 </div>
 
-                {/* 2. Location Dropdown (Desktop & Larger Screens) */}
-                <div ref={locationRef} className="search-location position-relative d-none d-xl-block">
-                  <div
-                    className="location-pill"
+                {/* 2. Delivery Location Selector (Desktop & Larger Screens) */}
+                <div className="search-location position-relative d-none d-xl-block">
+                  <button
+                    type="button"
+                    className="location-pill-btn"
+                    onClick={() => setChooseLocationModalOpen(true)}
+                    title="Choose your delivery location"
                     style={{
-                      background: '#f4f5f9',
-                      padding: '10px 16px',
+                      background: '#f8fafc',
+                      padding: '7px 14px',
                       borderRadius: '8px',
                       cursor: 'pointer',
-                      display: 'flex',
+                      display: 'inline-flex',
                       alignItems: 'center',
                       gap: '8px',
                       fontSize: '13px',
-                      fontWeight: '600',
-                      color: '#253D4E',
-                      border: '1px solid #e2e8f0',
-                      height: '42px',
+                      fontWeight: '500',
+                      color: '#0f172a',
+                      border: '1px solid #d0d7de',
+                      height: '40px',
                       boxSizing: 'border-box',
                       transition: 'all 0.15s ease',
+                      outline: 'none',
                     }}
-                    onClick={() => setLocationOpen(!locationOpen)}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f1f5f9';
+                      e.currentTarget.style.borderColor = '#94a3b8';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f8fafc';
+                      e.currentTarget.style.borderColor = '#d0d7de';
+                    }}
                   >
-                    <i className="fi-rs-marker" style={{ color: '#0f172a' }}></i>
-                    <span>{selectedLocation}</span>
-                    <i className="fi-rs-angle-small-down" style={{ fontSize: '11px', color: '#64748b' }}></i>
-                  </div>
-
-                  {locationOpen && (
-                    <ul
+                    {/* Location Pin Icon matching Image 2 */}
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#0284c7"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ flexShrink: 0 }}
+                    >
+                      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+                      <circle cx="12" cy="10" r="3" />
+                    </svg>
+                    <span
                       style={{
-                        position: 'absolute',
-                        top: 'calc(100% + 6px)',
-                        right: 0,
-                        margin: 0,
-                        background: '#ffffff',
-                        boxShadow: '0 10px 25px rgba(0,0,0,0.12)',
-                        borderRadius: '10px',
-                        padding: '6px',
-                        zIndex: 99999,
-                        minWidth: '200px',
-                        maxHeight: '260px',
-                        overflowY: 'auto',
-                        listStyle: 'none',
-                        border: '1px solid #e2e8f0',
-                        scrollbarWidth: 'thin',
-                        scrollbarColor: '#cbd5e1 transparent',
+                        maxWidth: '150px',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        color: '#0f172a',
+                        fontWeight: '500',
                       }}
                     >
-                      {locations.map((loc, idx) => {
-                        const isSelected = selectedLocation === loc;
-                        return (
-                          <li
-                            key={idx}
-                            style={{
-                              padding: '8px 14px',
-                              fontSize: '13px',
-                              cursor: 'pointer',
-                              color: isSelected ? '#ffffff' : '#0f172a',
-                              fontWeight: isSelected ? '600' : '500',
-                              background: isSelected ? '#0f172a' : 'transparent',
-                              borderRadius: '6px',
-                              marginBottom: idx === locations.length - 1 ? 0 : '2px',
-                              transition: 'background-color 0.15s ease, color 0.15s ease',
-                            }}
-                            onMouseEnter={(e) => {
-                              if (!isSelected) {
-                                e.currentTarget.style.backgroundColor = '#f1f5f9';
-                                e.currentTarget.style.color = '#0f172a';
-                              }
-                            }}
-                            onMouseLeave={(e) => {
-                              if (!isSelected) {
-                                e.currentTarget.style.backgroundColor = 'transparent';
-                                e.currentTarget.style.color = '#0f172a';
-                              }
-                            }}
-                            onClick={() => {
-                              setSelectedLocation(loc);
-                              setLocationOpen(false);
-                            }}
-                          >
-                            {loc}
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
+                      {selectedLocation}
+                    </span>
+                    <svg
+                      width="10"
+                      height="10"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#64748b"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      style={{ flexShrink: 0, marginLeft: '2px' }}
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </button>
                 </div>
 
                 {/* Mobile/Tablet Action Icons: Notifications, Wishlist, Cart, Profile & Hamburger */}
@@ -2691,6 +2720,14 @@ export const Header: React.FC = () => {
         className={"body-overlay-1 " + (mobileMenuOpen ? "active" : "")}
         onClick={() => setMobileMenuOpen(false)}
       ></div>
+
+      {/* Choose Delivery Location Modal */}
+      <ChooseDeliveryLocationModal
+        isOpen={chooseLocationModalOpen}
+        onClose={() => setChooseLocationModalOpen(false)}
+        selectedLocation={selectedLocation}
+        onSelectLocation={(loc) => setSelectedLocation(loc)}
+      />
     </>
   );
 };
