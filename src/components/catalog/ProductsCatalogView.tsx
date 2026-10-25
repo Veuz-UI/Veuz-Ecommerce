@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { fetchShopSettings, getCachedShopSettings, SHOP_SETTINGS_EVENT } from '@/services/shopSettingsService';
@@ -427,6 +428,11 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
   const [wishlist, setWishlist] = useState<{ [key: string]: boolean }>({});
   const [isClearClicked, setIsClearClicked] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const sliderRef = useRef<HTMLDivElement>(null);
   const isMouseDownRef = useRef(false);
   const startXRef = useRef(0);
@@ -486,7 +492,7 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     // Block touch scrolling on outside/backdrop
     const handleTouchMove = (e: TouchEvent) => {
       const target = e.target as HTMLElement | null;
-      if (!target || !target.closest('.filter-sidebar-wrapper')) {
+      if (!target || (!target.closest('.mobile-filter-drawer') && !target.closest('.filter-sidebar-wrapper'))) {
         e.preventDefault();
       }
     };
@@ -1153,6 +1159,478 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
     return `Showing certified industrial safety equipment adhering to OSHA, EN, and ANSI standards (${filteredAndSortedProducts.length} items).`;
   }, [pageMode, urlSearchQuery, filteredAndSortedProducts.length]);
 
+  const renderFilterCards = () => (
+    <>
+      {/* Card 1: Browse Section (Only visible on Category page; hidden on Products and Offer pages) */}
+      {pageMode === 'category' && (
+        <div className="filter-card-container">
+          <div
+            className={`filter-card-header ${openSections.browse ? 'is-open' : ''}`}
+            onClick={() => toggleSection('browse')}
+          >
+            <span className="filter-card-title">Browse Section</span>
+            <div className="d-flex align-items-center gap-2">
+              {activeCollection !== 'all' && (
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveCollection('all');
+                  }}
+                  style={{ fontSize: '11px', color: '#64748b', textDecoration: 'underline', cursor: 'pointer' }}
+                >
+                  Reset
+                </span>
+              )}
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#64748b"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  transform: openSections.browse ? 'rotate(0deg)' : 'rotate(180deg)',
+                  transition: 'transform 0.2s ease',
+                }}
+              >
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+            </div>
+          </div>
+          {openSections.browse && (
+            <div className="filter-card-body d-flex flex-column gap-2">
+              {[
+                { key: 'all', label: 'All Products', count: products.filter((p) => p.isActive !== false).length, href: '/products' },
+                { key: 'new-arrival', label: 'New Arrival', count: products.filter((p) => p.isActive !== false && p.isNewArrival !== false && !p.isSpecialOffer).length, href: '/products?filter=new-arrival' },
+                { key: 'most-searched', label: 'Most Searched / Viewed', count: products.filter((p) => p.isActive !== false && ((p.clicks || 0) + (p.views || 0) > 0 || p.badgeClass === 'hot')).length, href: '/products?filter=most-searched' },
+                { key: 'special-offers', label: 'Special Offers', count: products.filter((p) => p.isActive !== false && (p.isSpecialOffer === true || Boolean(p.discount)) && !p.offerEndDate).length, href: '/products?filter=special-offers', isSpecial: true },
+                { key: 'limited-offers', label: 'Limited Offers', count: products.filter((p) => p.isActive !== false && p.isSpecialOffer === true && Boolean(p.offerEndDate)).length, href: '/products?filter=limited-offers', isSpecial: true },
+              ].map((item) => {
+                const isActive = activeCollection === item.key;
+                return (
+                  <div
+                    key={item.key}
+                    onClick={() => router.push(item.href)}
+                    className={`filter-browse-item ${isActive ? 'active' : ''}`}
+                  >
+                    <div className="d-flex align-items-center gap-2.5">
+                      <span
+                        style={{
+                          width: '14px',
+                          height: '14px',
+                          borderRadius: '50%',
+                          border: isActive ? '4.5px solid #0f172a' : '1.5px solid #cbd5e1',
+                          backgroundColor: '#ffffff',
+                          display: 'inline-block',
+                          flexShrink: 0,
+                          transition: 'all 0.15s ease',
+                        }}
+                      />
+                      <span
+                        style={{
+                          fontSize: '12.5px',
+                          fontWeight: isActive ? 600 : 500,
+                          color: isActive ? '#0f172a' : '#475569',
+                        }}
+                      >
+                        {item.label}
+                      </span>
+                    </div>
+                    <span
+                      className={`rounded-pill px-2 py-0.5 ${
+                        item.isSpecial
+                          ? 'bg-danger-subtle text-danger fw-bold'
+                          : isActive
+                          ? 'bg-dark text-white fw-semibold'
+                          : 'bg-light text-muted'
+                      }`}
+                      style={{ fontSize: '11px', minWidth: '26px', textAlign: 'center' }}
+                    >
+                      {item.count}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Card 2: Category Filter */}
+      <div className="filter-card-container">
+        <div
+          className={`filter-card-header ${openSections.category ? 'is-open' : ''}`}
+          onClick={() => toggleSection('category')}
+        >
+          <span className="filter-card-title">Category</span>
+          <div className="d-flex align-items-center gap-2">
+            {selectedCategories.length > 0 && (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedCategories([]);
+                }}
+                style={{ fontSize: '11px', color: '#64748b', textDecoration: 'underline', cursor: 'pointer' }}
+              >
+                Reset
+              </span>
+            )}
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#64748b"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{
+                transform: openSections.category ? 'rotate(0deg)' : 'rotate(180deg)',
+                transition: 'transform 0.2s ease',
+              }}
+            >
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </div>
+        </div>
+        {openSections.category && (
+          <div className="filter-card-body d-flex flex-column gap-1" style={{ maxHeight: '280px', overflowY: 'auto' }}>
+            {displayCategories.map((cat) => {
+              const isSelected = selectedCategories.some((c) =>
+                matchesCategory(cat.name, cat.id, c, displayCategories)
+              );
+              const count = baseScopedProducts.filter((p) =>
+                matchesCategory(p.category, p.categoryId, cat.name, displayCategories) ||
+                (cat.id && matchesCategory(p.category, p.categoryId, cat.id, displayCategories))
+              ).length;
+
+              return (
+                <div
+                  key={cat.id || cat.name}
+                  onClick={() => handleToggleCategory(cat.name, cat.id)}
+                  className="d-flex align-items-center justify-content-between p-2 rounded-2"
+                  style={{
+                    cursor: 'pointer',
+                    backgroundColor: isSelected ? '#f0fdf4' : 'transparent',
+                    transition: 'background-color 0.15s ease',
+                  }}
+                >
+                  <div className="d-flex align-items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => {}}
+                      style={{
+                        cursor: 'pointer',
+                        accentColor: '#16a34a',
+                        width: '15px',
+                        height: '15px',
+                      }}
+                    />
+                    <span
+                      style={{
+                        fontSize: '13px',
+                        fontWeight: isSelected ? 600 : 500,
+                        color: isSelected ? '#16a34a' : '#334155',
+                      }}
+                    >
+                      {cat.name}
+                    </span>
+                  </div>
+                  <span
+                    className="badge rounded-pill"
+                    style={{
+                      fontSize: '11px',
+                      backgroundColor: isSelected ? '#dcfce7' : '#f1f5f9',
+                      color: isSelected ? '#16a34a' : '#64748b',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {count}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* Card 3: Size Filter */}
+      <div className="filter-card-container">
+        <div
+          className={`filter-card-header ${openSections.size ? 'is-open' : ''}`}
+          onClick={() => toggleSection('size')}
+        >
+          <span className="filter-card-title">Size</span>
+          <div className="d-flex align-items-center gap-2">
+            {selectedSizes.length > 0 && (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedSizes([]);
+                }}
+                style={{ fontSize: '11px', color: '#64748b', textDecoration: 'underline', cursor: 'pointer' }}
+              >
+                Reset
+              </span>
+            )}
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#64748b"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{
+                transform: openSections.size ? 'rotate(0deg)' : 'rotate(180deg)',
+                transition: 'transform 0.2s ease',
+              }}
+            >
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </div>
+        </div>
+        {openSections.size && (
+          <div className="filter-card-body">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+              {availableSizes.map((size) => {
+                const isSelected = selectedSizes.includes(size);
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => handleToggleSize(size)}
+                    className={`filter-size-pill ${isSelected ? 'active' : ''}`}
+                    title={`Filter by size ${size}`}
+                  >
+                    {size}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Card 4: Color Filter */}
+      <div className="filter-card-container">
+        <div
+          className={`filter-card-header ${openSections.color ? 'is-open' : ''}`}
+          onClick={() => toggleSection('color')}
+        >
+          <span className="filter-card-title">Color</span>
+          <div className="d-flex align-items-center gap-2">
+            {selectedColors.length > 0 && (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedColors([]);
+                }}
+                style={{ fontSize: '11px', color: '#64748b', textDecoration: 'underline', cursor: 'pointer' }}
+              >
+                Reset
+              </span>
+            )}
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#64748b"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{
+                transform: openSections.color ? 'rotate(0deg)' : 'rotate(180deg)',
+                transition: 'transform 0.2s ease',
+              }}
+            >
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </div>
+        </div>
+        {openSections.color && (
+          <div className="filter-card-body">
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              {availableColors.map((color) => {
+                const isSelected = selectedColors.includes(color.name);
+                return (
+                  <div
+                    key={color.name}
+                    onClick={() => handleToggleColor(color.name)}
+                    className={`filter-color-dot ${isSelected ? 'active' : ''}`}
+                    style={{
+                      backgroundColor: color.hex,
+                      border: color.border ? `1px solid ${color.border}` : '1px solid transparent',
+                    }}
+                    title={color.name}
+                  >
+                    {isSelected && (
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={color.hex.toLowerCase() === '#ffffff' ? '#0f172a' : '#ffffff'} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="20 6 9 17 4 12"></polyline>
+                      </svg>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Card 5: Price Filter */}
+      <div className="filter-card-container">
+        <div
+          className={`filter-card-header ${openSections.price ? 'is-open' : ''}`}
+          onClick={() => toggleSection('price')}
+        >
+          <span className="filter-card-title">Price</span>
+          <div className="d-flex align-items-center gap-2">
+            {(priceRange[0] > 0 || priceRange[1] < maxPriceLimit) && (
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPriceRange([0, maxPriceLimit]);
+                }}
+                style={{ fontSize: '11px', color: '#64748b', textDecoration: 'underline', cursor: 'pointer' }}
+              >
+                Reset
+              </span>
+            )}
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="#64748b"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              style={{
+                transform: openSections.price ? 'rotate(0deg)' : 'rotate(180deg)',
+                transition: 'transform 0.2s ease',
+              }}
+            >
+              <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+          </div>
+        </div>
+        {openSections.price && (
+          <div className="filter-card-body">
+            <div className="d-flex align-items-center justify-content-between mb-2">
+              <span style={{ fontSize: '11.5px', color: '#64748b' }}>Range</span>
+              <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#0f172a' }}>
+                {priceRange[0]} SR — {priceRange[1]} SR
+              </span>
+            </div>
+            <input
+              type="range"
+              min={0}
+              max={maxPriceLimit}
+              step={10}
+              value={priceRange[1]}
+              onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+              className="form-range w-100"
+              style={{ accentColor: '#16a34a' }}
+            />
+            <div className="d-flex align-items-center justify-content-between mt-2 pt-1">
+              <div className="border rounded-2 px-2 py-1 bg-white text-center" style={{ width: '46%' }}>
+                <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block' }}>Min (SR)</span>
+                <input
+                  type="number"
+                  value={priceRange[0]}
+                  onChange={(e) => setPriceRange([Math.max(0, Number(e.target.value)), priceRange[1]])}
+                  className="border-0 p-0 text-center w-100 fw-bold fs-13 text-dark"
+                  style={{ outline: 'none' }}
+                />
+              </div>
+              <span className="text-muted fs-12">-</span>
+              <div className="border rounded-2 px-2 py-1 bg-white text-center" style={{ width: '46%' }}>
+                <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block' }}>Max (SR)</span>
+                <input
+                  type="number"
+                  value={priceRange[1]}
+                  onChange={(e) => setPriceRange([priceRange[0], Math.min(maxPriceLimit, Number(e.target.value))])}
+                  className="border-0 p-0 text-center w-100 fw-bold fs-13 text-dark"
+                  style={{ outline: 'none' }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Card 6: Certifications / Standards Filter */}
+      {availableStandards.length > 0 && (
+        <div className="filter-card-container">
+          <div
+            className={`filter-card-header ${openSections.standard ? 'is-open' : ''}`}
+            onClick={() => toggleSection('standard')}
+          >
+            <span className="filter-card-title">Certifications & Standards</span>
+            <div className="d-flex align-items-center gap-2">
+              {selectedStandard !== 'all' && (
+                <span
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedStandard('all');
+                  }}
+                  style={{ fontSize: '11px', color: '#64748b', textDecoration: 'underline', cursor: 'pointer' }}
+                >
+                  Reset
+                </span>
+              )}
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#64748b"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                style={{
+                  transform: openSections.standard ? 'rotate(0deg)' : 'rotate(180deg)',
+                  transition: 'transform 0.2s ease',
+                }}
+              >
+                <polyline points="18 15 12 9 6 15"></polyline>
+              </svg>
+            </div>
+          </div>
+          {openSections.standard && (
+            <div className="filter-card-body">
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '7px' }}>
+                <button
+                  type="button"
+                  onClick={() => setSelectedStandard('all')}
+                  className={`filter-std-pill ${selectedStandard === 'all' ? 'active' : ''}`}
+                >
+                  All Standards
+                </button>
+                {availableStandards.map((std) => (
+                  <button
+                    key={std}
+                    type="button"
+                    onClick={() => setSelectedStandard(std)}
+                    className={`filter-std-pill ${selectedStandard === std ? 'active' : ''}`}
+                    title={std}
+                  >
+                    {std}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+
   return (
     <main className="main py-4 py-md-5" style={{ backgroundColor: '#ffffff', minHeight: '85vh' }}>
       <div className="container">
@@ -1319,27 +1797,165 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
         {/* ========================================================
             3. MAIN CATALOG LAYOUT (Left Sticky Sidebar + Right Grid)
            ======================================================== */}
-        {/* Mobile Filter Backdrop Overlay (Closes drawer on outside click & dims page) */}
-        {pageMode !== 'search' && isSidebarOpen && (
-          <div
-            className="filter-mobile-backdrop d-lg-none"
-            onClick={() => setIsSidebarOpen(false)}
-            aria-label="Close filters"
-            style={{
-              position: 'fixed',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              width: '100vw',
-              height: '100vh',
-              backgroundColor: 'rgba(15, 23, 42, 0.55)',
-              backdropFilter: 'blur(3px)',
-              WebkitBackdropFilter: 'blur(3px)',
-              zIndex: 100040,
-              cursor: 'pointer',
-            }}
-          />
+        {/* Mobile Offcanvas Filter Portal (Directly attached to document.body, escaping all parent stacking contexts) */}
+        {mounted && isSidebarOpen && pageMode !== 'search' && typeof document !== 'undefined' && createPortal(
+          <div className="mobile-filter-portal-root d-lg-none">
+            {/* Backdrop Overlay */}
+            <div
+              onClick={() => setIsSidebarOpen(false)}
+              aria-label="Close filters"
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                width: '100vw',
+                height: '100dvh',
+                backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                backdropFilter: 'blur(3px)',
+                WebkitBackdropFilter: 'blur(3px)',
+                zIndex: 1000000,
+                cursor: 'pointer',
+              }}
+            />
+
+            {/* Offcanvas Drawer Container */}
+            <div
+              className="mobile-filter-drawer bg-white shadow-2xl"
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                bottom: 0,
+                width: 'min(360px, 88vw)',
+                height: '100dvh',
+                maxHeight: '100dvh',
+                zIndex: 1000001,
+                display: 'flex',
+                flexDirection: 'column',
+                boxShadow: '16px 0 40px rgba(15, 23, 42, 0.3)',
+                backgroundColor: '#ffffff',
+              }}
+            >
+              {/* Top Fixed Header */}
+              <div
+                className="d-flex align-items-center justify-content-between px-3 py-3 border-bottom bg-white flex-shrink-0"
+                style={{ borderColor: '#e2e8f0', minHeight: '62px' }}
+              >
+                <div className="d-flex align-items-center gap-2">
+                  <span style={{ fontSize: '17px', fontWeight: 700, color: '#0f172a' }}>Filters</span>
+                  {isAnyFilterActive && (
+                    <span
+                      className="badge rounded-pill bg-dark text-white"
+                      style={{ fontSize: '11px', padding: '3px 8px', fontWeight: 600 }}
+                    >
+                      Active
+                    </span>
+                  )}
+                </div>
+
+                <div className="d-flex align-items-center gap-2">
+                  {isAnyFilterActive && (
+                    <button
+                      type="button"
+                      onClick={handleClearAllFilters}
+                      style={{
+                        height: '32px',
+                        padding: '0 10px',
+                        borderRadius: '6px',
+                        backgroundColor: '#fee2e2',
+                        color: '#dc2626',
+                        border: '1px solid #fecaca',
+                        fontSize: '12px',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                        <path d="M3 3v5h5"></path>
+                      </svg>
+                      <span>Clear All</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setIsSidebarOpen(false)}
+                    title="Close filters"
+                    aria-label="Close filters"
+                    style={{
+                      width: '34px',
+                      height: '34px',
+                      borderRadius: '50%',
+                      border: '1px solid #cbd5e1',
+                      backgroundColor: '#f8fafc',
+                      color: '#0f172a',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 0,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Scrollable Filter Cards Body */}
+              <div
+                className="flex-grow-1 px-3 py-3"
+                style={{
+                  overflowY: 'auto',
+                  WebkitOverflowScrolling: 'touch',
+                  scrollbarWidth: 'thin',
+                  overscrollBehavior: 'contain',
+                }}
+              >
+                {renderFilterCards()}
+              </div>
+
+              {/* Bottom Fixed Action Footer */}
+              <div
+                className="p-3 border-top bg-white flex-shrink-0 d-flex gap-2"
+                style={{
+                  borderColor: '#e2e8f0',
+                  boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.05)',
+                }}
+              >
+                {isAnyFilterActive && (
+                  <button
+                    type="button"
+                    onClick={handleClearAllFilters}
+                    className="btn btn-outline-danger py-2.5 px-3 rounded-3 fw-semibold fs-13 flex-shrink-0"
+                  >
+                    Reset
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setIsSidebarOpen(false)}
+                  className="btn flex-grow-1 py-2.5 rounded-3 d-flex align-items-center justify-content-center gap-2 text-white fw-bold"
+                  style={{
+                    backgroundColor: '#0f172a',
+                    fontSize: '14px',
+                    boxShadow: '0 2px 8px rgba(15, 23, 42, 0.25)',
+                  }}
+                >
+                  <span>View Products ({filteredAndSortedProducts.length})</span>
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
         )}
 
         <div
@@ -1351,657 +1967,192 @@ function ProductsCatalogContent({ pageMode = 'category' }: ProductsCatalogViewPr
           }}
         >
           {/* --------------------------------------------------------
-              LEFT SIDEBAR: FILTERS (Sticky on Scroll & Smoothly Collapsible)
+              LEFT SIDEBAR: FILTERS (Sticky on Scroll & Smoothly Collapsible on Desktop)
              -------------------------------------------------------- */}
           {pageMode !== 'search' && (
             <aside
-              className="filter-sidebar-wrapper"
-            style={{
-              flex: isSidebarOpen ? '0 0 300px' : '0 0 0px',
-              width: isSidebarOpen ? '300px' : '0px',
-              maxWidth: isSidebarOpen ? '300px' : '0px',
-              opacity: isSidebarOpen ? 1 : 0,
-              transition: 'width 0.35s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
-              overflow: isSidebarOpen ? 'visible' : 'hidden',
-              visibility: isSidebarOpen ? 'visible' : 'hidden',
-              pointerEvents: isSidebarOpen ? 'auto' : 'none',
-              alignSelf: 'flex-start',
-              position: 'sticky',
-              top: '24px',
-              zIndex: 20,
-            }}
-          >
-            <div
-              className="filters-sidebar"
+              className="filter-sidebar-wrapper d-none d-lg-block"
               style={{
-                width: '300px',
-                paddingBottom: '24px',
+                flex: isSidebarOpen ? '0 0 300px' : '0 0 0px',
+                width: isSidebarOpen ? '300px' : '0px',
+                maxWidth: isSidebarOpen ? '300px' : '0px',
+                opacity: isSidebarOpen ? 1 : 0,
+                transition: 'width 0.35s cubic-bezier(0.4, 0, 0.2, 1), max-width 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease',
+                overflow: isSidebarOpen ? 'visible' : 'hidden',
+                visibility: isSidebarOpen ? 'visible' : 'hidden',
+                pointerEvents: isSidebarOpen ? 'auto' : 'none',
+                alignSelf: 'flex-start',
+                position: 'sticky',
+                top: '24px',
+                zIndex: 20,
               }}
             >
-              {/* Top Header Card: Filters Title + Clear All Button + Collapse Button */}
               <div
-                className="filters-sidebar-header-card d-flex align-items-center justify-content-between mb-3 bg-white rounded-3 border"
+                className="filters-sidebar"
                 style={{
-                  padding: '14px 16px',
-                  borderColor: '#e2e8f0',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
+                  width: '300px',
+                  paddingBottom: '24px',
                 }}
               >
-                <div className="d-flex align-items-center gap-2">
-                  <span style={{ fontSize: '15.5px', fontWeight: 700, color: '#0f172a' }}>Filters</span>
-                  {isAnyFilterActive && (
-                    <span
-                      className="badge rounded-pill bg-dark text-white"
-                      style={{ fontSize: '10.5px', padding: '3px 7px', fontWeight: 600 }}
-                    >
-                      Active
-                    </span>
-                  )}
-                </div>
+                {/* Top Header Card: Filters Title + Clear All Button + Collapse Button */}
+                <div
+                  className="filters-sidebar-header-card d-flex align-items-center justify-content-between mb-3 bg-white rounded-3 border"
+                  style={{
+                    padding: '14px 16px',
+                    borderColor: '#e2e8f0',
+                    boxShadow: '0 1px 3px rgba(0, 0, 0, 0.02)',
+                  }}
+                >
+                  <div className="d-flex align-items-center gap-2">
+                    <span style={{ fontSize: '15.5px', fontWeight: 700, color: '#0f172a' }}>Filters</span>
+                    {isAnyFilterActive && (
+                      <span
+                        className="badge rounded-pill bg-dark text-white"
+                        style={{ fontSize: '10.5px', padding: '3px 7px', fontWeight: 600 }}
+                      >
+                        Active
+                      </span>
+                    )}
+                  </div>
 
-                <div className="d-flex align-items-center" style={{ gap: '8px' }}>
-                  {isAnyFilterActive && (
+                  <div className="d-flex align-items-center" style={{ gap: '8px' }}>
+                    {isAnyFilterActive && (
+                      <button
+                        type="button"
+                        onClick={handleClearAllFilters}
+                        style={{
+                          height: '34px',
+                          width: '34px',
+                          padding: 0,
+                          borderRadius: '7px',
+                          backgroundColor: '#dc2626',
+                          color: '#ffffff',
+                          border: '1px solid #b91c1c',
+                          fontSize: '12px',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                          boxShadow: '0 2px 8px rgba(220, 38, 38, 0.28)',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = '#b91c1c';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = '#dc2626';
+                        }}
+                        title="Clear all filters"
+                        aria-label="Clear all filters"
+                      >
+                        <svg
+                          width="15"
+                          height="15"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="#ffffff"
+                          strokeWidth="2.3"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                          <path d="M3 3v5h5"></path>
+                        </svg>
+                      </button>
+                    )}
                     <button
                       type="button"
-                      onClick={handleClearAllFilters}
+                      onClick={() => setIsSidebarOpen(false)}
+                      title="Close filters"
+                      aria-label="Close filters"
                       style={{
-                        height: '34px',
-                        width: '34px',
-                        padding: 0,
-                        borderRadius: '7px',
-                        backgroundColor: '#dc2626',
-                        color: '#ffffff',
-                        border: '1px solid #b91c1c',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        border: '1px solid #cbd5e1',
+                        backgroundColor: '#f8fafc',
+                        color: '#0f172a',
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '6px',
-                        boxShadow: '0 2px 8px rgba(220, 38, 38, 0.28)',
-                        transition: 'all 0.2s ease',
+                        padding: 0,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.backgroundColor = '#b91c1c';
+                        e.currentTarget.style.backgroundColor = '#0f172a';
+                        e.currentTarget.style.color = '#ffffff';
+                        e.currentTarget.style.borderColor = '#0f172a';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.backgroundColor = '#dc2626';
+                        e.currentTarget.style.backgroundColor = '#f8fafc';
+                        e.currentTarget.style.color = '#0f172a';
+                        e.currentTarget.style.borderColor = '#cbd5e1';
                       }}
-                      title="Clear all filters"
-                      aria-label="Clear all filters"
                     >
-                      <svg
-                        width="15"
-                        height="15"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#ffffff"
-                        strokeWidth="2.3"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                        <path d="M3 3v5h5"></path>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
                       </svg>
                     </button>
-                  )}
+                  </div>
+                </div>
+
+                {/* Filter Cards */}
+                {renderFilterCards()}
+
+                {/* Bottom Actions Card: Reset All Filters Button */}
+                <div className="pt-1 mb-4">
                   <button
                     type="button"
-                    onClick={() => setIsSidebarOpen(false)}
-                    title="Close filters"
-                    aria-label="Close filters"
+                    onClick={handleClearAllFilters}
                     style={{
-                      width: '32px',
-                      height: '32px',
-                      borderRadius: '50%',
-                      border: '1px solid #cbd5e1',
-                      backgroundColor: '#f8fafc',
-                      color: '#0f172a',
-                      display: 'inline-flex',
+                      width: '100%',
+                      display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      padding: 0,
+                      gap: '8px',
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      backgroundColor: isAnyFilterActive || isClearClicked ? '#dc2626' : '#0f172a',
+                      color: '#ffffff',
+                      border: isAnyFilterActive || isClearClicked ? '1px solid #b91c1c' : '1px solid #0f172a',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      boxShadow: isAnyFilterActive || isClearClicked
+                        ? '0 2px 8px rgba(220, 38, 38, 0.28)'
+                        : '0 2px 6px rgba(15, 23, 42, 0.15)',
+                      transition: 'all 0.2s ease',
                       cursor: 'pointer',
-                      transition: 'all 0.15s ease',
                     }}
                     onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = '#0f172a';
-                      e.currentTarget.style.color = '#ffffff';
-                      e.currentTarget.style.borderColor = '#0f172a';
+                      e.currentTarget.style.backgroundColor = isAnyFilterActive || isClearClicked ? '#b91c1c' : '#1e293b';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = '#f8fafc';
-                      e.currentTarget.style.color = '#0f172a';
-                      e.currentTarget.style.borderColor = '#cbd5e1';
+                      e.currentTarget.style.backgroundColor = isAnyFilterActive || isClearClicked ? '#dc2626' : '#0f172a';
                     }}
                   >
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="18" y1="6" x2="6" y2="18" />
-                      <line x1="6" y1="6" x2="18" y2="18" />
+                    <svg
+                      width="15"
+                      height="15"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="#ffffff"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                      <path d="M3 3v5h5"></path>
                     </svg>
+                    <span>Reset All Filters</span>
                   </button>
                 </div>
               </div>
-
-              {/* Card 1: Browse Section (Only visible on Category page; hidden on Products and Offer pages) */}
-              {pageMode === 'category' && (
-                <div className="filter-card-container">
-                  <div
-                    className={`filter-card-header ${openSections.browse ? 'is-open' : ''}`}
-                    onClick={() => toggleSection('browse')}
-                  >
-                    <span className="filter-card-title">Browse Section</span>
-                    <div className="d-flex align-items-center gap-2">
-                      {activeCollection !== 'all' && (
-                        <span
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveCollection('all');
-                          }}
-                          style={{ fontSize: '11px', color: '#64748b', textDecoration: 'underline', cursor: 'pointer' }}
-                        >
-                          Reset
-                        </span>
-                      )}
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#64748b"
-                        strokeWidth="2.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        style={{
-                          transform: openSections.browse ? 'rotate(0deg)' : 'rotate(180deg)',
-                          transition: 'transform 0.2s ease',
-                        }}
-                      >
-                        <polyline points="18 15 12 9 6 15"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-                  {openSections.browse && (
-                    <div className="filter-card-body d-flex flex-column gap-2">
-                      {[
-                        { key: 'all', label: 'All Products', count: products.filter((p) => p.isActive !== false).length, href: '/products' },
-                        { key: 'new-arrival', label: 'New Arrival', count: products.filter((p) => p.isActive !== false && p.isNewArrival !== false && !p.isSpecialOffer).length, href: '/products?filter=new-arrival' },
-                        { key: 'most-searched', label: 'Most Searched / Viewed', count: products.filter((p) => p.isActive !== false && ((p.clicks || 0) + (p.views || 0) > 0 || p.badgeClass === 'hot')).length, href: '/products?filter=most-searched' },
-                        { key: 'special-offers', label: 'Special Offers', count: products.filter((p) => p.isActive !== false && (p.isSpecialOffer === true || Boolean(p.discount)) && !p.offerEndDate).length, href: '/products?filter=special-offers', isSpecial: true },
-                        { key: 'limited-offers', label: 'Limited Offers', count: products.filter((p) => p.isActive !== false && p.isSpecialOffer === true && Boolean(p.offerEndDate)).length, href: '/products?filter=limited-offers', isSpecial: true },
-                      ].map((item) => {
-                        const isActive = activeCollection === item.key;
-                        return (
-                          <div
-                            key={item.key}
-                            onClick={() => router.push(item.href)}
-                            className={`filter-browse-item ${isActive ? 'active' : ''}`}
-                          >
-                            <div className="d-flex align-items-center gap-2.5">
-                              <span
-                                style={{
-                                  width: '14px',
-                                  height: '14px',
-                                  borderRadius: '50%',
-                                  border: isActive ? '4.5px solid #0f172a' : '1.5px solid #cbd5e1',
-                                  backgroundColor: '#ffffff',
-                                  display: 'inline-block',
-                                  flexShrink: 0,
-                                  transition: 'all 0.15s ease',
-                                }}
-                              />
-                              <span
-                                style={{
-                                  fontSize: '12.5px',
-                                  fontWeight: isActive ? 600 : 500,
-                                  color: isActive ? '#0f172a' : '#475569',
-                                }}
-                              >
-                                {item.label}
-                              </span>
-                            </div>
-                            <span
-                              className={`rounded-pill px-2 py-0.5 ${
-                                item.isSpecial
-                                  ? 'bg-danger-subtle text-danger fw-bold'
-                                  : isActive
-                                  ? 'bg-dark text-white fw-semibold'
-                                  : 'bg-light text-muted'
-                              }`}
-                              style={{ fontSize: '11px', minWidth: '26px', textAlign: 'center' }}
-                            >
-                              {item.count}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Card 2: Category Filter */}
-              <div className="filter-card-container">
-                <div
-                  className={`filter-card-header ${openSections.category ? 'is-open' : ''}`}
-                  onClick={() => toggleSection('category')}
-                >
-                  <span className="filter-card-title">Category</span>
-                  <div className="d-flex align-items-center gap-2">
-                    {selectedCategories.length > 0 && (
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedCategories([]);
-                        }}
-                        style={{ fontSize: '11px', color: '#64748b', textDecoration: 'underline', cursor: 'pointer' }}
-                      >
-                        Reset
-                      </span>
-                    )}
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#64748b"
-                      strokeWidth="2.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      style={{
-                        transform: openSections.category ? 'rotate(0deg)' : 'rotate(180deg)',
-                        transition: 'transform 0.2s ease',
-                      }}
-                    >
-                      <polyline points="18 15 12 9 6 15"></polyline>
-                    </svg>
-                  </div>
-                </div>
-                {openSections.category && (
-                  <div className="filter-card-body d-flex flex-column gap-1" style={{ maxHeight: '280px', overflowY: 'auto' }}>
-                    {displayCategories.map((cat) => {
-                      const isSelected = selectedCategories.some((c) =>
-                        matchesCategory(cat.name, cat.id, c, displayCategories)
-                      );
-                      const count = baseScopedProducts.filter((p) =>
-                        matchesCategory(p.category, p.categoryId, cat.name, displayCategories) ||
-                        (cat.id && matchesCategory(p.category, p.categoryId, cat.id, displayCategories))
-                      ).length;
-
-                      return (
-                        <div
-                          key={cat.id || cat.name}
-                          onClick={() => handleToggleCategory(cat.name, cat.id)}
-                          className="d-flex align-items-center justify-content-between p-2 rounded-2"
-                          style={{
-                            cursor: 'pointer',
-                            backgroundColor: isSelected ? '#f0fdf4' : 'transparent',
-                            transition: 'background-color 0.15s ease',
-                          }}
-                        >
-                          <div className="d-flex align-items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => {}}
-                              style={{
-                                cursor: 'pointer',
-                                accentColor: '#16a34a',
-                                width: '15px',
-                                height: '15px',
-                              }}
-                            />
-                            <span
-                              style={{
-                                fontSize: '13px',
-                                fontWeight: isSelected ? 600 : 500,
-                                color: isSelected ? '#16a34a' : '#334155',
-                              }}
-                            >
-                              {cat.name}
-                            </span>
-                          </div>
-                          <span
-                            className="badge rounded-pill"
-                            style={{
-                              fontSize: '11px',
-                              backgroundColor: isSelected ? '#dcfce7' : '#f1f5f9',
-                              color: isSelected ? '#16a34a' : '#64748b',
-                              fontWeight: 600,
-                            }}
-                          >
-                            {count}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Card 3: Size Filter */}
-              <div className="filter-card-container">
-                <div
-                  className={`filter-card-header ${openSections.size ? 'is-open' : ''}`}
-                  onClick={() => toggleSection('size')}
-                >
-                  <span className="filter-card-title">Size</span>
-                  <div className="d-flex align-items-center gap-2">
-                    {selectedSizes.length > 0 && (
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedSizes([]);
-                        }}
-                        style={{ fontSize: '11px', color: '#64748b', textDecoration: 'underline', cursor: 'pointer' }}
-                      >
-                        Reset
-                      </span>
-                    )}
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#64748b"
-                      strokeWidth="2.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      style={{
-                        transform: openSections.size ? 'rotate(0deg)' : 'rotate(180deg)',
-                        transition: 'transform 0.2s ease',
-                      }}
-                    >
-                      <polyline points="18 15 12 9 6 15"></polyline>
-                    </svg>
-                  </div>
-                </div>
-                {openSections.size && (
-                  <div className="filter-card-body">
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-                      {availableSizes.map((size) => {
-                        const isSelected = selectedSizes.includes(size);
-                        return (
-                          <button
-                            key={size}
-                            type="button"
-                            onClick={() => handleToggleSize(size)}
-                            className={`filter-size-pill ${isSelected ? 'active' : ''}`}
-                            title={`Filter by size ${size}`}
-                          >
-                            {size}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Card 3: Color Filter */}
-              <div className="filter-card-container">
-                <div
-                  className={`filter-card-header ${openSections.color ? 'is-open' : ''}`}
-                  onClick={() => toggleSection('color')}
-                >
-                  <span className="filter-card-title">Color</span>
-                  <div className="d-flex align-items-center gap-2">
-                    {selectedColors.length > 0 && (
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedColors([]);
-                        }}
-                        style={{ fontSize: '11px', color: '#64748b', textDecoration: 'underline', cursor: 'pointer' }}
-                      >
-                        Reset
-                      </span>
-                    )}
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#64748b"
-                      strokeWidth="2.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      style={{
-                        transform: openSections.color ? 'rotate(0deg)' : 'rotate(180deg)',
-                        transition: 'transform 0.2s ease',
-                      }}
-                    >
-                      <polyline points="18 15 12 9 6 15"></polyline>
-                    </svg>
-                  </div>
-                </div>
-                {openSections.color && (
-                  <div className="filter-card-body">
-                    <div className="d-flex flex-wrap align-items-center gap-2">
-                      {availableColors.map((color) => {
-                        const isSelected = selectedColors.includes(color.name);
-                        return (
-                          <div
-                            key={color.name}
-                            onClick={() => handleToggleColor(color.name)}
-                            className={`filter-color-dot ${isSelected ? 'active' : ''}`}
-                            style={{
-                              backgroundColor: color.hex,
-                              border: color.border ? `1px solid ${color.border}` : '1px solid transparent',
-                            }}
-                            title={color.name}
-                          >
-                            {isSelected && (
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={color.hex.toLowerCase() === '#ffffff' ? '#0f172a' : '#ffffff'} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                              </svg>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Card 4: Price Filter */}
-              <div className="filter-card-container">
-                <div
-                  className={`filter-card-header ${openSections.price ? 'is-open' : ''}`}
-                  onClick={() => toggleSection('price')}
-                >
-                  <span className="filter-card-title">Price</span>
-                  <div className="d-flex align-items-center gap-2">
-                    {(priceRange[0] > 0 || priceRange[1] < maxPriceLimit) && (
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPriceRange([0, maxPriceLimit]);
-                        }}
-                        style={{ fontSize: '11px', color: '#64748b', textDecoration: 'underline', cursor: 'pointer' }}
-                      >
-                        Reset
-                      </span>
-                    )}
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="#64748b"
-                      strokeWidth="2.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      style={{
-                        transform: openSections.price ? 'rotate(0deg)' : 'rotate(180deg)',
-                        transition: 'transform 0.2s ease',
-                      }}
-                    >
-                      <polyline points="18 15 12 9 6 15"></polyline>
-                    </svg>
-                  </div>
-                </div>
-                {openSections.price && (
-                  <div className="filter-card-body">
-                    <div className="d-flex align-items-center justify-content-between mb-2">
-                      <span style={{ fontSize: '11.5px', color: '#64748b' }}>Range</span>
-                      <span style={{ fontSize: '12.5px', fontWeight: 700, color: '#0f172a' }}>
-                        {priceRange[0]} SR — {priceRange[1]} SR
-                      </span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={maxPriceLimit}
-                      step={10}
-                      value={priceRange[1]}
-                      onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
-                      className="form-range w-100"
-                      style={{ accentColor: '#16a34a' }}
-                    />
-                    <div className="d-flex align-items-center justify-content-between mt-2 pt-1">
-                      <div className="border rounded-2 px-2 py-1 bg-white text-center" style={{ width: '46%' }}>
-                        <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block' }}>Min (SR)</span>
-                        <input
-                          type="number"
-                          value={priceRange[0]}
-                          onChange={(e) => setPriceRange([Math.max(0, Number(e.target.value)), priceRange[1]])}
-                          className="border-0 p-0 text-center w-100 fw-bold fs-13 text-dark"
-                          style={{ outline: 'none' }}
-                        />
-                      </div>
-                      <span className="text-muted fs-12">-</span>
-                      <div className="border rounded-2 px-2 py-1 bg-white text-center" style={{ width: '46%' }}>
-                        <span style={{ fontSize: '10px', color: '#94a3b8', display: 'block' }}>Max (SR)</span>
-                        <input
-                          type="number"
-                          value={priceRange[1]}
-                          onChange={(e) => setPriceRange([priceRange[0], Math.min(maxPriceLimit, Number(e.target.value))])}
-                          className="border-0 p-0 text-center w-100 fw-bold fs-13 text-dark"
-                          style={{ outline: 'none' }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Card 5: Certifications / Standards Filter */}
-              {availableStandards.length > 0 && (
-                <div className="filter-card-container">
-                  <div
-                    className={`filter-card-header ${openSections.standard ? 'is-open' : ''}`}
-                    onClick={() => toggleSection('standard')}
-                  >
-                    <span className="filter-card-title">Certifications & Standards</span>
-                    <div className="d-flex align-items-center gap-2">
-                      {selectedStandard !== 'all' && (
-                        <span
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedStandard('all');
-                          }}
-                          style={{ fontSize: '11px', color: '#64748b', textDecoration: 'underline', cursor: 'pointer' }}
-                        >
-                          Reset
-                        </span>
-                      )}
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="#64748b"
-                        strokeWidth="2.4"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        style={{
-                          transform: openSections.standard ? 'rotate(0deg)' : 'rotate(180deg)',
-                          transition: 'transform 0.2s ease',
-                        }}
-                      >
-                        <polyline points="18 15 12 9 6 15"></polyline>
-                      </svg>
-                    </div>
-                  </div>
-                  {openSections.standard && (
-                    <div className="filter-card-body">
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '7px' }}>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedStandard('all')}
-                          className={`filter-std-pill ${selectedStandard === 'all' ? 'active' : ''}`}
-                        >
-                          All Standards
-                        </button>
-                        {availableStandards.map((std) => (
-                          <button
-                            key={std}
-                            type="button"
-                            onClick={() => setSelectedStandard(std)}
-                            className={`filter-std-pill ${selectedStandard === std ? 'active' : ''}`}
-                            title={std}
-                          >
-                            {std}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Bottom Actions Card: Reset All Filters Button */}
-              <div className="pt-1 mb-4">
-                <button
-                  type="button"
-                  onClick={handleClearAllFilters}
-                  style={{
-                    width: '100%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    padding: '10px 16px',
-                    borderRadius: '8px',
-                    backgroundColor: isAnyFilterActive || isClearClicked ? '#dc2626' : '#0f172a',
-                    color: '#ffffff',
-                    border: isAnyFilterActive || isClearClicked ? '1px solid #b91c1c' : '1px solid #0f172a',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    boxShadow: isAnyFilterActive || isClearClicked
-                      ? '0 2px 8px rgba(220, 38, 38, 0.28)'
-                      : '0 2px 6px rgba(15, 23, 42, 0.15)',
-                    transition: 'all 0.2s ease',
-                    cursor: 'pointer',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = isAnyFilterActive || isClearClicked ? '#b91c1c' : '#1e293b';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = isAnyFilterActive || isClearClicked ? '#dc2626' : '#0f172a';
-                  }}
-                >
-                  <svg
-                    width="15"
-                    height="15"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="#ffffff"
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
-                    <path d="M3 3v5h5"></path>
-                  </svg>
-                  <span>Reset All Filters</span>
-                </button>
-              </div>
-            </div>
-          </aside>
-        )}
+            </aside>
+          )}
 
           {/* --------------------------------------------------------
               RIGHT CONTENT: SORTING & PRODUCTS GRID (Smoothly Expands Full Width)

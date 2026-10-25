@@ -1130,13 +1130,10 @@ export const Header: React.FC = () => {
                     </Link>
                   </div>
 
-                  {/* 4. Vertical Divider */}
-                  <div style={{ width: '1px', height: '22px', backgroundColor: '#e2e8f0', margin: '0 3px', flexShrink: 0 }} />
-
-                  {/* 5. Profile Dropdown */}
+                  {/* 4. Profile Dropdown (Mobile) */}
                   <div
                     ref={mobileAccountRef}
-                    className={"header-action-icon-2 " + (mobileAccountOpen ? "active" : "")}
+                    className={"header-action-icon-2 d-inline-flex align-items-center " + (mobileAccountOpen ? "active" : "")}
                     style={{ position: 'relative' }}
                   >
                     <a
@@ -1146,7 +1143,16 @@ export const Header: React.FC = () => {
                         setMobileAccountOpen(!mobileAccountOpen);
                       }}
                       title={user ? user.name : "Account"}
-                      style={{ display: 'flex', alignItems: 'center', gap: '3px', textDecoration: 'none' }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '3px',
+                        color: '#1e293b',
+                        textDecoration: 'none',
+                        padding: '4px',
+                        cursor: 'pointer',
+                      }}
                     >
                       {user ? (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
@@ -1163,7 +1169,8 @@ export const Header: React.FC = () => {
                               height: '28px',
                               borderRadius: '50%',
                               objectFit: 'cover',
-                              border: '2px solid rgb(231, 231, 231)'
+                              border: '2px solid rgb(231, 231, 231)',
+                              display: 'block'
                             }}
                           />
                           <svg
@@ -1184,14 +1191,27 @@ export const Header: React.FC = () => {
                           </svg>
                         </div>
                       ) : (
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#1e293b" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                           <circle cx="12" cy="7" r="4" />
                         </svg>
                       )}
                     </a>
 
-                    <div className={"cart-dropdown-wrap cart-dropdown-hm2 account-dropdown " + (mobileAccountOpen ? "open" : "")}>
+                    <div
+                      className={"cart-dropdown-wrap cart-dropdown-hm2 account-dropdown " + (mobileAccountOpen ? "open" : "")}
+                      style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 10px)',
+                        right: '-10px',
+                        minWidth: '220px',
+                        backgroundColor: '#ffffff',
+                        border: '1px solid #e2e8f0',
+                        borderRadius: '12px',
+                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                        zIndex: 1070,
+                      }}
+                    >
                       {user ? (
                         <ul>
                           <li style={{ padding: '8px 12px', borderBottom: '1px solid #f1f5f9', marginBottom: '6px' }}>
@@ -1299,6 +1319,9 @@ export const Header: React.FC = () => {
                       )}
                     </div>
                   </div>
+
+                  {/* 5. Vertical Divider between Action Icons and Hamburger */}
+                  <div style={{ width: '1px', height: '22px', backgroundColor: '#e2e8f0', margin: '0 3px', flexShrink: 0 }} />
 
                   {/* Hamburger Menu: Round Black Background with Tiered White Rounded Bars */}
                   <button

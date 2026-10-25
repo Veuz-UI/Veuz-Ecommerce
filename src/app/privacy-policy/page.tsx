@@ -12,7 +12,6 @@ import {
 
 export default function PrivacyPolicyPage() {
   const [data, setData] = useState<SupportManagementData>(DEFAULT_SUPPORT_MANAGEMENT);
-  const [showScrollTop, setShowScrollTop] = useState(false);
 
   useEffect(() => {
     setData(getCachedSupportManagement());
@@ -30,26 +29,12 @@ export default function PrivacyPolicyPage() {
     };
     window.addEventListener(SUPPORT_MANAGEMENT_EVENT, handleUpdate);
 
-    const handleScroll = () => {
-      if (window.scrollY > 300) {
-        setShowScrollTop(true);
-      } else {
-        setShowScrollTop(false);
-      }
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
     return () => {
       window.removeEventListener(SUPPORT_MANAGEMENT_EVENT, handleUpdate);
-      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
   const privacy = data.privacyPolicy;
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   return (
     <div className="page-content py-4 py-lg-5 veuz-page-transition position-relative" style={{ backgroundColor: '#ffffff', minHeight: '85vh' }}>
@@ -231,41 +216,6 @@ export default function PrivacyPolicyPage() {
           )}
         </div>
       </div>
-
-      {/* Floating Smooth Scroll to Top Button */}
-      {showScrollTop && (
-        <button
-          type="button"
-          onClick={scrollToTop}
-          className="btn position-fixed shadow-lg d-flex align-items-center justify-content-center anim-scale-in"
-          style={{
-            bottom: '32px',
-            right: '32px',
-            width: '46px',
-            height: '46px',
-            borderRadius: '50%',
-            backgroundColor: '#0f172a',
-            color: '#ffffff',
-            border: 'none',
-            zIndex: 1040,
-            cursor: 'pointer',
-            transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#1e293b';
-            e.currentTarget.style.transform = 'translateY(-3px) scale(1.08)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#0f172a';
-            e.currentTarget.style.transform = 'translateY(0) scale(1)';
-          }}
-          aria-label="Scroll to top"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m18 15-6-6-6 6" />
-          </svg>
-        </button>
-      )}
     </div>
   );
 }

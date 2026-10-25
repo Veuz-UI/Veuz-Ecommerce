@@ -1,8 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 export function ScrollToTopButton() {
+  const pathname = usePathname();
   const [isVisible, setIsVisible] = useState(false);
   const [scrollProgress, setScrollProgress] = useState(0);
 
@@ -41,6 +43,10 @@ export function ScrollToTopButton() {
       behavior: 'smooth',
     });
   };
+
+  if (pathname && (pathname.startsWith('/privacy') || pathname.startsWith('/terms'))) {
+    return null;
+  }
 
   // SVG circular progress parameters
   const size = 46;

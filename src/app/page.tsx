@@ -373,7 +373,12 @@ function ProductSectionSliderTrack({
         <div
           ref={scrollRef}
           className="desktop-prod-slider-track hide-scrollbar"
-          style={{ scrollBehavior: 'smooth' }}
+          style={{
+            scrollBehavior: 'smooth',
+            touchAction: 'pan-x',
+            overflowY: 'hidden',
+            overscrollBehaviorY: 'none',
+          }}
         >
           {repeatedItems.map((prod, idx) => (
             <div key={prod.loopKey} className="desktop-prod-slider-col">
@@ -1588,6 +1593,11 @@ export default function HomePage() {
             <div
               ref={browseCatScrollRef}
               className="browse-cat-track-container"
+              style={{
+                touchAction: 'pan-x',
+                overflowY: 'hidden',
+                overscrollBehaviorY: 'none',
+              }}
             >
               {repeatedShopCategories.length === 0 ? (
                 <div className="d-flex gap-3 w-100 overflow-hidden py-2">
@@ -1606,12 +1616,13 @@ export default function HomePage() {
                 const catLink = cat.link && cat.link !== '#' ? cat.link : `/category?category=${encodeURIComponent(cat.name)}`;
                 return (
                   <div key={cat.loopKey || cat.id || idx} className="browse-cat-card-wrapper">
-                    <Link href={catLink} className="browse-cat-card" title={cat.name}>
+                    <Link href={catLink} className="browse-cat-card" title={cat.name} draggable={false}>
                       <div className="browse-cat-circle">
                         <img
                           src={imgSrc}
                           alt={cat.name}
                           className="browse-cat-photo"
+                          draggable={false}
                           onError={(e) => {
                             const target = e.currentTarget;
                             target.onerror = null;

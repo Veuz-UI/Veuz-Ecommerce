@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef, useCallback, Suspense } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ChevronLeft, ChevronRight, CheckCircle2, MessageSquare, Pin, Star, ThumbsUp, ThumbsDown, Pencil } from 'lucide-react';
@@ -303,6 +304,12 @@ function ProductDetailsContent() {
   const [activeImageIdx, setActiveImageIdx] = useState(0);
   const [isZoomOpen, setIsZoomOpen] = useState(false);
   const [zoomScale, setZoomScale] = useState(1);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
 
   // Product selection state
   const [selectedColor, setSelectedColor] = useState<string>('');
@@ -466,9 +473,35 @@ function ProductDetailsContent() {
     setActiveImageIdx(0);
   }, [product?.id, selectedColor]);
 
-  // Keyboard navigation for lightbox modal (Esc to close, Left/Right arrows to move)
+  // Keyboard navigation & body scroll lock for lightbox modal (Esc to close, Left/Right arrows to move)
   useEffect(() => {
     if (!isZoomOpen) return;
+
+    const scrollY = window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0;
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    const originalBodyPosition = document.body.style.position;
+    const originalBodyTop = document.body.style.top;
+    const originalBodyWidth = document.body.style.width;
+    const originalTouchAction = document.body.style.touchAction;
+
+    document.documentElement.classList.add('lightbox-open');
+    document.body.classList.add('lightbox-open');
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = '100%';
+    document.body.style.touchAction = 'none';
+
+    // Completely block background wheel and touchmove events
+    const handleTouchOrWheel = (e: TouchEvent | WheelEvent) => {
+      e.preventDefault();
+    };
+
+    window.addEventListener('wheel', handleTouchOrWheel, { passive: false });
+    window.addEventListener('touchmove', handleTouchOrWheel, { passive: false });
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setIsZoomOpen(false);
@@ -482,7 +515,21 @@ function ProductDetailsContent() {
       }
     };
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.documentElement.classList.remove('lightbox-open');
+      document.body.classList.remove('lightbox-open');
+      document.documentElement.style.overflow = originalHtmlOverflow;
+      document.body.style.overflow = originalBodyOverflow;
+      document.body.style.position = originalBodyPosition;
+      document.body.style.top = originalBodyTop;
+      document.body.style.width = originalBodyWidth;
+      document.body.style.touchAction = originalTouchAction;
+      window.scrollTo(0, scrollY);
+      window.removeEventListener('wheel', handleTouchOrWheel);
+      window.removeEventListener('touchmove', handleTouchOrWheel);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
   }, [isZoomOpen, galleryImages.length]);
 
   // Fetch real reviews for active product
@@ -2180,31 +2227,39 @@ function ProductDetailsContent() {
         </div>
       )}
 
-      {/* FULLSCREEN LIGHTBOX MODAL */}
-      {isZoomOpen && (
+      {/* FULLSCREEN LIGHTBOX MODAL (Directly mounted to document.body via Portal) */}
+      {mounted && isZoomOpen && typeof document !== 'undefined' && createPortal(
         <div
-          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3 p-md-4"
+          className="product-lightbox-portal"
           style={{
-            zIndex: 9999,
-            backgroundColor: 'rgba(15, 23, 42, 0.72)',
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            width: '100vw',
+            height: '100dvh',
+            zIndex: 1000000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+            backgroundColor: 'rgba(15, 23, 42, 0.78)',
             backdropFilter: 'blur(8px)',
+            WebkitBackdropFilter: 'blur(8px)',
+            touchAction: 'none',
+            overscrollBehavior: 'none',
           }}
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
           onClick={() => {
             setIsZoomOpen(false);
             setZoomScale(1);
           }}
         >
-          {/* Main White Canvas Card */}
+          {/* Main White Canvas Card - Perfectly Centered */}
           <div
             className="product-lightbox-modal position-relative d-flex align-items-center justify-content-center overflow-hidden"
-            style={{
-              width: 'min(920px, 92vw)',
-              height: 'min(700px, 84vh)',
-              backgroundColor: '#ffffff',
-              borderRadius: '24px',
-              boxShadow: '0 25px 60px -10px rgba(0, 0, 0, 0.45)',
-              border: '1px solid #f1f5f9',
-            }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Close Button on White Card Top-Right */}
@@ -2214,23 +2269,40 @@ function ProductDetailsContent() {
                 setIsZoomOpen(false);
                 setZoomScale(1);
               }}
-              className="position-absolute top-0 end-0 m-3 m-md-4 btn border-0 d-flex align-items-center justify-content-center"
+              aria-label="Close modal"
+              title="Close View (Esc)"
+              className="product-lightbox-close-btn"
               style={{
-                width: '42px',
-                minWidth: '42px',
-                height: '42px',
+                position: 'absolute',
+                top: '12px',
+                right: '12px',
+                width: '38px',
+                height: '38px',
+                minWidth: '38px',
+                minHeight: '38px',
                 padding: 0,
                 borderRadius: '50%',
                 backgroundColor: '#0f172a',
                 color: '#ffffff',
-                zIndex: 10001,
-                boxShadow: '0 4px 12px rgba(15, 23, 42, 0.2)',
+                border: 'none',
+                zIndex: 100,
+                boxShadow: '0 4px 12px rgba(15, 23, 42, 0.25)',
                 cursor: 'pointer',
-                transition: 'transform 0.2s ease',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'transform 0.15s ease, background-color 0.15s ease',
               }}
-              title="Close View (Esc)"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#1e293b';
+                e.currentTarget.style.transform = 'scale(1.06)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = '#0f172a';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
             >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18" />
                 <line x1="6" y1="6" x2="18" y2="18" />
               </svg>
@@ -2245,25 +2317,41 @@ function ProductDetailsContent() {
                   setZoomScale(1);
                   setActiveImageIdx((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1));
                 }}
-                className="position-absolute start-0 top-50 translate-middle-y ms-2 ms-md-4 btn border-0 d-flex align-items-center justify-content-center"
+                className="product-lightbox-arrow-btn"
+                aria-label="Previous image"
+                title="Previous Image (Left Arrow)"
                 style={{
-                  width: '48px',
-                  minWidth: '48px',
-                  height: '48px',
+                  position: 'absolute',
+                  left: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '40px',
+                  height: '40px',
+                  minWidth: '40px',
+                  minHeight: '40px',
                   padding: 0,
                   borderRadius: '50%',
                   backgroundColor: '#ffffff',
                   color: '#0f172a',
                   border: '1px solid #e2e8f0',
-                  boxShadow: '0 6px 18px rgba(0, 0, 0, 0.1)',
-                  zIndex: 10000,
+                  boxShadow: '0 4px 14px rgba(0, 0, 0, 0.12)',
+                  zIndex: 90,
                   cursor: 'pointer',
-                  transition: 'transform 0.2s ease, background-color 0.2s ease',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'transform 0.15s ease, background-color 0.15s ease',
                 }}
-                aria-label="Previous image"
-                title="Previous Image (Left Arrow)"
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f8fafc';
+                  e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                  e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+                }}
               >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
               </button>
@@ -2278,36 +2366,53 @@ function ProductDetailsContent() {
                   setZoomScale(1);
                   setActiveImageIdx((prev) => (prev + 1) % galleryImages.length);
                 }}
-                className="position-absolute end-0 top-50 translate-middle-y me-2 me-md-4 btn border-0 d-flex align-items-center justify-content-center"
+                className="product-lightbox-arrow-btn"
+                aria-label="Next image"
+                title="Next Image (Right Arrow)"
                 style={{
-                  width: '48px',
-                  minWidth: '48px',
-                  height: '48px',
+                  position: 'absolute',
+                  right: '10px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  width: '40px',
+                  height: '40px',
+                  minWidth: '40px',
+                  minHeight: '40px',
                   padding: 0,
                   borderRadius: '50%',
                   backgroundColor: '#ffffff',
                   color: '#0f172a',
                   border: '1px solid #e2e8f0',
-                  boxShadow: '0 6px 18px rgba(0, 0, 0, 0.1)',
-                  zIndex: 10000,
+                  boxShadow: '0 4px 14px rgba(0, 0, 0, 0.12)',
+                  zIndex: 90,
                   cursor: 'pointer',
-                  transition: 'transform 0.2s ease, background-color 0.2s ease',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'transform 0.15s ease, background-color 0.15s ease',
                 }}
-                aria-label="Next image"
-                title="Next Image (Right Arrow)"
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = '#f8fafc';
+                  e.currentTarget.style.transform = 'translateY(-50%) scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = '#ffffff';
+                  e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
+                }}
               >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="9 18 15 12 9 6" />
                 </svg>
               </button>
             )}
 
-            {/* Center Zoomable Image with White Background */}
+            {/* Center Image Container */}
             <div
-              className="w-100 h-100 d-flex align-items-center justify-content-center p-4 p-md-5 overflow-hidden"
+              className="w-100 h-100 d-flex align-items-center justify-content-center p-3 p-sm-4 p-md-5 overflow-hidden"
               style={{
                 cursor: zoomScale > 1 ? 'grab' : 'zoom-in',
                 backgroundColor: '#ffffff',
+                touchAction: 'pan-x pan-y',
               }}
               onClick={() => setZoomScale((s) => (s === 1 ? 1.75 : 1))}
               title={zoomScale === 1 ? 'Click to zoom in' : 'Click to zoom out'}
@@ -2322,23 +2427,32 @@ function ProductDetailsContent() {
                   objectFit: 'contain',
                   transform: `scale(${zoomScale})`,
                   transition: 'transform 0.25s cubic-bezier(0.25, 1, 0.5, 1)',
-                  filter: 'drop-shadow(0 10px 25px rgba(0,0,0,0.06))',
+                  filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.06))',
                   userSelect: 'none',
                 }}
               />
             </div>
 
-            {/* Bottom Angle / Image Carousel Indicators */}
+            {/* Bottom Carousel / Perspective Dots Indicator */}
             {galleryImages.length > 1 && (
               <div
-                className="position-absolute bottom-0 start-50 translate-middle-x mb-3 d-flex align-items-center gap-2 px-3 py-1.5 rounded-pill shadow-xs"
                 style={{
+                  position: 'absolute',
+                  bottom: '12px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '5px 12px',
+                  borderRadius: '9999px',
                   backgroundColor: '#f8fafc',
                   border: '1px solid #e2e8f0',
-                  zIndex: 10000,
+                  boxShadow: '0 2px 6px rgba(0, 0, 0, 0.05)',
+                  zIndex: 90,
                 }}
               >
-                <span style={{ fontSize: '12px', fontWeight: 600, color: '#475569' }}>
+                <span style={{ fontSize: '11px', fontWeight: 600, color: '#475569', lineHeight: 1 }}>
                   {activeImageIdx + 1} / {galleryImages.length}
                 </span>
                 <div className="d-flex align-items-center gap-1.5 ms-1">
@@ -2353,7 +2467,7 @@ function ProductDetailsContent() {
                       }}
                       className="border-0 p-0"
                       style={{
-                        width: activeImageIdx === dotIdx ? '18px' : '6px',
+                        width: activeImageIdx === dotIdx ? '16px' : '6px',
                         height: '6px',
                         borderRadius: '3px',
                         backgroundColor: activeImageIdx === dotIdx ? '#0f172a' : '#cbd5e1',
@@ -2367,17 +2481,19 @@ function ProductDetailsContent() {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {/* SIZE GUIDE MODAL */}
-      {isSizeGuideOpen && (
+      {/* SIZE GUIDE MODAL (Directly mounted to document.body via Portal) */}
+      {mounted && isSizeGuideOpen && typeof document !== 'undefined' && createPortal(
         <div
           className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3"
           style={{
-            zIndex: 9999,
-            backgroundColor: 'rgba(15, 23, 42, 0.7)',
+            zIndex: 1000000,
+            backgroundColor: 'rgba(15, 23, 42, 0.72)',
             backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
           }}
           onClick={() => setIsSizeGuideOpen(false)}
         >
@@ -2391,7 +2507,7 @@ function ProductDetailsContent() {
               <button
                 type="button"
                 onClick={() => setIsSizeGuideOpen(false)}
-                className="btn btn-light rounded-circle p-0"
+                className="btn btn-light rounded-circle p-0 d-inline-flex align-items-center justify-content-center"
                 style={{ width: '32px', height: '32px' }}
               >
                 ✕
@@ -2462,7 +2578,8 @@ function ProductDetailsContent() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* 5. RIGHT-TO-LEFT WRITE REVIEW MODAL DRAWER */}

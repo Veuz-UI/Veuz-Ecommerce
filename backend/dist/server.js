@@ -6,9 +6,12 @@ import authRoutes from './routes/authRoutes.js';
 import adminUserRoutes from './routes/adminUserRoutes.js';
 import { apiRateLimiter } from './middleware/rateLimiter.js';
 import { prisma } from './config/prisma.js';
-// Load environment variables (.env.production if NODE_ENV=production, otherwise .env)
-const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
-dotenv.config({ path: envFile });
+import fs from 'fs';
+// Load environment variables: check .env.production first, then fallback to .env
+if (fs.existsSync('.env.production')) {
+    dotenv.config({ path: '.env.production' });
+}
+dotenv.config(); // Fallback / loads .env if present
 const app = express();
 const PORT = process.env.PORT || 5000;
 const IS_PROD = process.env.NODE_ENV === 'production';

@@ -1,4 +1,4 @@
-﻿-- CreateTable
+-- CreateTable
 CREATE TABLE `User` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(191) NOT NULL,
@@ -136,8 +136,8 @@ ALTER TABLE `OrderItem` ADD CONSTRAINT `OrderItem_orderId_fkey` FOREIGN KEY (`or
 ALTER TABLE `OrderItem` ADD CONSTRAINT `OrderItem_productId_fkey` FOREIGN KEY (`productId`) REFERENCES `Product`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 
--- Default Admin & Initial Accounts
+-- Default Admin & Initial Accounts (Password: Admin@12345)
 INSERT INTO `User` (`id`, `name`, `email`, `password`, `role`, `isEmailVerified`, `isBlocked`, `is2FAEnabled`, `createdAt`, `updatedAt`) VALUES
-(1, 'Super Admin', 'super@gmail.com', '$2a$12$Yvkrm1uDGNyCZBNaCJ1TYO/by3BiOnDEe5ODed4alGUXK/MVZyKMq', 'SUPER_ADMIN', true, false, false, NOW(3), NOW(3)),
-(2, 'Admin User', 'admin@gmail.com', '$2a$12$Yvkrm1uDGNyCZBNaCJ1TYO/by3BiOnDEe5ODed4alGUXK/MVZyKMq', 'ADMIN', true, false, false, NOW(3), NOW(3)),
-(3, 'Customer User', 'customer@gmail.com', '$2a$12$Yvkrm1uDGNyCZBNaCJ1TYO/by3BiOnDEe5ODed4alGUXK/MVZyKMq', 'CUSTOMER', true, false, false, NOW(3), NOW(3));
+(1, 'Super Admin', 'super@gmail.com', '$2a$10$kfBfueY4bO0a/lGmFrebA.3ibTg5ximf.Uw5FF6Djq5gg8ggwtF9K', 'SUPER_ADMIN', true, false, false, NOW(3), NOW(3)),
+(2, 'Admin User', 'admin@gmail.com', '$2a$10$kfBfueY4bO0a/lGmFrebA.3ibTg5ximf.Uw5FF6Djq5gg8ggwtF9K', 'ADMIN', true, false, false, NOW(3), NOW(3)),
+(3, 'Customer User', 'customer@gmail.com', '$2a$10$kfBfueY4bO0a/lGmFrebA.3ibTg5ximf.Uw5FF6Djq5gg8ggwtF9K', 'CUSTOMER', true, false, false, NOW(3), NOW(3));

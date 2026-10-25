@@ -602,6 +602,7 @@ body:not([data-sidebar-size]) {
   line-height: 1 !important;
   font-size: 25px !important;
   margin-right: 0 !important;
+  color: #1e293b !important;
 }
 
 .header-action-2 .header-action-icon-2 .cart-active-dot {
@@ -1124,39 +1125,106 @@ body.mobile-filter-open .veuz-page-transition {
   position: relative !important;
 }
 
-/* On phones and tablets, filters open as a modal drawer ABOVE header and all content */
-@media (max-width: 991.98px) {
-  .filter-sidebar-wrapper {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
-    bottom: 0 !important;
-    width: min(340px, 88vw) !important;
-    max-width: min(340px, 88vw) !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-    padding: 16px 14px 40px 14px !important;
-    background: #ffffff !important;
-    box-shadow: 16px 0 40px rgba(15, 23, 42, 0.28) !important;
-    z-index: 100050 !important;
-    overscroll-behavior: contain;
+/* Mobile Filter Portal Drawer Animations & Styling */
+@keyframes mobileDrawerSlideIn {
+  from {
+    transform: translateX(-100%);
+    opacity: 0.8;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.mobile-filter-drawer {
+  animation: mobileDrawerSlideIn 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  will-change: transform;
+}
+
+.mobile-filter-drawer .filter-card-container {
+  margin-bottom: 12px;
+}
+
+/* Product Details Image Lightbox Modal */
+@keyframes lightboxScaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.product-lightbox-modal {
+  width: min(880px, 92vw);
+  height: min(640px, 80vh);
+  background-color: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.45), 0 10px 25px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  position: relative;
+  overflow: hidden;
+  animation: lightboxScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@media (max-width: 767.98px) {
+  .product-lightbox-modal {
+    width: min(390px, 92vw) !important;
+    height: min(390px, 70dvh) !important;
+    aspect-ratio: 1 / 1 !important;
+    border-radius: 16px !important;
   }
 
-  .filter-sidebar-wrapper .filters-sidebar {
-    width: 100% !important;
-    padding-bottom: 30px !important;
+  .product-lightbox-arrow-btn {
+    width: 34px !important;
+    height: 34px !important;
+    min-width: 34px !important;
+    min-height: 34px !important;
   }
 
-  .filter-sidebar-wrapper .filters-sidebar-header-card {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 30 !important;
-    background: #ffffff !important;
-    margin-top: -4px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+  .product-lightbox-close-btn {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    top: 10px !important;
+    right: 10px !important;
   }
+}
+
+/* Scroll lock & Scroller freeze when lightbox is open */
+html.lightbox-open,
+body.lightbox-open {
+  overflow: hidden !important;
+  touch-action: none !important;
+  overscroll-behavior: none !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+html.lightbox-open::-webkit-scrollbar,
+body.lightbox-open::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.product-lightbox-portal {
+  overflow: hidden !important;
+  touch-action: none !important;
+  overscroll-behavior: none !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.product-lightbox-portal::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .main-menu nav>ul>li ul.mega-menu li.sub-mega-menu-banner {
@@ -1439,8 +1507,13 @@ iconify-icon {
 }
 
 .browse-cat-track-container {
-  display: flex;
-  overflow-x: auto;
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  touch-action: pan-x !important;
+  overscroll-behavior-x: contain !important;
+  overscroll-behavior-y: none !important;
   scroll-behavior: smooth;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -1448,10 +1521,22 @@ iconify-icon {
   gap: 28px;
   padding: 10px 4px 24px 4px;
   align-items: flex-start;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .browse-cat-track-container::-webkit-scrollbar {
-  display: none;
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.browse-cat-card,
+.browse-cat-circle,
+.browse-cat-photo {
+  -webkit-user-drag: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
 }
 
 /* Round Category Item Wrapper in Slider */
@@ -1481,6 +1566,14 @@ iconify-icon {
 }
 
 @media (max-width: 768px) {
+  .browse-cat-track-container {
+    gap: 16px !important;
+    padding: 8px 4px 16px 4px !important;
+    overflow-y: hidden !important;
+    touch-action: pan-x !important;
+    overscroll-behavior-y: none !important;
+    overscroll-behavior-x: contain !important;
+  }
   .browse-cat-card-wrapper {
     flex: 0 0 calc((100% - (3 * 16px)) / 4);
     min-width: 110px;
@@ -1489,6 +1582,14 @@ iconify-icon {
 }
 
 @media (max-width: 520px) {
+  .browse-cat-track-container {
+    gap: 14px !important;
+    padding: 6px 2px 14px 2px !important;
+    overflow-y: hidden !important;
+    touch-action: pan-x !important;
+    overscroll-behavior-y: none !important;
+    overscroll-behavior-x: contain !important;
+  }
   .browse-cat-card-wrapper {
     flex: 0 0 calc((100% - (2 * 14px)) / 3.2);
     min-width: 100px;
@@ -1850,6 +1951,9 @@ hr::before {
   align-items: stretch !important;
   overflow-x: auto !important;
   overflow-y: hidden !important;
+  touch-action: pan-x !important;
+  overscroll-behavior-x: contain !important;
+  overscroll-behavior-y: none !important;
   scroll-behavior: smooth !important;
   scrollbar-width: none !important;
   -ms-overflow-style: none !important;
@@ -8202,8 +8306,9 @@ body.drawer-scroll-locked .product-drawer-body {
 
   /* Fullscreen Modal on Phone */
   .product-lightbox-modal {
-    width: 96vw !important;
-    height: 80vh !important;
+    width: min(390px, 92vw) !important;
+    height: min(390px, 70dvh) !important;
+    aspect-ratio: 1 / 1 !important;
     border-radius: 16px !important;
   }
 
