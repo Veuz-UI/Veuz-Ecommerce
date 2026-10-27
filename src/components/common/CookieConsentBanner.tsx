@@ -70,31 +70,9 @@ export const CookieConsentBanner: React.FC = () => {
         <div
           role="dialog"
           aria-label="Consent to Cookies and Data processing"
-          style={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: '#ffffff',
-            borderTop: '1px solid #cbd5e1',
-            boxShadow: '0 -6px 25px rgba(0, 0, 0, 0.1)',
-            zIndex: 999998,
-            padding: '24px 28px 20px 28px',
-            fontFamily: 'inherit',
-            animation: 'fadeInUp 0.3s ease-out',
-          }}
+          className="cookie-banner-container"
         >
-          <div
-            style={{
-              maxWidth: '1360px',
-              margin: '0 auto',
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-              gap: '32px',
-              flexWrap: 'wrap',
-            }}
-          >
+          <div className="cookie-banner-inner">
             {/* Left: Content Text */}
             <div style={{ flex: '1 1 650px', minWidth: '280px' }}>
               <h5
@@ -102,7 +80,7 @@ export const CookieConsentBanner: React.FC = () => {
                   fontSize: '15px',
                   fontWeight: '700',
                   color: '#0f172a',
-                  marginBottom: '10px',
+                  marginBottom: '8px',
                   letterSpacing: '-0.2px',
                 }}
               >
@@ -111,7 +89,7 @@ export const CookieConsentBanner: React.FC = () => {
               <p
                 style={{
                   fontSize: '12.5px',
-                  lineHeight: '1.65',
+                  lineHeight: '1.6',
                   color: '#475569',
                   margin: 0,
                 }}
@@ -124,81 +102,77 @@ export const CookieConsentBanner: React.FC = () => {
               </p>
 
               {/* Language code indicator matching image */}
-              <div style={{ marginTop: '14px', fontSize: '11px', color: '#94a3b8', fontWeight: '600' }}>
+              <div style={{ marginTop: '10px', fontSize: '11px', color: '#94a3b8', fontWeight: '600' }}>
                 EN
               </div>
             </div>
 
             {/* Right: Action Buttons and Footer Links */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'stretch',
-                gap: '10px',
-                minWidth: '200px',
-              }}
-            >
-              <button
-                type="button"
-                onClick={handleAcceptAll}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  backgroundColor: '#0f172a',
-                  color: '#ffffff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '10px 24px',
-                  fontSize: '13.5px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                  boxShadow: '0 2px 6px rgba(15, 23, 42, 0.25)',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#1e293b';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#0f172a';
-                }}
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                Accept all
-              </button>
+            <div className="cookie-banner-actions">
+              <div className="cookie-banner-btn-row">
+                <button
+                  type="button"
+                  className="cookie-btn-settings"
+                  onClick={() => setIsSettingsOpen(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: '#ffffff',
+                    color: '#0f172a',
+                    border: '1.5px solid #0f172a',
+                    borderRadius: '6px',
+                    padding: '9px 20px',
+                    fontSize: '13.5px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#0f172a';
+                    e.currentTarget.style.color = '#ffffff';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#ffffff';
+                    e.currentTarget.style.color = '#0f172a';
+                  }}
+                >
+                  Settings
+                </button>
 
-              <button
-                type="button"
-                onClick={() => setIsSettingsOpen(true)}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: '#ffffff',
-                  color: '#0f172a',
-                  border: '1.5px solid #0f172a',
-                  borderRadius: '6px',
-                  padding: '9px 24px',
-                  fontSize: '13.5px',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#0f172a';
-                  e.currentTarget.style.color = '#ffffff';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = '#ffffff';
-                  e.currentTarget.style.color = '#0f172a';
-                }}
-              >
-                Settings
-              </button>
+                <button
+                  type="button"
+                  className="cookie-btn-accept"
+                  onClick={handleAcceptAll}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '7px',
+                    backgroundColor: '#0f172a',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '10px 22px',
+                    fontSize: '13.5px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    boxShadow: '0 2px 6px rgba(15, 23, 42, 0.25)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#1e293b';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = '#0f172a';
+                  }}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  Accept all
+                </button>
+              </div>
 
               {/* Bottom links */}
               <div
@@ -207,7 +181,7 @@ export const CookieConsentBanner: React.FC = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '8px',
-                  marginTop: '6px',
+                  marginTop: '4px',
                   fontSize: '11px',
                   color: '#64748b',
                   flexWrap: 'wrap',
@@ -407,9 +381,10 @@ export const CookieConsentBanner: React.FC = () => {
             </div>
 
             {/* Modal Actions */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '10px' }}>
+            <div className="cookie-modal-actions">
               <button
                 type="button"
+                className="cookie-modal-btn-save"
                 onClick={handleSavePreferences}
                 style={{
                   padding: '9px 18px',
@@ -420,12 +395,16 @@ export const CookieConsentBanner: React.FC = () => {
                   fontSize: '13px',
                   fontWeight: '600',
                   cursor: 'pointer',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
               >
                 Save Preferences
               </button>
               <button
                 type="button"
+                className="cookie-modal-btn-accept"
                 onClick={handleAcceptAll}
                 style={{
                   padding: '9px 20px',
@@ -437,6 +416,9 @@ export const CookieConsentBanner: React.FC = () => {
                   fontWeight: '600',
                   cursor: 'pointer',
                   transition: 'background-color 0.15s ease',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.backgroundColor = '#1e293b';
@@ -451,6 +433,114 @@ export const CookieConsentBanner: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Responsive Inline CSS for Mobile Side-by-Side Buttons */}
+      <style jsx global>{`
+        .cookie-banner-container {
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background-color: #ffffff;
+          border-top: 1px solid #cbd5e1;
+          box-shadow: 0 -6px 25px rgba(0, 0, 0, 0.1);
+          z-index: 999998;
+          padding: 22px 28px 18px 28px;
+          font-family: inherit;
+          animation: fadeInUp 0.3s ease-out;
+        }
+
+        .cookie-banner-inner {
+          max-width: 1360px;
+          margin: 0 auto;
+          display: flex;
+          align-items: flex-start;
+          justify-content: space-between;
+          gap: 28px;
+          flex-wrap: wrap;
+        }
+
+        .cookie-banner-actions {
+          display: flex;
+          flex-direction: column;
+          align-items: stretch;
+          gap: 10px;
+          min-width: 200px;
+        }
+
+        .cookie-banner-btn-row {
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          width: 100%;
+        }
+
+        .cookie-modal-actions {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+          .cookie-banner-container {
+            padding: 16px 14px 12px 14px !important;
+          }
+
+          .cookie-banner-inner {
+            gap: 12px !important;
+          }
+
+          .cookie-banner-actions {
+            width: 100% !important;
+            min-width: 100% !important;
+            margin-top: 4px !important;
+          }
+
+          .cookie-banner-btn-row {
+            flex-direction: row !important;
+            gap: 10px !important;
+            width: 100% !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+          }
+
+          .cookie-btn-settings {
+            flex: 1 1 0 !important;
+            min-width: 0 !important;
+            padding: 10px 8px !important;
+            text-align: center !important;
+            justify-content: center !important;
+            font-size: 13px !important;
+          }
+
+          .cookie-btn-accept {
+            flex: 1 1 0 !important;
+            min-width: 0 !important;
+            padding: 10px 8px !important;
+            text-align: center !important;
+            justify-content: center !important;
+            font-size: 13px !important;
+          }
+
+          .cookie-modal-actions {
+            flex-direction: row !important;
+            gap: 10px !important;
+            width: 100% !important;
+            justify-content: space-between !important;
+          }
+
+          .cookie-modal-btn-save,
+          .cookie-modal-btn-accept {
+            flex: 1 1 0 !important;
+            min-width: 0 !important;
+            padding: 10px 8px !important;
+            text-align: center !important;
+            justify-content: center !important;
+            font-size: 13px !important;
+          }
+        }
+      `}</style>
     </>
   );
 };

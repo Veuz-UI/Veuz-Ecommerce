@@ -219,10 +219,15 @@ export const Header: React.FC = () => {
     const handleScroll = () => {
       if (!ticking) {
         window.requestAnimationFrame(() => {
-          const currentScrollY = window.scrollY || window.pageYOffset || 0;
-          if (currentScrollY > 150) {
+          const currentScrollY =
+            window.scrollY ||
+            window.pageYOffset ||
+            document.documentElement.scrollTop ||
+            document.body.scrollTop ||
+            0;
+          if (currentScrollY > 100) {
             setIsSticky(true);
-          } else if (currentScrollY < 100) {
+          } else if (currentScrollY < 50) {
             setIsSticky(false);
           }
           ticking = false;
@@ -508,17 +513,34 @@ export const Header: React.FC = () => {
 
   return (
     <>
-      <header className="header-area header-style-1 header-height-2" style={{ backgroundColor: '#ffffff', position: 'relative', zIndex: 1045 }}>
+      <header className={`header-area header-style-1 header-height-2 ${mobileAccountOpen || mobileNotificationsOpen ? 'header-has-open-dropdown' : ''}`} style={{ backgroundColor: '#ffffff', position: 'relative', zIndex: mobileAccountOpen || mobileNotificationsOpen ? 10080 : 10050, overflow: 'visible' }}>
         
         {/* ========================================================
             MAIN HEADER (Logo Left Corner, Search Bar, Location & Language, Action Icons)
            ======================================================== */}
+        {/* Mobile/Tablet placeholder to prevent jump when header-middle becomes fixed */}
+        {isSticky && (
+          <div
+            className="header-middle-placeholder d-xl-none"
+            style={{ height: '70px', width: '100%' }}
+          />
+        )}
         <div
           className={`header-middle header-middle-ptb-1 ${isSticky ? 'mobile-header-sticky-active' : ''}`}
-          style={{ padding: '16px 0', backgroundColor: '#ffffff', position: 'relative', zIndex: 1060 }}
+          style={{
+            padding: isSticky ? '10px 0' : '16px 0',
+            backgroundColor: '#ffffff',
+            position: 'relative',
+            zIndex: mobileAccountOpen || mobileNotificationsOpen ? 10085 : 10060,
+            overflow: 'visible',
+            transition: 'padding 0.15s ease'
+          }}
         >
-          <div className="container">
-            <div className="header-wrap d-flex align-items-center justify-content-between gap-3">
+          <div className="container" style={{ position: 'relative', overflow: 'visible' }}>
+            <div
+              className="header-wrap d-flex align-items-center justify-content-between gap-3"
+              style={{ position: 'relative', zIndex: mobileAccountOpen || mobileNotificationsOpen ? 10086 : 20, overflow: 'visible' }}
+            >
               
               {/* Left: Brand Logo (Flush Left Corner) */}
               <div className="logo logo-width-1" style={{ margin: 0, padding: 0 }}>
@@ -781,7 +803,7 @@ export const Header: React.FC = () => {
               </div>
 
               {/* Right: Language, Location & Action Icons + Hamburger Menu (Mobile/Tablet Right Corner) */}
-              <div className="header-action-right d-flex align-items-center gap-3">
+              <div className="header-action-right d-flex align-items-center gap-3" style={{ position: 'relative', zIndex: mobileAccountOpen || mobileNotificationsOpen ? 10087 : 'auto', overflow: 'visible' }}>
                 
                 {/* 1. Language Switcher: Pill shaped matching location selector size, placed between search and location (Desktop) */}
                 <div ref={langRef} className="position-relative d-none d-xl-block">
@@ -1015,7 +1037,7 @@ export const Header: React.FC = () => {
                 </div>
 
                 {/* Mobile/Tablet Action Icons: Notifications, Wishlist, Cart, Profile & Hamburger */}
-                <div className="header-action-2 d-flex d-xl-none align-items-center" style={{ gap: '14px' }}>
+                <div className="header-action-2 d-flex d-xl-none align-items-center" style={{ gap: '14px', position: 'relative', zIndex: mobileAccountOpen || mobileNotificationsOpen ? 10088 : 'auto', overflow: 'visible' }}>
                   
                   {/* Mobile Notification Bell + Badge (Only for logged in users) */}
                   {user && (
@@ -1028,7 +1050,13 @@ export const Header: React.FC = () => {
                       <button
                         type="button"
                         className="header-notif-bell-btn"
-                        onClick={() => setMobileNotificationsOpen((prev) => !prev)}
+                        onClick={() => {
+                          setMobileNotificationsOpen((prev) => {
+                            const next = !prev;
+                            if (next) setMobileAccountOpen(false);
+                            return next;
+                          });
+                        }}
                         title="Notifications"
                         style={{
                           background: 'none',
@@ -1079,44 +1107,6 @@ export const Header: React.FC = () => {
                     </div>
                   )}
 
-                  {/* Wishlist Heart Icon + Red Dot */}
-                  <div className="header-action-icon-2 d-inline-flex align-items-center">
-                    <Link
-                      href={user ? "/wishlist" : "/login?redirect=/wishlist"}
-                      title="Wishlist"
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#1e293b',
-                        textDecoration: 'none',
-                        padding: '4px',
-                      }}
-                    >
-                      <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                        </svg>
-                        {wishlist && wishlist.length > 0 && (
-                          <span
-                            className="wishlist-active-dot"
-                            style={{
-                              position: 'absolute',
-                              bottom: '-7px',
-                              left: '50%',
-                              transform: 'translateX(-50%)',
-                              width: '5px',
-                              height: '5px',
-                              backgroundColor: '#dc2626',
-                              borderRadius: '50%',
-                              display: 'block'
-                            }}
-                          />
-                        )}
-                      </div>
-                    </Link>
-                  </div>
-
                   {/* Cart Icon + Inline Count + Red Dot */}
                   <div className="header-action-icon-2 d-inline-flex align-items-center">
                     <Link
@@ -1163,13 +1153,18 @@ export const Header: React.FC = () => {
                   <div
                     ref={mobileAccountRef}
                     className={"header-action-icon-2 d-inline-flex align-items-center " + (mobileAccountOpen ? "active" : "")}
-                    style={{ position: 'relative' }}
+                    style={{ position: 'relative', zIndex: mobileAccountOpen ? 10090 : 'auto', overflow: 'visible' }}
                   >
                     <a
                       href="#"
                       onClick={(e) => {
                         e.preventDefault();
-                        setMobileAccountOpen(!mobileAccountOpen);
+                        e.stopPropagation();
+                        setMobileAccountOpen((prev) => {
+                          const next = !prev;
+                          if (next) setMobileNotificationsOpen(false);
+                          return next;
+                        });
                       }}
                       title={user ? user.name : "Account"}
                       style={{
@@ -1229,21 +1224,36 @@ export const Header: React.FC = () => {
 
                     <div
                       className={"cart-dropdown-wrap cart-dropdown-hm2 account-dropdown " + (mobileAccountOpen ? "open" : "")}
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (target.closest('a') || target.closest('button')) {
+                          setMobileAccountOpen(false);
+                        }
+                      }}
                       style={{
+                        display: mobileAccountOpen ? 'block' : 'none',
                         position: 'absolute',
                         top: 'calc(100% + 10px)',
-                        right: '-10px',
+                        right: 0,
                         minWidth: '220px',
                         backgroundColor: '#ffffff',
                         border: '1px solid #e2e8f0',
                         borderRadius: '12px',
-                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                        zIndex: 1070,
+                        boxShadow: '0 12px 35px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+                        zIndex: 10099,
+                        maxHeight: 'calc(100vh - 90px)',
+                        overflowY: 'auto',
                       }}
                     >
                       {user ? (
                         <ul>
-                          <li style={{ padding: '8px 12px', borderBottom: '1px solid #f1f5f9', marginBottom: '6px' }}>
+                          <li
+                            onClick={() => {
+                              setMobileAccountOpen(false);
+                              router.push('/profile');
+                            }}
+                            style={{ padding: '8px 12px', borderBottom: '1px solid #f1f5f9', marginBottom: '6px', cursor: 'pointer' }}
+                          >
                             <div style={{ fontWeight: '700', fontSize: '13px', color: '#1e293b' }}>{user.name}</div>
                             <div style={{ fontSize: '11px', color: '#64748b' }}>{user.email}</div>
                           </li>
@@ -1260,15 +1270,6 @@ export const Header: React.FC = () => {
                             </li>
                           )}
 
-                          {/* Notifications */}
-                          <li>
-                            <Link
-                              href={isAdmin ? "/dashboard" : "/profile"}
-                              onClick={() => setMobileAccountOpen(false)}
-                            >
-                              <i className="fi fi-rs-bell mr-10"></i>Notifications
-                            </Link>
-                          </li>
 
                           {/* My Wishlist */}
                           <li>
@@ -1344,6 +1345,11 @@ export const Header: React.FC = () => {
                               <i className="fi fi-rs-label mr-10"></i>Create Account
                             </a>
                           </li>
+                          <li>
+                            <Link href="/wishlist" onClick={() => setMobileAccountOpen(false)} style={{ display: 'flex', alignItems: 'center' }}>
+                              <i className="fi fi-rs-heart mr-10"></i>My Wishlist
+                            </Link>
+                          </li>
                         </ul>
                       )}
                     </div>
@@ -1405,7 +1411,7 @@ export const Header: React.FC = () => {
             </div>
 
             {/* Mobile-only Search Bar: Matching reference style */}
-            <div className="d-block d-xl-none mt-3 pt-1">
+            <div className="d-block d-xl-none mt-3 pt-1" style={{ position: 'relative', zIndex: isSearchFocused ? 10040 : 1 }}>
               <div ref={mobileSearchContainerRef} className="search-style-2 w-100 position-relative">
                 <form
                   action="#"

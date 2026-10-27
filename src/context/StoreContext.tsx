@@ -143,17 +143,35 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (prevUserIdRef.current !== userId) {
-      const prevUid = prevUserIdRef.current;
       prevUserIdRef.current = userId;
 
       if (userId === null) {
-        // User logged out! Clean in-memory state
+        // User logged out: Completely clear in-memory cart and wishlist so no data leaks
         setCart([]);
         setWishlist([]);
         localStorage.removeItem('veuz_cart_guest');
         localStorage.removeItem('veuz_wishlist_guest');
       } else {
-        // Logged in or switched user
+        // Logged in or switched user: immediately load this user's own cached cart & wishlist
+        try {
+          const userCart = localStorage.getItem(getCartKey(userId));
+          if (userCart) {
+            const parsed = JSON.parse(userCart);
+            if (Array.isArray(parsed)) setCart(parsed);
+          } else {
+            setCart([]);
+          }
+
+          const userWishlist = localStorage.getItem(getWishlistKey(userId));
+          if (userWishlist) {
+            const parsed = JSON.parse(userWishlist);
+            if (Array.isArray(parsed)) setWishlist(parsed);
+          } else {
+            setWishlist([]);
+          }
+        } catch (e) {}
+
+        // Fetch server cart & wishlist to sync across devices for this specific user
         fetchServerCart(userId);
       }
     }

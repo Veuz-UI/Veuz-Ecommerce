@@ -233,6 +233,12 @@ export const login = async (req, res) => {
                 email: user.email,
                 role: user.role,
                 avatar: user.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}`,
+                phone: user.phone,
+                alternatePhone: user.alternatePhone,
+                dateOfBirth: user.dateOfBirth,
+                gender: user.gender,
+                address: user.address,
+                settings: user.settings,
                 isEmailVerified: user.isEmailVerified,
             },
         });

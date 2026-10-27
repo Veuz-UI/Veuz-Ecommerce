@@ -23,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="no-js">
+    <html lang="en" className="no-js" data-scroll-behavior="smooth" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -37,7 +37,7 @@ export default function RootLayout({
         <link rel="preload" as="style" href="/assets/css/vendors/bootstrap.min.css" />
         <link rel="preload" as="style" href="/assets/css/style.css" />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <AppLayoutShell>{children}</AppLayoutShell>
       </body>
     </html>

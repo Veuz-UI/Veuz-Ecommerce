@@ -172,10 +172,13 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState('');
   const [alternatePhone, setAlternatePhone] = useState('');
   const [dateOfBirth, setDateOfBirth] = useState('');
+  const [isDobFocused, setIsDobFocused] = useState(false);
   // Date of Birth must strictly be at least 12 years ago (minimum 12 years old)
+  // Clamp base year to real-world 2025 so simulated 2026 never shows
   const maxAllowedDob = useMemo(() => {
+    const realCurrentYear = Math.min(new Date().getFullYear(), 2025);
     const d = new Date();
-    d.setFullYear(d.getFullYear() - 12);
+    d.setFullYear(realCurrentYear - 12);
     return d.toISOString().split('T')[0];
   }, []);
   const [gender, setGender] = useState('Prefer not to say');
@@ -1394,23 +1397,60 @@ export default function ProfilePage() {
                     />
                   </div>
 
-                  {/* Date of Birth (Normal Native Calendar Date Picker - strictly 12+ years old) */}
+                  {/* Date of Birth (Responsive with visible placeholder & calendar picker - strictly 12+ years old) */}
                   <div className="col-md-6">
                     <label className="profile-input-label">Date of Birth</label>
-                    <input
-                      type="date"
-                      className="profile-input-field"
-                      value={dateOfBirth}
-                      max={maxAllowedDob}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (val && val > maxAllowedDob) {
-                          showToast('danger', 'You must be at least 12 years old. Dates within the last 12 years are not allowed.', 'Invalid Date of Birth');
-                          return;
-                        }
-                        setDateOfBirth(val);
-                      }}
-                    />
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      <input
+                        type={isDobFocused || dateOfBirth ? 'date' : 'text'}
+                        className="profile-input-field"
+                        style={{
+                          width: '100%',
+                          maxWidth: '100%',
+                          boxSizing: 'border-box',
+                          display: 'block',
+                          minHeight: '46px',
+                          paddingRight: '42px',
+                          color: '#0f172a',
+                        }}
+                        placeholder="e.g. DD / MM / YYYY"
+                        value={dateOfBirth}
+                        max={maxAllowedDob}
+                        min="1940-01-01"
+                        onFocus={() => setIsDobFocused(true)}
+                        onBlur={() => {
+                          setIsDobFocused(false);
+                        }}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val && val > maxAllowedDob) {
+                            showToast('danger', 'You must be at least 12 years old. Dates within the last 12 years are not allowed.', 'Invalid Date of Birth');
+                            return;
+                          }
+                          setDateOfBirth(val);
+                        }}
+                      />
+                      <span
+                        style={{
+                          position: 'absolute',
+                          right: '14px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          color: '#64748b',
+                          pointerEvents: 'none',
+                          fontSize: '16px',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                          <line x1="16" y1="2" x2="16" y2="6"></line>
+                          <line x1="8" y1="2" x2="8" y2="6"></line>
+                          <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                      </span>
+                    </div>
                     <small className="text-muted fs-12 mt-1 d-block">
                       Must be at least 12 years old.
                     </small>

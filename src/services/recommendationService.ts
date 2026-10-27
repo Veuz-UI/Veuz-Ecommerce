@@ -160,6 +160,9 @@ export function computeRecommendedProducts(
   userContext: {
     cart?: any[];
     wishlist?: (number | string)[];
+  },
+  options?: {
+    useClientBehavior?: boolean;
   }
 ): ProductItem[] {
   if (!catalogProducts || catalogProducts.length === 0) return [];
@@ -167,9 +170,14 @@ export function computeRecommendedProducts(
   const activeProducts = catalogProducts.filter((p) => p.isActive !== false && !p.isDraft);
   if (activeProducts.length === 0) return [];
 
-  const { searches, clicks, cartAdds } = getUserBehaviorData();
-  const cartItems = userContext.cart || [];
-  const wishlistIds = new Set((userContext.wishlist || []).map((id) => String(id)));
+  // Strictly avoid reading client-only storage (localStorage/window) during SSR and initial hydration pass
+  const { searches, clicks, cartAdds } = options?.useClientBehavior
+    ? getUserBehaviorData()
+    : { searches: [], clicks: [], cartAdds: [] };
+  const cartItems = options?.useClientBehavior ? (userContext.cart || []) : [];
+  const wishlistIds = new Set(
+    (options?.useClientBehavior ? (userContext.wishlist || []) : []).map((id) => String(id))
+  );
 
   // Extract cart product IDs, categories, and titles
   const cartProductIds = new Set<string>();

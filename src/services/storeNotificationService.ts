@@ -1,4 +1,5 @@
 import { CATEGORY_PRODUCTS_DATA, ProductItem } from '@/data/categoryProductsData';
+import authService from '@/services/authService';
 
 export type NotificationType = 'welcome' | 'cart' | 'offer' | 'product';
 
@@ -99,14 +100,31 @@ export function formatNotificationDateMeta(timestamp: number): { timeAgo: string
 export function buildRealStoreNotifications(
   userId: string | number,
   userName?: string,
-  liveProducts?: ProductItem[]
+  liveProducts?: ProductItem[],
+  userSettings?: any
 ): StoreNotificationItem[] {
   if (typeof window === 'undefined' || !userId) return [];
 
   try {
-    const clearedAt = Number(localStorage.getItem(getUserClearedKey(userId)) || 0);
-    const isCleared = localStorage.getItem(getUserClearedFlagKey(userId)) === 'true';
-    const deletedIds: string[] = JSON.parse(localStorage.getItem(getUserDeletedKey(userId)) || '[]');
+    let profileSettings = userSettings;
+    if (!profileSettings && typeof window !== 'undefined') {
+      try {
+        const rawUser = localStorage.getItem('veuz_user');
+        if (rawUser) {
+          profileSettings = JSON.parse(rawUser)?.settings;
+        }
+      } catch (e) {}
+    }
+
+    const isCleared =
+      profileSettings?.notifClearedAll === true ||
+      Number(profileSettings?.notifClearedAt || 0) > 0 ||
+      Number(localStorage.getItem(getUserClearedKey(userId)) || 0) > 0 ||
+      localStorage.getItem(getUserClearedFlagKey(userId)) === 'true';
+
+    const localDeleted: string[] = JSON.parse(localStorage.getItem(getUserDeletedKey(userId)) || '[]');
+    const profileDeleted: string[] = Array.isArray(profileSettings?.deletedNotifIds) ? profileSettings.deletedNotifIds : [];
+    const deletedIds: string[] = Array.from(new Set([...localDeleted, ...profileDeleted]));
     const readIds: string[] = JSON.parse(localStorage.getItem(getUserReadIdsKey(userId)) || '[]');
 
     const notifications: StoreNotificationItem[] = [];
@@ -121,7 +139,7 @@ export function buildRealStoreNotifications(
       localStorage.setItem(getUserJoinKey(userId), String(userJoinTime));
     }
 
-    if (!isCleared && userJoinTime > clearedAt && !deletedIds.includes(welcomeId)) {
+    if (!isCleared && !deletedIds.includes(welcomeId)) {
       const { timeAgo, group } = formatNotificationDateMeta(userJoinTime);
       notifications.push({
         id: welcomeId,
@@ -151,8 +169,8 @@ export function buildRealStoreNotifications(
 
       // Suppress if explicitly deleted or user cleared notifications
       if (deletedIds.includes(notifId)) continue;
-      if (isCleared && (!prodCreatedAt || prodCreatedAt <= clearedAt)) continue;
-      if (clearedAt > 0 && (!prodCreatedAt || prodCreatedAt <= clearedAt)) continue;
+      // If user has cleared notifications, suppress all pre-existing catalog products
+      if (isCleared) continue;
 
       const { timeAgo, group } = formatNotificationDateMeta(prodCreatedAt || Date.now());
       const productLink = prod.link || `/product-details?id=${prod.id}`;
@@ -221,10 +239,11 @@ export function buildRealStoreNotifications(
 export function getUserNotifications(
   userId?: string | number | null,
   userName?: string,
-  liveProducts?: ProductItem[]
+  liveProducts?: ProductItem[],
+  userSettings?: any
 ): StoreNotificationItem[] {
   if (!userId || typeof window === 'undefined') return [];
-  return buildRealStoreNotifications(userId, userName, liveProducts);
+  return buildRealStoreNotifications(userId, userName, liveProducts, userSettings);
 }
 
 export function markNotificationAsRead(userId: string | number, id: string): void {
@@ -268,7 +287,12 @@ export function markAllNotificationsAsRead(userId: string | number): void {
   }
 }
 
-export function deleteNotification(userId: string | number, id: string): void {
+export function deleteNotification(
+  userId: string | number,
+  id: string,
+  user?: any,
+  updateProfileFn?: (data: any) => Promise<any>
+): void {
   if (!userId || typeof window === 'undefined') return;
 
   try {
@@ -279,7 +303,26 @@ export function deleteNotification(userId: string | number, id: string): void {
       localStorage.setItem(key, JSON.stringify(existing));
     }
 
-    const updated = buildRealStoreNotifications(userId);
+    const newSettings = {
+      ...(user?.settings || {}),
+      deletedNotifIds: existing,
+    };
+    if (typeof updateProfileFn === 'function') {
+      updateProfileFn({ settings: newSettings }).catch(() => {});
+    } else {
+      authService.updateProfile({ settings: newSettings }).catch(() => {});
+    }
+
+    try {
+      const rawUser = localStorage.getItem('veuz_user');
+      if (rawUser) {
+        const parsed = JSON.parse(rawUser);
+        parsed.settings = newSettings;
+        localStorage.setItem('veuz_user', JSON.stringify(parsed));
+      }
+    } catch (e) {}
+
+    const updated = buildRealStoreNotifications(userId, user?.name, undefined, newSettings);
     window.dispatchEvent(
       new CustomEvent(NOTIFICATIONS_UPDATED_EVENT, {
         detail: { userId, notifications: updated },
@@ -290,29 +333,54 @@ export function deleteNotification(userId: string | number, id: string): void {
   }
 }
 
-export function clearAllNotifications(userId: string | number): void {
+export function clearAllNotifications(
+  userId: string | number,
+  user?: any,
+  updateProfileFn?: (data: any) => Promise<any>
+): void {
   if (!userId || typeof window === 'undefined') return;
 
   try {
     const now = Date.now();
-    // 1. Snapshot all current notifications and record their IDs as deleted
-    const currentNotifications = buildRealStoreNotifications(userId);
-    const notifIdsToClear = currentNotifications.map((n) => n.id);
+    // 1. Collect all notification IDs that currently exist across the entire store
+    const allStoreNotifIds = [
+      `welcome-${userId}`,
+      `cart-waiting-${userId}`,
+      ...CATEGORY_PRODUCTS_DATA.map((p) => `prod-${p.id}`),
+      ...CATEGORY_PRODUCTS_DATA.map((p) => `offer-${p.id}`),
+    ];
 
     const delKey = getUserDeletedKey(userId);
     const existingDeleted: string[] = JSON.parse(localStorage.getItem(delKey) || '[]');
-    const mergedDeleted = Array.from(new Set([...existingDeleted, ...notifIdsToClear]));
+    const mergedDeleted = Array.from(new Set([...existingDeleted, ...allStoreNotifIds]));
     localStorage.setItem(delKey, JSON.stringify(mergedDeleted));
-
-    // 2. Set cleared timestamp strictly beyond any existing product creation date
-    const maxExistingTime = Math.max(
-      now,
-      ...CATEGORY_PRODUCTS_DATA.map((p) => Number(p.createdAt) || 0)
-    );
-    localStorage.setItem(getUserClearedKey(userId), String(maxExistingTime + 1000));
+    localStorage.setItem(getUserClearedKey(userId), String(now));
     localStorage.setItem(getUserClearedFlagKey(userId), 'true');
 
-    // 3. Dispatch global event with cleared empty state
+    // 2. Persist to user profile in database so it stays cleared across re-login & across devices!
+    const newSettings = {
+      ...(user?.settings || {}),
+      notifClearedAt: now,
+      notifClearedAll: true,
+      deletedNotifIds: mergedDeleted,
+    };
+
+    if (typeof updateProfileFn === 'function') {
+      updateProfileFn({ settings: newSettings }).catch(() => {});
+    } else {
+      authService.updateProfile({ settings: newSettings }).catch(() => {});
+    }
+
+    try {
+      const rawUser = localStorage.getItem('veuz_user');
+      if (rawUser) {
+        const parsed = JSON.parse(rawUser);
+        parsed.settings = newSettings;
+        localStorage.setItem('veuz_user', JSON.stringify(parsed));
+      }
+    } catch (e) {}
+
+    // 4. Dispatch global event with cleared empty state
     window.dispatchEvent(
       new CustomEvent(NOTIFICATIONS_UPDATED_EVENT, {
         detail: { userId: String(userId), notifications: [] },

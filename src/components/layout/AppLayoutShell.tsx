@@ -77,7 +77,7 @@ export const AppLayoutShell: React.FC<AppLayoutShellProps> = ({ children }) => {
               <StorefrontStyles />
               <ScrollRevealInit />
               <Header />
-              <div key={pathname} className="veuz-page-transition" style={{ minHeight: 'calc(100vh - 160px)', width: '100%', backgroundColor: '#ffffff' }}>
+              <div key={pathname} className="veuz-page-transition" style={{ minHeight: 'calc(100vh - 160px)', width: '100%', backgroundColor: '#ffffff', position: 'relative', zIndex: 1 }}>
                 {children}
               </div>
               <Footer />

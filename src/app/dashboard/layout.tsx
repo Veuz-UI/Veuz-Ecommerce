@@ -98,6 +98,7 @@ export default function DashboardLayout({
       clearTimeout(profileHoverTimeout.current);
       profileHoverTimeout.current = null;
     }
+    setNotificationsOpen(false);
     setProfileDropdownOpen(true);
   };
 
@@ -787,7 +788,13 @@ export default function DashboardLayout({
                     <button
                       type="button"
                       className="topbar-button position-relative"
-                      onClick={() => setNotificationsOpen(!notificationsOpen)}
+                      onClick={() => {
+                        setNotificationsOpen((prev) => {
+                          const nextState = !prev;
+                          if (nextState) setProfileDropdownOpen(false);
+                          return nextState;
+                        });
+                      }}
                       title="Notifications"
                     >
                       <iconify-icon icon="solar:bell-bing-broken" class="fs-24 align-middle"></iconify-icon>
@@ -949,7 +956,13 @@ export default function DashboardLayout({
                   <button
                     type="button"
                     className="topbar-button"
-                    onClick={() => setProfileDropdownOpen((prev) => !prev)}
+                    onClick={() => {
+                      setProfileDropdownOpen((prev) => {
+                        const nextState = !prev;
+                        if (nextState) setNotificationsOpen(false);
+                        return nextState;
+                      });
+                    }}
                     style={{ background: 'transparent', border: 'none' }}
                   >
                     <span className="d-flex align-items-center gap-2">

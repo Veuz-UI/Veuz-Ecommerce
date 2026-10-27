@@ -31,7 +31,7 @@ export const StoreNotificationDropdown: React.FC<StoreNotificationDropdownProps>
   onMouseLeave,
 }) => {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, updateUserProfile } = useAuth();
   const { cart, totalCartItems } = useStore();
   const [notifications, setNotifications] = useState<StoreNotificationItem[]>([]);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -53,13 +53,13 @@ export const StoreNotificationDropdown: React.FC<StoreNotificationDropdownProps>
       );
     }
 
-    setNotifications(getUserNotifications(user.id, user.name));
+    setNotifications(getUserNotifications(user.id, user.name, undefined, user.settings));
 
     const handleUpdate = (e: any) => {
       if (e.detail && String(e.detail.userId) === String(user.id)) {
         setNotifications(e.detail.notifications);
       } else {
-        setNotifications(getUserNotifications(user.id, user.name));
+        setNotifications(getUserNotifications(user.id, user.name, undefined, user.settings));
       }
     };
 
@@ -123,14 +123,14 @@ export const StoreNotificationDropdown: React.FC<StoreNotificationDropdownProps>
   const handleDelete = (e: React.MouseEvent, id: string) => {
     e.preventDefault();
     e.stopPropagation();
-    deleteNotification(user.id, id);
+    deleteNotification(user.id, id, user, updateUserProfile);
   };
 
   const handleClearAll = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (user?.id) {
-      clearAllNotifications(user.id);
+      clearAllNotifications(user.id, user, updateUserProfile);
     }
     setNotifications([]);
   };
@@ -509,204 +509,329 @@ export const StoreNotificationDropdown: React.FC<StoreNotificationDropdownProps>
   };
 
   return (
-    <div
-      ref={panelRef}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      className="store-notification-dropdown"
-      style={{
-        position: 'absolute',
-        top: 'calc(100% + 12px)',
-        right: alignRight ? 0 : 'auto',
-        left: alignRight ? 'auto' : 0,
-        width: '390px',
-        maxWidth: 'calc(100vw - 20px)',
-        backgroundColor: '#ffffff',
-        borderRadius: '20px',
-        boxShadow: '0 24px 50px -12px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(15, 23, 42, 0.08)',
-        zIndex: 10050,
-        overflow: 'hidden',
-        animation: 'notifFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      {/* 1. Header Row (Title on Left, "Clear All" Button on Right) */}
+    <>
+      {/* Mobile Backdrop overlay to dismiss cleanly on outside tap */}
       <div
-        className="d-flex align-items-center justify-content-between"
+        className="d-xl-none store-notif-mobile-backdrop"
+        onClick={onClose}
         style={{
-          padding: '18px 24px 14px 24px',
-          borderBottom: '1px solid #f8fafc',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.4)',
+          zIndex: 10090,
+          backdropFilter: 'blur(2px)',
+          WebkitBackdropFilter: 'blur(2px)',
+        }}
+      />
+
+      <div
+        ref={panelRef}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        className="store-notification-dropdown"
+        style={{
+          position: 'absolute',
+          top: 'calc(100% + 12px)',
+          right: alignRight ? 0 : 'auto',
+          left: alignRight ? 'auto' : 0,
+          width: '390px',
+          maxWidth: 'calc(100vw - 20px)',
           backgroundColor: '#ffffff',
+          borderRadius: '20px',
+          boxShadow: '0 24px 50px -12px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(15, 23, 42, 0.08)',
+          zIndex: 10095,
+          overflow: 'hidden',
+          animation: 'notifFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1)',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
-        <div className="d-flex align-items-center gap-2">
-          <h5
-            className="mb-0 fw-bold"
-            style={{
-              fontSize: '18px',
-              color: '#0f172a',
-              letterSpacing: '-0.3px',
-            }}
-          >
-            Notifications
-          </h5>
-        </div>
-
-        {/* Clear Button: Cleans all messages & keeps notifications empty */}
-        {notifications.length > 0 && (
-          <button
-            type="button"
-            onClick={handleClearAll}
-            onMouseDown={(e) => e.stopPropagation()}
-            className="btn btn-sm btn-link p-0 text-decoration-none d-flex align-items-center gap-1.5"
-            style={{
-              fontSize: '12px',
-              fontWeight: 600,
-              color: '#ef4444',
-              backgroundColor: 'rgba(239, 68, 68, 0.08)',
-              padding: '5px 12px',
-              borderRadius: '999px',
-              border: '1px solid rgba(239, 68, 68, 0.16)',
-              transition: 'all 0.15s ease',
-            }}
-            title="Clean all messages and keep empty"
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.08)';
-            }}
-          >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-            <span>Clear</span>
-          </button>
-        )}
-      </div>
-
-      {/* 2. Notification List with Sleek Scrollbar (Dynamic Date Groups) */}
-      <div
-        className="notifications-scroll-wrap"
-        style={{
-          overflowY: 'auto',
-          maxHeight: '480px',
-        }}
-      >
-        {notifications.length === 0 ? (
-          <div
-            style={{
-              padding: '48px 24px 44px 24px',
-              textAlign: 'center',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-            }}
-          >
-            {/* Illustration with grid background & bell silhouette with '0' badge (Matching Reference Image) */}
-            <div
+        {/* 1. Header Row (Title on Left, Clear & Close Buttons on Right) */}
+        <div
+          className="d-flex align-items-center justify-content-between store-notification-header"
+          style={{
+            padding: '16px 20px 14px 20px',
+            borderBottom: '1px solid #f1f5f9',
+            backgroundColor: '#ffffff',
+          }}
+        >
+          <div className="d-flex align-items-center gap-2">
+            <h5
+              className="mb-0 fw-bold store-notification-title"
               style={{
-                position: 'relative',
-                width: '130px',
-                height: '110px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: '16px',
-              }}
-            >
-              {/* Subtle grid background pattern */}
-              <svg
-                width="130"
-                height="110"
-                viewBox="0 0 130 110"
-                fill="none"
-                style={{ position: 'absolute', inset: 0, opacity: 0.7 }}
-              >
-                <defs>
-                  <pattern id="notif-empty-grid" width="16" height="16" patternUnits="userSpaceOnUse">
-                    <path d="M 16 0 L 0 0 0 16" fill="none" stroke="#f1f5f9" strokeWidth="1.2" />
-                  </pattern>
-                </defs>
-                <rect width="130" height="110" fill="url(#notif-empty-grid)" />
-              </svg>
-
-              {/* Bell Silhouette with dark '0' badge */}
-              <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="74" height="74" viewBox="0 0 24 24" fill="#e2e8f0" style={{ display: 'block' }}>
-                  <path d="M12 2C10.9 2 10 2.9 10 4V4.29C7.03 5.17 5 7.9 5 11.14V16.5L3.29 18.21C3.11 18.39 3 18.65 3 18.92C3 19.52 3.48 20 4.08 20H19.92C20.52 20 21 19.52 21 18.92C21 18.65 20.89 18.39 20.71 18.21L19 16.5V11.14C19 7.9 16.97 5.17 14 4.29V4C14 2.9 13.1 2 12 2ZM12 22C13.1 22 14 21.1 14 20H10C10 21.1 10.9 22 12 22Z" />
-                </svg>
-
-                {/* Dark circular badge with '0' */}
-                <span
-                  style={{
-                    position: 'absolute',
-                    top: '12px',
-                    right: '10px',
-                    width: '19px',
-                    height: '19px',
-                    borderRadius: '50%',
-                    backgroundColor: '#1e293b',
-                    color: '#ffffff',
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    border: '2px solid #ffffff',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                  }}
-                >
-                  0
-                </span>
-              </div>
-            </div>
-
-            <h6
-              style={{
-                fontSize: '15px',
-                fontWeight: 700,
+                fontSize: '17px',
                 color: '#0f172a',
-                marginBottom: '6px',
-                letterSpacing: '-0.2px',
+                letterSpacing: '-0.3px',
               }}
             >
-              No notifications yet!
-            </h6>
-            <p
-              style={{
-                fontSize: '12.5px',
-                color: '#64748b',
-                lineHeight: '1.5',
-                maxWidth: '280px',
-                margin: 0,
-              }}
-            >
-              This area will light up with new notifications once there&apos;s activity on your account.
-            </p>
-          </div>
-        ) : (
-          Object.entries(groupedNotifications).map(([groupTitle, items]) => (
-            <div key={groupTitle}>
-              <div
+              Notifications
+            </h5>
+            {notifications.length > 0 && (
+              <span
                 style={{
-                  padding: '12px 24px 6px 24px',
                   fontSize: '11px',
                   fontWeight: 700,
-                  letterSpacing: '0.6px',
-                  color: '#94a3b8',
-                  textTransform: 'uppercase',
+                  color: '#2563eb',
+                  backgroundColor: '#eff6ff',
+                  padding: '2px 8px',
+                  borderRadius: '999px',
                 }}
               >
-                {groupTitle}
+                {notifications.length}
+              </span>
+            )}
+          </div>
+
+          <div className="d-flex align-items-center gap-2">
+            {/* Clear Button: Cleans all messages & keeps notifications empty */}
+            {notifications.length > 0 && (
+              <button
+                type="button"
+                onClick={handleClearAll}
+                onMouseDown={(e) => e.stopPropagation()}
+                className="btn btn-sm btn-link p-0 text-decoration-none d-flex align-items-center gap-1.5"
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 600,
+                  color: '#ef4444',
+                  backgroundColor: 'rgba(239, 68, 68, 0.08)',
+                  padding: '4px 10px',
+                  borderRadius: '999px',
+                  border: '1px solid rgba(239, 68, 68, 0.16)',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Clean all messages and keep empty"
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.15)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.08)';
+                }}
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                <span>Clear</span>
+              </button>
+            )}
+
+            {/* Mobile / Quick Close Button */}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close notifications"
+              className="store-notif-close-btn"
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                backgroundColor: '#f1f5f9',
+                border: 'none',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#64748b',
+                cursor: 'pointer',
+                padding: 0,
+                transition: 'all 0.15s ease',
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* 2. Notification List with Sleek Scrollbar (Dynamic Date Groups) */}
+        <div
+          className="notifications-scroll-wrap"
+          style={{
+            overflowY: 'auto',
+            maxHeight: '480px',
+          }}
+        >
+          {notifications.length === 0 ? (
+            <div
+              className="store-notification-empty-wrap"
+              style={{
+                padding: '36px 20px 32px 20px',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+              }}
+            >
+              {/* Illustration with grid background & bell silhouette with '0' badge */}
+              <div
+                className="store-notification-empty-illus"
+                style={{
+                  position: 'relative',
+                  width: '100px',
+                  height: '84px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '14px',
+                }}
+              >
+                {/* Subtle grid background pattern */}
+                <svg
+                  width="100"
+                  height="84"
+                  viewBox="0 0 130 110"
+                  fill="none"
+                  style={{ position: 'absolute', inset: 0, opacity: 0.6 }}
+                >
+                  <defs>
+                    <pattern id="notif-empty-grid" width="16" height="16" patternUnits="userSpaceOnUse">
+                      <path d="M 16 0 L 0 0 0 16" fill="none" stroke="#f1f5f9" strokeWidth="1.2" />
+                    </pattern>
+                  </defs>
+                  <rect width="130" height="110" fill="url(#notif-empty-grid)" />
+                </svg>
+
+                {/* Bell Silhouette with dark '0' badge */}
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="56" height="56" viewBox="0 0 24 24" fill="#e2e8f0" style={{ display: 'block' }}>
+                    <path d="M12 2C10.9 2 10 2.9 10 4V4.29C7.03 5.17 5 7.9 5 11.14V16.5L3.29 18.21C3.11 18.39 3 18.65 3 18.92C3 19.52 3.48 20 4.08 20H19.92C20.52 20 21 19.52 21 18.92C21 18.65 20.89 18.39 20.71 18.21L19 16.5V11.14C19 7.9 16.97 5.17 14 4.29V4C14 2.9 13.1 2 12 2ZM12 22C13.1 22 14 21.1 14 20H10C10 21.1 10.9 22 12 22Z" />
+                  </svg>
+
+                  {/* Dark circular badge with '0' */}
+                  <span
+                    style={{
+                      position: 'absolute',
+                      top: '7px',
+                      right: '5px',
+                      width: '17px',
+                      height: '17px',
+                      borderRadius: '50%',
+                      backgroundColor: '#1e293b',
+                      color: '#ffffff',
+                      fontSize: '10.5px',
+                      fontWeight: 700,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '2px solid #ffffff',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                    }}
+                  >
+                    0
+                  </span>
+                </div>
               </div>
-              {items.map(renderNotificationRow)}
+
+              <h6
+                className="store-notification-empty-title"
+                style={{
+                  fontSize: '14.5px',
+                  fontWeight: 700,
+                  color: '#0f172a',
+                  marginBottom: '5px',
+                  letterSpacing: '-0.2px',
+                }}
+              >
+                No notifications yet!
+              </h6>
+              <p
+                className="store-notification-empty-sub"
+                style={{
+                  fontSize: '12px',
+                  color: '#64748b',
+                  lineHeight: '1.45',
+                  maxWidth: '260px',
+                  margin: 0,
+                }}
+              >
+                This area will light up with new notifications once there&apos;s activity on your account.
+              </p>
             </div>
-          ))
-        )}
+          ) : (
+            Object.entries(groupedNotifications).map(([groupTitle, items]) => (
+              <div key={groupTitle}>
+                <div
+                  style={{
+                    padding: '10px 20px 4px 20px',
+                    fontSize: '10.5px',
+                    fontWeight: 700,
+                    letterSpacing: '0.6px',
+                    color: '#94a3b8',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  {groupTitle}
+                </div>
+                {items.map(renderNotificationRow)}
+              </div>
+            ))
+          )}
+        </div>
       </div>
-    </div>
+
+      {/* Responsive Styles for Phone Viewports */}
+      <style jsx global>{`
+        @media (max-width: 768px) {
+          .store-notification-dropdown {
+            position: fixed !important;
+            top: 68px !important;
+            left: 10px !important;
+            right: 10px !important;
+            width: auto !important;
+            max-width: calc(100vw - 20px) !important;
+            max-height: calc(100vh - 85px) !important;
+            border-radius: 16px !important;
+            z-index: 10095 !important;
+            margin: 0 auto !important;
+            box-shadow: 0 16px 40px rgba(15, 23, 42, 0.22), 0 0 0 1px rgba(15, 23, 42, 0.08) !important;
+          }
+
+          .notifications-scroll-wrap {
+            max-height: calc(100vh - 160px) !important;
+            overflow-y: auto !important;
+            -webkit-overflow-scrolling: touch !important;
+          }
+
+          .store-notification-header {
+            padding: 13px 16px 11px 16px !important;
+          }
+
+          .store-notification-title {
+            font-size: 15.5px !important;
+          }
+
+          .store-notification-empty-wrap {
+            padding: 26px 16px 22px 16px !important;
+          }
+
+          .store-notification-empty-illus {
+            width: 86px !important;
+            height: 72px !important;
+            margin-bottom: 10px !important;
+          }
+
+          .store-notification-empty-title {
+            font-size: 14px !important;
+            margin-bottom: 3px !important;
+          }
+
+          .store-notification-empty-sub {
+            font-size: 11.5px !important;
+            line-height: 1.4 !important;
+            max-width: 250px !important;
+          }
+
+          .notif-row-wrapper {
+            padding: 11px 14px !important;
+            gap: 11px !important;
+          }
+        }
+      `}</style>
+    </>
   );
 };

@@ -8412,7 +8412,7 @@ h6.post-title {
 /* Header style 1 */
 .header-style-1 {
   position: relative;
-  overflow-x: clip;
+  overflow: visible;
 }
 
 .header-style-1.header-height-2 {

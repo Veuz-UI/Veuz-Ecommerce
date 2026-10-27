@@ -230,7 +230,11 @@ function HomeProductCard({
                   <span className="new-prod-old-price">{prod.oldPrice}</span>
                 )}
                 {isLimitedOffer ? (
-                  <span className="badge" style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', fontSize: '11px', padding: '4px 7px' }}>
+                  <span
+                    className="badge"
+                    suppressHydrationWarning
+                    style={{ backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fcd34d', fontSize: '11px', padding: '4px 7px' }}
+                  >
                     {limitedOfferDaysLeft === null
                       ? 'LIMITED SALE'
                       : limitedOfferDaysLeft === 0
@@ -416,6 +420,7 @@ export default function HomePage() {
   const [activeCatIndex, setActiveCatIndex] = useState(0);
   const [isCatHovered, setIsCatHovered] = useState(false);
   const [userBehaviorTick, setUserBehaviorTick] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
   const newProdScrollRef = useRef<HTMLDivElement>(null);
   const mostSearchedScrollRef = useRef<HTMLDivElement>(null);
   const recommendedScrollRef = useRef<HTMLDivElement>(null);
@@ -469,6 +474,7 @@ export default function HomePage() {
 
   // Guarantee that the home page always starts at the very top (0, 0)
   useEffect(() => {
+    setIsMounted(true);
     if (typeof window !== 'undefined') {
       try {
         if ('scrollRestoration' in window.history) {
@@ -968,10 +974,16 @@ export default function HomePage() {
 
   // 4. Recommended For You: Algorithmically personalized based on user search queries, clicks, wishlist items, & cart additions
   const displayedRecommended = useMemo(() => {
-    const recommended = computeRecommendedProducts(catalogProducts, {
-      cart,
-      wishlist,
-    });
+    const recommended = computeRecommendedProducts(
+      catalogProducts,
+      {
+        cart,
+        wishlist,
+      },
+      {
+        useClientBehavior: isMounted,
+      }
+    );
 
     return recommended.map((p) => ({
       ...p,
@@ -995,7 +1007,7 @@ export default function HomePage() {
       reviews: p.reviews ? `${p.reviews} - Reviews` : '0 - Reviews',
       link: `/product-details?id=${p.id}`,
     }));
-  }, [catalogProducts, cart, wishlist, userBehaviorTick]);
+  }, [catalogProducts, cart, wishlist, userBehaviorTick, isMounted]);
 
   // Triplicate shop categories for infinite continuous forward looping without reversing
   const repeatedShopCategories = useMemo(() => {
